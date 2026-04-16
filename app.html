@@ -358,7 +358,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
       <div class="tab-bar">
         <div class="tab active" onclick="switchTab(this,'att','teachers')">Teachers (20)</div>
         <div class="tab" onclick="switchTab(this,'att','staff')">Staff (7)</div>
+        <div class="tab" onclick="switchTab(this,'att','subs')">&#128101; Substitutes</div>
         <div class="tab" onclick="switchTab(this,'att','planned')">&#128197; Planned Days Off</div>
+        <div class="tab" onclick="switchTab(this,'att','history')">&#128336; History</div>
+        <div class="tab" onclick="switchTab(this,'att','subreport')">&#128203; Sub Report</div>
       </div>
       <!-- TODAY view -->
       <div id="att-today-view">
@@ -378,6 +381,36 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
         </div>
       </div>
       <!-- PLANNED DAYS OFF view -->
+      <div id="att-subs-view" style="display:none">
+        <div class="card">
+          <div class="shdr">
+            <div class="stitle">Substitute Teachers</div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('sub-modal')">+ Add Sub</button>
+          </div>
+          <div id="att-subs-list"></div>
+        </div>
+      </div>
+      <div id="att-history-view" style="display:none">
+        <div class="card">
+          <div class="shdr">
+            <div class="stitle">Attendance History</div>
+          </div>
+          <div id="att-history-content"></div>
+        </div>
+      </div>
+      <div id="att-subreport-view" style="display:none">
+        <div class="card">
+          <div class="shdr"><div class="stitle">&#128203; Sub Payroll Report</div>
+            <button class="btn btn-primary btn-sm" onclick="generateSubReport()">&#128196; Print PDF</button>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">
+            <div><label class="flabel">From Date</label><input type="date" id="sr-from" style="padding:6px 10px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit"></div>
+            <div><label class="flabel">To Date</label><input type="date" id="sr-to" style="padding:6px 10px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit"></div>
+            <button class="btn btn-sm" onclick="renderSubReportPreview()">Preview</button>
+          </div>
+          <div id="att-subreport-content"></div>
+        </div>
+      </div>
       <div id="att-planned-view" style="display:none">
         <div class="g2" style="margin-bottom:14px">
           <div class="card">
@@ -732,6 +765,8 @@ const SP_C={P:'sp-P',EA:'sp-EA',T:'sp-T',UA:'sp-UA'};
 const DEFAULT={
   taskTab:'all',budgetTab:'overview',attTab:'teachers',nextId:20,
   attendance:{},
+  attendanceHistory:{},
+  lastDate:'',
   subs:[],
   plannedDays:[],
   tasks:[
@@ -816,7 +851,30 @@ const DEFAULT={
 
 let S=JSON.parse(JSON.stringify(DEFAULT));
 
-function initAtt(){[...TEACHERS,...STAFF].forEach(p=>{if(!S.attendance[p.name])S.attendance[p.name]={status:'P',sub:null,reason:'',periods:[],departTime:'',contractEnd:'15:30'};if(!S.attendance[p.name].periods)S.attendance[p.name].periods=[];})}
+function initAtt(){
+  // Auto-reset attendance if it's a new day
+  const todayStr=new Date().toISOString().slice(0,10);
+  if(S.lastDate && S.lastDate !== todayStr && Object.keys(S.attendance).some(k=>S.attendance[k].status!=='P')){
+    // Save yesterday's attendance to history before resetting
+    if(!S.attendanceHistory)S.attendanceHistory={};
+    S.attendanceHistory[S.lastDate]=JSON.parse(JSON.stringify(S.attendance));
+    // Reset all to Present for the new day
+    Object.keys(S.attendance).forEach(name=>{
+      S.attendance[name]={status:'P',sub:null,reason:'',periods:[],departTime:'',contractEnd:'15:30'};
+    });
+    // Free all subs
+    S.subs.forEach(s=>{s.placed=null;});  // Reset daily placement info, subs stay in list
+    toast('New day — attendance reset ✓');
+    scheduleSave();
+  }
+  S.lastDate=todayStr;
+  // Initialize anyone missing
+  [...TEACHERS,...STAFF].forEach(p=>{
+    if(!S.attendance[p.name])S.attendance[p.name]={status:'P',sub:null,reason:'',periods:[],departTime:'',contractEnd:'15:30'};
+    if(!S.attendance[p.name].periods)S.attendance[p.name].periods=[];
+  });
+  if(!S.attendanceHistory)S.attendanceHistory={};
+}
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function fmt(d){if(!d)return'—';const p=d.split('-');return p[1]+'/'+p[2]+'/'+p[0];}
@@ -1000,12 +1058,14 @@ function renderPlannedTable(){
 
 async function signOut(){await sb.auth.signOut();window.location.href='index.html';}
 async function initData(){
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='index.html';return;}
   const emailEl=document.getElementById('user-email-display');
   if(emailEl)emailEl.textContent=session.user.email;
   if(window.electronAPI){const saved=await window.electronAPI.loadData();if(saved)S=saved;window.electronAPI.onNav(p=>showPanel(p,null));window.electronAPI.onExport(exportData);}
   // Safety guards — ensure new keys exist if user has old saved data
+  if(!S.attendanceHistory)S.attendanceHistory={};
+  if(!S.lastDate)S.lastDate='';
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
   if(!S.plannedDays||!Array.isArray(S.plannedDays))S.plannedDays=[];
@@ -1041,10 +1101,29 @@ function switchTab(el,mod,tab){
     S.attTab=tab;
     const todayView=document.getElementById('att-today-view');
     const plannedView=document.getElementById('att-planned-view');
-    if(todayView&&plannedView){
-      if(tab==='planned'){todayView.style.display='none';plannedView.style.display='';}
-      else{todayView.style.display='';plannedView.style.display='none';}
+    const historyView=document.getElementById('att-history-view');
+    const subreportView=document.getElementById('att-subreport-view');
+    // Hide all att views first
+    const subsView2=document.getElementById('att-subs-view');
+    [todayView,plannedView,historyView,subreportView,subsView2].forEach(v=>{if(v)v.style.display='none';});
+    const subsView=document.getElementById('att-subs-view');
+    if(subsView)subsView.style.display='none';
+    if(tab==='planned'&&plannedView)plannedView.style.display='';
+    else if(tab==='subs'&&subsView){subsView.style.display='';renderSubsList();}
+    else if(tab==='history'&&historyView){historyView.style.display='';renderAttHistory();}
+    else if(tab==='subreport'&&subreportView){
+      subreportView.style.display='';
+      // Set default date range to current month
+      const now=new Date();
+      const firstDay=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10);
+      const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().slice(0,10);
+      const fromEl=document.getElementById('sr-from');
+      const toEl=document.getElementById('sr-to');
+      if(fromEl&&!fromEl.value)fromEl.value=firstDay;
+      if(toEl&&!toEl.value)toEl.value=lastDay;
+      renderSubReportPreview();
     }
+    else if(todayView)todayView.style.display='';
   }
   render();
 }
@@ -1272,9 +1351,21 @@ function logAttendance(){
 }
 
 function quickStatus(name,status){
-  if(!S.attendance[name])S.attendance[name]={status:'P',sub:null,reason:''};
-  if(status==='P'){const prev=S.attendance[name].sub;if(prev){const ps=S.subs.find(s=>s.name===prev);if(ps){ps.placed=null;ps.avail=true;}}S.attendance[name]={status:'P',sub:null,reason:''};}
-  else{S.attendance[name].status=status;}
+  if(!S.attendance[name])S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30'};
+  if(status==='P'){
+    // Free the sub
+    const prev=S.attendance[name].sub;
+    if(prev){const ps=S.subs.find(s=>s.name===prev);if(ps){ps.placed=null;ps.avail=true;}}
+    // Free any period subs too
+    const ps2=S.attendance[name].periodSubs||{};
+    Object.values(ps2).forEach(sn=>{const sub=S.subs.find(s=>s.name===sn);if(sub){sub.placed=null;sub.avail=true;}});
+    S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30'};
+  } else {
+    S.attendance[name].status=status;
+    // Initialize periods array if not set
+    if(!S.attendance[name].periods)S.attendance[name].periods=[];
+    if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
+  }
   scheduleSave();render();
 }
 
@@ -1283,8 +1374,43 @@ function assignSubInline(teacherName,subName){
   const prev=S.attendance[teacherName].sub;
   if(prev){const ps=S.subs.find(s=>s.name===prev);if(ps){ps.placed=null;ps.avail=true;}}
   S.attendance[teacherName].sub=subName||null;
-  if(subName){const sub=S.subs.find(s=>s.name===subName);if(sub){sub.placed=teacherName;sub.avail=false;}}
-  toast(subName?subName+' assigned to cover '+teacherName:'Sub removed');scheduleSave();render();
+  if(subName){
+    const sub=S.subs.find(s=>s.name===subName);
+    // Mark placed (informational only) but keep avail:true so they stay selectable
+    if(sub){sub.placed=teacherName;}
+    // If no specific periods set, auto-assign to all periods
+    const att=S.attendance[teacherName];
+    if(att&&(!att.periods||!att.periods.length)){
+      att.periodSubs={'Period 1':subName,'Period 2':subName,'Period 3':subName,'Period 4':subName};
+    }
+    toast(subName+' assigned to cover '+teacherName+' ✓');
+  } else {
+    // Remove sub
+    const att=S.attendance[teacherName];
+    if(att){att.periodSubs={};}
+    toast('Sub removed');
+  }
+  scheduleSave();render();
+}
+
+function updateAttReason(name,reason){
+  if(!S.attendance[name])return;
+  S.attendance[name].reason=reason;
+  scheduleSave();
+}
+
+function openAttDetailModal(name){
+  // Pre-fill the modal with this person's name and open it
+  populateAttModal();
+  const sel=document.getElementById('a-person');
+  if(sel)sel.value=name;
+  const statusSel=document.getElementById('a-status');
+  const att=S.attendance[name]||{};
+  if(statusSel&&att.status)statusSel.value=att.status;
+  const reasonEl=document.getElementById('a-reason');
+  if(reasonEl)reasonEl.value=att.reason||'';
+  toggleAttFields();
+  openModal('att-modal');
 }
 
 function populateAttModal(){
@@ -1419,15 +1545,65 @@ function render(){
       const isAbsent=att.status!=='P';
       const isTeacher=p.type==='teacher';
       const col=COLORS[i%COLORS.length];
-      const subOpts=S.subs.length?S.subs.map(s=>`<option value="${s.name}" ${att.sub===s.name?'selected':''}>${s.name}${s.placed&&s.placed!==p.name?' (busy)':''}</option>`).join(''):'<option disabled>No subs added yet</option>';
-      const extraInfo=att.status==='EA-partial'&&att.periods&&att.periods.length?'Partial: '+att.periods.join(', '):att.status==='early-departure'?'Early departure'+(att.departTime?' at '+att.departTime:''):'';
-      return`<div class="att-row">
-        <div class="att-avatar" style="background:${col}22;color:${col}">${ini(p.name)}</div>
-        <div style="flex:1;min-width:100px"><div class="att-name">${p.name}${p.isAdmin?' ⭐':''}</div><div class="att-meta">${p.startTime}${att.reason?' · '+att.reason:''}${extraInfo?' · <span style="color:var(--blue-t);font-weight:600">'+extraInfo+'</span>':''}</div></div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
-          ${['P','EA','T','UA'].map(s=>{const isActive=att.status===s||(s==='EA'&&(att.status==='EA-partial'||att.status==='early-departure'));return`<button class="sp sp-${s}" style="${isActive?'':'opacity:.3;'}border:none;cursor:pointer" onclick="quickStatus('${p.name}','${s}')">${s}</button>`;}).join('')}
+
+      // Build sub options
+      const subOpts='<option value="">-- No sub --</option>'+
+        (S.subs.length
+          ? S.subs.map(s=>`<option value="${s.name}" ${att.sub===s.name?'selected':''}>${s.name}${s.placed&&s.placed!==p.name?' (covering: '+s.placed+')':''}</option>`).join('')
+          : '<option disabled>Add subs first</option>');
+
+      // Status summary line
+      const statusSummary=
+        att.status==='EA-partial'&&att.periods&&att.periods.length ? 'Partial: '+att.periods.join(', ') :
+        att.status==='early-departure' ? 'Early departure'+(att.departTime?' at '+att.departTime:'') :
+        att.status!=='P' ? ({EA:'Excused Absence',T:'Tardy',UA:'Unexcused'}[att.status]||att.status) : '';
+
+      // Sub coverage summary for absent teachers
+      let subSummary='';
+      if(isTeacher&&isAbsent){
+        if(att.sub){
+          // One sub — show covering all absent periods or full day
+          const periodsStr=att.periods&&att.periods.length?att.periods.join(', '):'All periods';
+          subSummary=`<span class="sub-tag" style="margin-left:8px">📋 ${att.sub} covering ${periodsStr}</span>`;
+        } else if(att.periodSubs&&Object.keys(att.periodSubs).length){
+          // Multiple period subs
+          subSummary=Object.entries(att.periodSubs).map(([p,s])=>`<span class="sub-tag" style="margin-left:4px">📋 ${s}: ${p}</span>`).join('');
+        } else {
+          subSummary=`<span style="font-size:11px;color:var(--red-t);font-weight:600;margin-left:8px">⚠ Sub needed</span>`;
+        }
+      }
+
+      return`<div class="att-row" style="flex-wrap:wrap">
+        <!-- Row: avatar + name + status buttons -->
+        <div class="att-avatar" style="background:${col}22;color:${col};flex-shrink:0">${ini(p.name)}</div>
+        <div style="flex:1;min-width:120px">
+          <div class="att-name">${p.name}${p.isAdmin?' ⭐':''}</div>
+          <div class="att-meta">${p.startTime}${att.reason?' · <em>'+att.reason+'</em>':''}
+            ${statusSummary?`<span style="color:var(--blue-t);font-weight:600;margin-left:4px">${statusSummary}</span>`:''}
+            ${subSummary}
+          </div>
         </div>
-        ${isTeacher&&isAbsent?`<div style="width:100%;padding:6px 0 2px 44px;display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--t2);font-weight:600;white-space:nowrap">Sub coverage:</span><select style="max-width:200px;padding:4px 8px;font-size:12px" onchange="assignSubInline('${p.name}',this.value)"><option value="">-- Not assigned --</option>${subOpts}</select>${att.sub?`<span class="sub-tag">📋 ${att.sub}</span>`:''}</div>`:''}
+        <!-- Status buttons -->
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+          ${['P','EA','T','UA'].map(s=>{
+            const isActive=att.status===s||(s==='EA'&&(att.status==='EA-partial'||att.status==='early-departure'));
+            return`<button class="sp sp-${s}" style="${isActive?'':'opacity:.3;'}border:none;cursor:pointer" onclick="quickStatus('${p.name}','${s}')">${s}</button>`;
+          }).join('')}
+          ${isTeacher&&isAbsent
+            ? `<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;margin-left:4px" onclick="openAttDetailModal('${p.name}')">⋯ Details</button>`
+            : ''}
+        </div>
+        <!-- Inline sub assignment — shown when teacher is absent -->
+        ${isTeacher&&isAbsent?`
+        <div style="width:100%;margin-top:8px;padding:10px 12px;background:var(--blue-bg);border-radius:var(--r);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--blue-t);white-space:nowrap">📋 Assign Sub:</span>
+          <select style="flex:1;min-width:140px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
+            onchange="assignSubInline('${p.name}',this.value)">${subOpts}</select>
+          ${att.sub?`<span style="font-size:12px;color:var(--blue-t);font-weight:600">✓ ${att.sub} covering ${att.periods&&att.periods.length?att.periods.join(', '):'all periods'}</span>`:''}
+          <input placeholder="Reason (optional)" value="${att.reason||''}"
+            style="flex:1;min-width:120px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
+            onchange="updateAttReason('${p.name}',this.value)">
+        </div>`:''}
       </div>`;
     }).join('');
   }
@@ -1493,7 +1669,7 @@ function render(){
   }
 
   const sl=document.getElementById('sub-list');
-  if(sl)sl.innerHTML=S.subs.length?S.subs.map(s=>`<div class="att-row"><div class="att-avatar" style="background:var(--bg2);color:var(--t2)">${ini(s.name)}</div><div style="flex:1"><div class="att-name">${s.name}</div><div class="att-meta">${s.phone}${s.placed?' · Covering: '+s.placed:''}</div></div><span class="badge ${s.placed?'b-purple':s.avail?'b-green':'b-gray'}">${s.placed?'Placed':s.avail?'Available':'Unavailable'}</span></div>`).join(''):'<div class="empty">No subs added yet — click "+ Add sub" to add</div>';
+  if(sl)sl.innerHTML='';
 
   renderBudget();
   // planned days
@@ -1790,6 +1966,242 @@ function renderBudgetHR(bc){
 function renderBudgetTransactions(bc){
   bc.innerHTML=`<div class="card"><div class="shdr"><div class="stitle">Transactions</div><button class="btn btn-primary btn-sm" onclick="openModal('trans-modal')">+ Record</button></div><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Date</th><th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Description</th><th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Category</th><th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Amount</th></tr></thead><tbody>${S.transactions.map(t=>`<tr><td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">${fmt(t.date)}</td><td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">${t.desc}</td><td style="padding:9px 10px;border-bottom:0.5px solid var(--border)"><span class="badge b-blue">${t.cat}</span></td><td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-weight:700;color:${t.amount<0?'var(--red)':'var(--green)'}"><div>${t.amount<0?'−':'+'}$${Math.abs(t.amount).toLocaleString()}</div></td></tr>`).join('')}</tbody></table></div>`;
 }
+// ─── SUBSTITUTES TAB ─────────────────────────────────────────────
+function renderSubsList(){
+  const el=document.getElementById('att-subs-list');
+  if(!el)return;
+  if(!S.subs.length){
+    el.innerHTML='<div class="empty">No substitutes added yet.<br><small style="color:var(--t3)">Click "+ Add Sub" to add your first substitute.</small></div>';
+    return;
+  }
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;padding:4px 0">
+      ${S.subs.map((s,i)=>{
+        // Find if this sub is currently covering someone today
+        const covering=Object.entries(S.attendance).find(([name,a])=>a.sub===s.name||(a.periodSubs&&Object.values(a.periodSubs).includes(s.name)));
+        const coveringName=covering?covering[0]:null;
+        return`<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rl);padding:14px;display:flex;align-items:center;gap:12px">
+          <div class="att-avatar" style="background:${coveringName?'var(--purple-bg)':'var(--green-bg)'};color:${coveringName?'var(--purple-t)':'var(--green-t)'}">
+            ${ini(s.name)}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700">${s.name}</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px">${s.phone}</div>
+            ${coveringName
+              ?`<div class="sub-tag" style="margin-top:4px;display:inline-flex">📋 Covering ${coveringName} today</div>`
+              :`<div style="font-size:11px;color:var(--green-t);font-weight:600;margin-top:2px">✓ Available</div>`}
+          </div>
+          <button class="btn btn-sm btn-danger" style="font-size:11px;flex-shrink:0" onclick="deleteSub(${i})" title="Remove from sub list">✕</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function deleteSub(index){
+  const sub=S.subs[index];
+  if(!sub)return;
+  if(!confirm('Remove '+sub.name+' from your substitute list?'))return;
+  // Free any coverage they have today
+  Object.keys(S.attendance).forEach(name=>{
+    const att=S.attendance[name];
+    if(att.sub===sub.name)att.sub=null;
+    if(att.periodSubs){
+      Object.keys(att.periodSubs).forEach(p=>{
+        if(att.periodSubs[p]===sub.name)delete att.periodSubs[p];
+      });
+    }
+  });
+  S.subs.splice(index,1);
+  toast(sub.name+' removed from sub list');
+  scheduleSave();
+  renderSubsList();
+  render();
+}
+
+// ─── ATTENDANCE HISTORY ──────────────────────────────────────────
+function renderAttHistory(){
+  const el=document.getElementById('att-history-content');
+  if(!el)return;
+  const history=S.attendanceHistory||{};
+  const dates=Object.keys(history).sort((a,b)=>b.localeCompare(a));
+  if(!dates.length){
+    el.innerHTML='<div class="empty">No attendance history yet.<br><small style="color:var(--t3)">History is saved automatically each day when attendance is logged.</small></div>';
+    return;
+  }
+  el.innerHTML=dates.map(date=>{
+    const dayAtt=history[date];
+    const absent=Object.entries(dayAtt).filter(([name,a])=>a.status&&a.status!=='P');
+    if(!absent.length)return'';
+    const dateLabel=new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    return`<div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:700;color:var(--t1);padding:8px 0;border-bottom:1.5px solid var(--border-md);margin-bottom:8px">${dateLabel}
+        <span style="font-size:11px;font-weight:500;color:var(--t3);margin-left:8px">${absent.length} absence${absent.length!==1?'s':''}</span>
+      </div>
+      ${absent.map(([name,a])=>{
+        const statusLabel={'EA':'Full Day Absent','EA-partial':'Partial Day','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[a.status]||a.status;
+        const col={'EA':'amber','EA-partial':'amber','early-departure':'blue','T':'blue','UA':'red'}[a.status]||'amber';
+        const periodsStr=a.periods&&a.periods.length?' · '+a.periods.join(', '):'';
+        const subStr=a.sub?' · Sub: '+a.sub:a.periodSubs&&Object.keys(a.periodSubs).length?' · Subs: '+Object.values(a.periodSubs).join(', '):'';
+        return`<div class="att-row">
+          <div style="flex:1"><div class="att-name">${name}</div>
+            <div class="att-meta"><span class="badge b-${col}">${statusLabel}</span>${periodsStr?'<span style="margin-left:6px">'+periodsStr+'</span>':''}${a.reason?'<span style="margin-left:6px;color:var(--t2)">'+a.reason+'</span>':''}</div>
+          </div>
+          ${subStr?`<span class="sub-tag">📋${subStr}</span>`:'<span style="font-size:11px;color:var(--t3)">No sub</span>'}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ─── SUB PAYROLL REPORT ──────────────────────────────────────────
+function renderSubReportPreview(){
+  const el=document.getElementById('att-subreport-content');
+  if(!el)return;
+  const from=document.getElementById('sr-from').value;
+  const to=document.getElementById('sr-to').value;
+  if(!from||!to){el.innerHTML='<div class="empty">Select a date range above to preview the report.</div>';return;}
+
+  const rows=buildSubReportRows(from,to);
+  if(!rows.length){
+    el.innerHTML='<div class="empty">No absences with subs assigned in this date range.</div>';
+    return;
+  }
+
+  el.innerHTML=`<div style="margin-bottom:12px;font-size:13px;color:var(--t2)">
+    Showing <strong>${rows.length}</strong> absence record${rows.length!==1?'s':''} from ${fmt(from)} to ${fmt(to)}
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Date</th>
+      <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Teacher / Staff</th>
+      <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Absence Type</th>
+      <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Periods Missed</th>
+      <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Sub Assigned</th>
+    </tr></thead>
+    <tbody>
+      ${rows.map((r,i)=>`<tr style="${i%2===0?'background:var(--bg2)':''}">
+        <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">${fmt(r.date)}</td>
+        <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-weight:600">${r.name}</td>
+        <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)"><span class="badge b-amber">${r.type}</span></td>
+        <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-size:12px;color:var(--t2)">${r.periods||'Full Day'}</td>
+        <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">${r.sub?`<span class="sub-tag">📋 ${r.sub}</span>`:'<span style="color:var(--t3);font-size:12px">None assigned</span>'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function buildSubReportRows(from,to){
+  const history=S.attendanceHistory||{};
+  const rows=[];
+  // Include today if in range
+  const allDates={...history};
+  const todayStr=new Date().toISOString().slice(0,10);
+  if(todayStr>=from&&todayStr<=to)allDates[todayStr]=S.attendance;
+
+  Object.entries(allDates).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([date,dayAtt])=>{
+    if(date<from||date>to)return;
+    Object.entries(dayAtt).forEach(([name,a])=>{
+      if(!a.status||a.status==='P')return;
+      const typeLabel={'EA':'Excused Absence','EA-partial':'Partial Day','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[a.status]||a.status;
+      if(a.status==='EA-partial'&&a.periods&&a.periods.length){
+        // One row per period with its own sub
+        a.periods.forEach(p=>{
+          const subForPeriod=(a.periodSubs||{})[p]||null;
+          rows.push({date,name,type:typeLabel,periods:p,sub:subForPeriod});
+        });
+      } else {
+        const periodsStr=a.periods&&a.periods.length?a.periods.join(', '):'';
+        rows.push({date,name,type:typeLabel,periods:periodsStr,sub:a.sub||null});
+      }
+    });
+  });
+  return rows;
+}
+
+function generateSubReport(){
+  const from=document.getElementById('sr-from').value;
+  const to=document.getElementById('sr-to').value;
+  if(!from||!to){toast('Please select a date range first');return;}
+  const rows=buildSubReportRows(from,to);
+
+  function doGenerate(){
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+    // Header
+    doc.setFillColor(24,95,165);
+    doc.rect(0,0,210,20,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(14);doc.setFont('helvetica','bold');
+    doc.text('Highland Prep — Sub Payroll Report',10,12);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.text('Printed: '+today,160,12);
+
+    doc.setTextColor(30,30,30);
+    doc.setFontSize(11);doc.setFont('helvetica','bold');
+    doc.text('Pay Period: '+fmt(from)+' — '+fmt(to),10,30);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.setTextColor(100,100,100);
+    doc.text(rows.length+' absence record'+(rows.length!==1?'s':''),10,37);
+
+    if(!rows.length){
+      doc.setFontSize(11);doc.setTextColor(150,150,150);
+      doc.text('No absences with sub coverage in this date range.',10,50);
+    } else {
+      doc.autoTable({
+        startY:42,
+        head:[['Date','Teacher / Staff','Absence Type','Periods Missed','Sub Assigned']],
+        body:rows.map(r=>[
+          new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+          r.name,
+          r.type,
+          r.periods||'Full Day',
+          r.sub||'— None assigned —'
+        ]),
+        theme:'grid',
+        headStyles:{fillColor:[24,95,165],textColor:255,fontStyle:'bold',fontSize:9},
+        bodyStyles:{fontSize:8.5,textColor:[30,30,30]},
+        alternateRowStyles:{fillColor:[245,247,250]},
+        columnStyles:{
+          0:{cellWidth:30},
+          1:{cellWidth:45},
+          2:{cellWidth:35},
+          3:{cellWidth:35},
+          4:{cellWidth:45}
+        },
+        didParseCell:function(data){
+          if(data.column.index===4&&data.section==='body'&&data.cell.raw==='— None assigned —'){
+            data.cell.styles.textColor=[180,180,180];
+            data.cell.styles.fontStyle='italic';
+          }
+          if(data.column.index===4&&data.section==='body'&&data.cell.raw!=='— None assigned —'){
+            data.cell.styles.textColor=[24,95,165];
+            data.cell.styles.fontStyle='bold';
+          }
+        }
+      });
+    }
+
+    doc.setFontSize(8);doc.setTextColor(150,150,150);
+    doc.text('Highland Prep — Confidential — Sub Payroll Report',105,290,{align:'center'});
+    doc.save('SubPayroll_'+from+'_to_'+to+'.pdf');
+    toast('Sub payroll report exported ✓');
+  }
+
+  if(typeof window.jspdf==='undefined'){
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=()=>{
+      const s2=document.createElement('script');
+      s2.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+      s2.onload=doGenerate;
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+  } else { doGenerate(); }
+}
+
 // ─── FACILITY: toggle completed bookings ─────────────────────────
 let showCompletedBookings=false;
 function toggleCompletedBookings(){
