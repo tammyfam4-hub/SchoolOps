@@ -470,14 +470,18 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
     </div>
 
     <div class="panel" id="panel-budget">
-      <div class="tab-bar">
+      <!-- Tab bar — hidden when group detail is open -->
+      <div id="budget-tab-bar" class="tab-bar">
         <div class="tab active" onclick="switchTab(this,'budget','overview')">Overview</div>
         <div class="tab" onclick="switchTab(this,'budget','sports')">Sports (14)</div>
         <div class="tab" onclick="switchTab(this,'budget','clubs')">Clubs (30)</div>
         <div class="tab" onclick="switchTab(this,'budget','hr')">HR / Payroll</div>
         <div class="tab" onclick="switchTab(this,'budget','transactions')">Transactions</div>
       </div>
+      <!-- Main list view -->
       <div id="budget-content"></div>
+      <!-- Group detail view — shown when a group is opened -->
+      <div id="budget-detail" style="display:none"></div>
     </div>
   </div>
 
@@ -701,14 +705,17 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 <!-- ADD TRANSACTION MODAL -->
 <div id="grp-trans-modal" class="overlay" onclick="if(event.target===this)closeModal('grp-trans-modal')">
-<div class="modal" style="width:420px">
+<div class="modal" style="width:460px">
   <div class="modal-title" id="grp-trans-title">💰 Record Transaction</div>
-  <div class="frow"><label class="flabel">Description</label><input id="gt-desc" placeholder="What was purchased / received?"></div>
+  <div class="g2" style="gap:10px">
+    <div class="frow"><label class="flabel">Date</label><input type="date" id="gt-date"></div>
+    <div class="frow"><label class="flabel">Check / Invoice # (optional)</label><input id="gt-ref" placeholder="e.g. 1042, INV-001..."></div>
+  </div>
+  <div class="frow"><label class="flabel">Description *</label><input id="gt-desc" placeholder="What was purchased / received?"></div>
   <div class="g2" style="gap:10px">
     <div class="frow"><label class="flabel">Type</label><select id="gt-type"><option value="credit">Income / Credit</option><option value="debit">Expense / Debit</option></select></div>
     <div class="frow"><label class="flabel">Amount ($)</label><input type="number" id="gt-amount" min="0" step="0.01" placeholder="0.00"></div>
   </div>
-  <div class="frow"><label class="flabel">Date</label><input type="date" id="gt-date"></div>
   <div class="modal-actions">
     <button class="btn btn-sm" onclick="closeModal('grp-trans-modal')">Cancel</button>
     <button class="btn btn-primary btn-sm" onclick="saveGroupTransaction()">Save</button>
@@ -1819,8 +1826,9 @@ let grpTransTarget=null;
 function openGroupTransaction(groupId,groupList){
   grpTransTarget={id:groupId,list:groupList};
   const grp=[...S.sports,...S.clubs].find(g=>g.id===groupId);
-  document.getElementById('grp-trans-title').textContent='💰 '+( grp?grp.name:'Group')+' — Record Transaction';
+  document.getElementById('grp-trans-title').textContent='💰 '+(grp?grp.name:'Group')+' — Record Transaction';
   document.getElementById('gt-desc').value='';
+  document.getElementById('gt-ref').value='';
   document.getElementById('gt-amount').value='';
   document.getElementById('gt-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('gt-type').value='debit';
@@ -1832,16 +1840,22 @@ function saveGroupTransaction(){
   const grp=[...S.sports,...S.clubs].find(g=>g.id===grpTransTarget.id);
   if(!grp)return;
   const amt=parseFloat(document.getElementById('gt-amount').value)||0;
+  if(!amt){toast('Please enter an amount');return;}
   const type=document.getElementById('gt-type').value;
   const desc=document.getElementById('gt-desc').value.trim()||'Transaction';
+  const ref=document.getElementById('gt-ref').value.trim()||'';
   const date=document.getElementById('gt-date').value||new Date().toISOString().slice(0,10);
+  const txId='tx-'+Date.now();
   if(!grp.transactions)grp.transactions=[];
-  grp.transactions.unshift({date,desc,amount:type==='credit'?amt:-amt});
+  grp.transactions.unshift({id:txId,date,ref,desc,amount:type==='credit'?amt:-amt});
   if(type==='credit'){grp.credits=round2(grp.credits+amt);}
   else{grp.debits=round2(grp.debits+amt);}
   grp.balance=round2(grp.credits-grp.debits);
   closeModal('grp-trans-modal');
-  toast('Transaction saved ✓');scheduleSave();renderBudget();
+  toast('Transaction saved ✓');scheduleSave();
+  // Refresh detail view if open, otherwise refresh list
+  if(document.getElementById('budget-detail').style.display!=='none')renderGroupDetail(grpTransTarget.id);
+  else renderBudget();
 }
 
 function deleteGroup(id,listName){
@@ -1852,6 +1866,205 @@ function deleteGroup(id,listName){
 }
 
 function round2(v){return Math.round(v*100)/100;}
+
+// ─── BUDGET GROUP DETAIL VIEW ────────────────────────────────────────
+// Fiscal year helpers
+function getFYStart(date){
+  const d=date||new Date();
+  const m=d.getMonth(); // 0-indexed, June=5, July=6
+  const y=d.getFullYear();
+  return new Date(m>=6?y:y-1,6,1).toISOString().slice(0,10); // July 1
+}
+function getFYEnd(date){
+  const d=date||new Date();
+  const m=d.getMonth();
+  const y=d.getFullYear();
+  return new Date(m>=6?y+1:y,5,30).toISOString().slice(0,10); // June 30
+}
+function get14MonthsAgo(){
+  const d=new Date();
+  d.setMonth(d.getMonth()-14);
+  return d.toISOString().slice(0,10);
+}
+
+// State for detail view
+let detailGroupId=null;
+let detailFromDate='';
+let detailToDate='';
+let detailMode='fy'; // 'fy' or 'custom'
+
+function openGroupDetail(groupId){
+  detailGroupId=groupId;
+  detailMode='fy';
+  detailFromDate=getFYStart();
+  detailToDate=getFYEnd();
+  // Hide tab bar and list, show detail
+  document.getElementById('budget-tab-bar').style.display='none';
+  document.getElementById('budget-content').style.display='none';
+  document.getElementById('budget-detail').style.display='';
+  renderGroupDetail(groupId);
+}
+
+function closeGroupDetail(){
+  detailGroupId=null;
+  document.getElementById('budget-tab-bar').style.display='';
+  document.getElementById('budget-content').style.display='';
+  document.getElementById('budget-detail').style.display='none';
+  renderBudget();
+}
+
+function renderGroupDetail(groupId){
+  const grp=[...S.sports,...S.clubs].find(g=>g.id===groupId);
+  if(!grp){closeGroupDetail();return;}
+  const det=document.getElementById('budget-detail');
+  if(!det)return;
+
+  const listType=S.sports.find(g=>g.id===groupId)?'sport':'club';
+  const allTrans=(grp.transactions||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+
+  // Filter transactions by date range
+  const filtered=allTrans.filter(t=>t.date>=detailFromDate&&t.date<=detailToDate);
+
+  // Compute filtered totals
+  const filtCredits=round2(filtered.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0));
+  const filtDebits=round2(filtered.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0));
+  const filtBalance=round2(filtCredits-filtDebits);
+
+  // FY label
+  const fyStartYear=detailFromDate.slice(0,4);
+  const fyEndYear=detailToDate.slice(0,4);
+  const fyLabel=detailMode==='fy'?'Fiscal Year '+fyStartYear+'–'+fyEndYear:'Custom Range';
+
+  det.innerHTML=`
+    <!-- Back button + header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <button class="btn btn-sm" onclick="closeGroupDetail()" style="font-size:12px">&#8592; Back</button>
+      <div>
+        <div style="font-size:18px;font-weight:800;color:var(--t1)">${grp.name}</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:1px">${listType==='sport'?'Sport':'Club'}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="openGroupTransaction(${grp.id},'${listType}')">+ Transaction</button>
+        <button class="btn btn-sm" onclick="printGroupLedger(${grp.id})">&#128196; PDF</button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="g4" style="margin-bottom:16px">
+      <div class="metric"><div class="metric-lbl">All-Time Income</div><div class="metric-val" style="color:var(--green);font-size:20px">$${grp.credits.toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
+      <div class="metric"><div class="metric-lbl">All-Time Expenses</div><div class="metric-val" style="color:var(--red);font-size:20px">$${grp.debits.toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
+      <div class="metric"><div class="metric-lbl">All-Time Balance</div><div class="metric-val" style="color:${grp.balance<0?'var(--red)':'var(--blue)'};font-size:20px">${grp.balance<0?'−':''}$${Math.abs(grp.balance).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
+      <div class="metric"><div class="metric-lbl">Total Transactions</div><div class="metric-val" style="font-size:20px">${allTrans.length}</div></div>
+    </div>
+
+    <!-- Date range controls -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;color:var(--t2)">Showing:</span>
+        <button class="btn btn-sm ${detailMode==='fy'?'btn-primary':''}" onclick="setDetailMode('fy')">
+          📅 Current Fiscal Year
+        </button>
+        <button class="btn btn-sm ${detailMode==='custom'?'btn-primary':''}" onclick="setDetailMode('custom')">
+          📆 Custom Range
+        </button>
+        ${detailMode==='custom'?`
+          <input type="date" id="det-from" value="${detailFromDate}" min="${get14MonthsAgo()}"
+            style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit"
+            onchange="detailFromDate=this.value;renderGroupDetail(${grp.id})">
+          <span style="font-size:12px;color:var(--t2)">to</span>
+          <input type="date" id="det-to" value="${detailToDate}"
+            style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit"
+            onchange="detailToDate=this.value;renderGroupDetail(${grp.id})">
+        `:''}
+        <span style="font-size:12px;color:var(--t2);margin-left:auto">${fyLabel}: <strong>${filtered.length}</strong> transactions</span>
+      </div>
+    </div>
+
+    <!-- Filtered summary -->
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card" style="background:var(--green-bg);border-color:rgba(29,158,117,.2)">
+        <div style="font-size:11px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Income (${fyLabel})</div>
+        <div style="font-size:22px;font-weight:800;color:var(--green-t)">$${filtCredits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
+      </div>
+      <div class="card" style="background:var(--red-bg);border-color:rgba(226,75,74,.2)">
+        <div style="font-size:11px;font-weight:700;color:var(--red-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Expenses (${fyLabel})</div>
+        <div style="font-size:22px;font-weight:800;color:var(--red-t)">$${filtDebits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
+      </div>
+    </div>
+
+    <!-- Transaction table -->
+    <div class="card">
+      <div class="shdr">
+        <div class="stitle">Transactions — ${fyLabel}</div>
+        <div style="font-size:12px;color:var(--t2)">Balance: <strong style="color:${filtBalance<0?'var(--red-t)':'var(--blue-t)'}">${filtBalance<0?'−':''}$${Math.abs(filtBalance).toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
+      </div>
+      ${filtered.length?`
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Date</th>
+          <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Check / Inv #</th>
+          <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Description</th>
+          <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Credit</th>
+          <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Debit</th>
+          <th style="padding:8px 10px;border-bottom:0.5px solid var(--border)"></th>
+        </tr></thead>
+        <tbody>
+          ${filtered.map((t,i)=>`<tr style="${i%2===0?'background:var(--bg2)':''}">
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap">${fmt(t.date)}</td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--t2);font-size:12px">${t.ref||'—'}</td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-weight:500">${t.desc}</td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-weight:700;color:var(--green-t)">
+              ${t.amount>0?'$'+t.amount.toLocaleString('en-US',{minimumFractionDigits:2}):''}
+            </td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-weight:700;color:var(--red-t)">
+              ${t.amount<0?'$'+Math.abs(t.amount).toLocaleString('en-US',{minimumFractionDigits:2}):''}
+            </td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
+              <button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteTransaction(${grp.id},'${t.id||i}')">✕</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="background:var(--blue-bg)">
+            <td colspan="3" style="padding:9px 10px;font-weight:700;font-size:12px;color:var(--blue-t)">Period Total</td>
+            <td style="padding:9px 10px;text-align:right;font-weight:800;color:var(--green-t)">$${filtCredits.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+            <td style="padding:9px 10px;text-align:right;font-weight:800;color:var(--red-t)">$${filtDebits.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>`
+      :'<div class="empty">No transactions in this date range.<br><small style="color:var(--t3)">Add one using the + Transaction button above.</small></div>'}
+    </div>`;
+}
+
+function setDetailMode(mode){
+  detailMode=mode;
+  if(mode==='fy'){
+    detailFromDate=getFYStart();
+    detailToDate=getFYEnd();
+  } else {
+    // Custom: default to last 14 months
+    detailFromDate=get14MonthsAgo();
+    detailToDate=new Date().toISOString().slice(0,10);
+  }
+  if(detailGroupId)renderGroupDetail(detailGroupId);
+}
+
+function deleteTransaction(groupId,txId){
+  const grp=[...S.sports,...S.clubs].find(g=>g.id===groupId);
+  if(!grp)return;
+  if(!confirm('Delete this transaction? This will adjust the group balance.'))return;
+  const idx=grp.transactions.findIndex(t=>(t.id||String(grp.transactions.indexOf(t)))===String(txId));
+  if(idx<0)return;
+  const tx=grp.transactions[idx];
+  // Reverse the effect on balances
+  if(tx.amount>0)grp.credits=round2(grp.credits-tx.amount);
+  else grp.debits=round2(grp.debits-Math.abs(tx.amount));
+  grp.balance=round2(grp.credits-grp.debits);
+  grp.transactions.splice(idx,1);
+  toast('Transaction deleted ✓');scheduleSave();
+  renderGroupDetail(groupId);
+}
 
 function renderBudget(){
   const bc=document.getElementById('budget-content');if(!bc)return;
@@ -1935,21 +2148,22 @@ function renderBudgetList(bc,listType){
       </tr></thead>
       <tbody>
         ${list.map(g=>{
-          const transList=g.transactions||[];
-          return `<tr>
-            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-weight:600">${g.name}${g.id>=200?'<span class="badge b-green" style="margin-left:6px;font-size:10px">New</span>':''}</td>
-            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--green-t);font-weight:500">$${g.credits.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--red-t);font-weight:500">$${g.debits.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+          return `<tr style="cursor:pointer" onclick="openGroupDetail(${g.id})">
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
+              <div style="font-weight:700;color:var(--blue-t)">${g.name}${g.id>=200?'<span class="badge b-green" style="margin-left:6px;font-size:10px">New</span>':''}</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:2px">${(g.transactions||[]).length} transaction${(g.transactions||[]).length!==1?'s':''} · Click to open</div>
+            </td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--green-t);font-weight:600">$${g.credits.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--red-t);font-weight:600">$${g.debits.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-weight:700;color:${g.balance<0?'var(--red-t)':g.balance===0?'var(--t3)':'var(--blue-t)'}">
               ${g.balance<0?'−':''}$${Math.abs(g.balance).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
             </td>
-            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap">
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap" onclick="event.stopPropagation()">
               <button class="btn btn-sm btn-primary" style="font-size:11px" onclick="openGroupTransaction(${g.id},'${listType}')">+ Transaction</button>
               <button class="btn btn-sm" style="font-size:11px;margin-left:4px" onclick="printGroupLedger(${g.id})" title="Print PDF ledger">&#128196; PDF</button>
               ${g.id>=200?`<button class="btn btn-sm btn-danger" style="font-size:11px;margin-left:4px" onclick="deleteGroup(${g.id},'${listType}')">&#10005;</button>`:''}
             </td>
-          </tr>
-          ${transList.slice(0,3).map(t=>`<tr style="background:var(--bg2)"><td colspan="2" style="padding:5px 10px 5px 20px;font-size:11px;color:var(--t2)">${t.date} · ${t.desc}</td><td colspan="3" style="padding:5px 10px;font-size:11px;text-align:right;font-weight:600;color:${t.amount>=0?'var(--green-t)':'var(--red-t)'}">${t.amount>=0?'+':'-'}$${Math.abs(t.amount).toFixed(2)}</td></tr>`).join('')}`;
+          </tr>`;
         }).join('')}
       </tbody>
     </table>
