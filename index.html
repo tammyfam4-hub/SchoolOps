@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SchoolOps — Highland Prep</title>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL  = 'https://idjratpppoubqehqvjpx.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+</script>
+<script>
+const SUPABASE_URL  = 'https://idjratpppoubqehqvjpx.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanlhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+</script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #185FA5;
+  --blue-dark: #0d3d6e;
+  --blue-light: #E6F1FB;
+  --t1: #111;
+  --t2: #555;
+  --t3: #999;
+  --border: rgba(0,0,0,0.1);
+  --r: 10px;
+}
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: #f0f4f8;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0d3d6e 0%, #185FA5 50%, #2176d2 100%);
+}
+
+/* The card that holds the login form */
+.login-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 44px 40px 36px;
+  width: 380px;
+  max-width: 95vw;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+}
+
+/* Logo area at top */
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.logo-mark {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(145deg, #2176d2, #0d4a8a);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.logo-text { font-size: 20px; font-weight: 700; color: var(--t1); }
+.logo-sub  { font-size: 12px; color: var(--t3); margin-top: 1px; }
+
+h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--t2); margin-bottom: 28px; }
+
+/* Form fields */
+.field { margin-bottom: 16px; }
+label  { display: block; font-size: 12px; font-weight: 600; color: var(--t2); margin-bottom: 5px; }
+input  {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  background: #f8fafc;
+  color: var(--t1);
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(24,95,165,.12);
+  background: #fff;
+}
+
+/* Sign in button */
+.btn-signin {
+  width: 100%;
+  padding: 12px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 4px;
+  transition: filter .15s, transform .1s;
+}
+.btn-signin:hover  { filter: brightness(1.08); }
+.btn-signin:active { transform: scale(.98); }
+.btn-signin:disabled { opacity: .6; cursor: default; }
+
+/* Error message */
+.error-msg {
+  background: #FCEBEB;
+  color: #A32D2D;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  display: none;
+}
+.error-msg.show { display: block; }
+
+/* Footer note */
+.login-footer {
+  text-align: center;
+  margin-top: 22px;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+/* Loading spinner inside button */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="logo-row">
+    <div class="logo-mark">S</div>
+    <div>
+      <div class="logo-text">SchoolOps</div>
+      <div class="logo-sub">Highland Prep Management Suite</div>
+    </div>
+  </div>
+
+  <h1>Welcome back</h1>
+  <p class="subtitle">Sign in to access your school dashboard</p>
+
+  <!-- Error message — hidden until there's an error -->
+  <div class="error-msg" id="error-msg"></div>
+
+  <!-- THE FORM -->
+  <!-- explanation: id="login-form" lets JavaScript find this form -->
+  <form id="login-form" onsubmit="handleLogin(event)">
+    <div class="field">
+      <label for="email">Email address</label>
+      <!-- type="email" makes the phone keyboard show @ automatically -->
+      <input type="email" id="email" placeholder="you@highlandprep.org" required autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+    <button class="btn-signin" type="submit" id="signin-btn">Sign in</button>
+  </form>
+
+  <div class="login-footer">
+    Secure access · Highland Prep staff only<br>
+    Contact your admin if you need access.
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+//  What happens when someone clicks "Sign in"
+//  (event.preventDefault() stops the page from refreshing —
+//   that's how old HTML forms work. We handle it ourselves.)
+// ─────────────────────────────────────────────────────────
+async function handleLogin(event) {
+  event.preventDefault();   // stop page refresh
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('signin-btn');
+  const errBox   = document.getElementById('error-msg');
+
+  // Show loading state on the button
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Signing in…';
+  errBox.classList.remove('show');
+
+  // Ask Supabase to sign the user in
+  // "await" means: wait for the answer before continuing
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    // Something went wrong — show the message and re-enable button
+    errBox.textContent = error.message === 'Invalid login credentials'
+      ? 'Incorrect email or password. Please try again.'
+      : error.message;
+    errBox.classList.add('show');
+    btn.disabled = false;
+    btn.innerHTML = 'Sign in';
+    return;
+  }
+
+  // Success! Send them to the main app.
+  // The main app will check if they're logged in.
+  window.location.href = 'app.html';
+}
+
+// ─────────────────────────────────────────────────────────
+//  If someone is ALREADY logged in and visits this page,
+//  skip the login and go straight to the app.
+// ─────────────────────────────────────────────────────────
+async function checkAlreadyLoggedIn() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    window.location.href = 'app.html';
+  }
+}
+
+checkAlreadyLoggedIn();
+</script>
+
+</body>
+</html>
