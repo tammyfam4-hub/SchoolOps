@@ -275,7 +275,7 @@ function save(){
 }
 
 let evts=load();
-let view='list',sportF='all',haF='all',q='',editId=null;
+let view='list',sportF=new Set(['all']),haF='all',q='',editId=null,showCompleted=false;
 
 function conflicts(){
   const c=new Set();
@@ -286,11 +286,38 @@ function conflicts(){
 }
 
 function filtered(){
+  const today=new Date().toISOString().slice(0,10);
   return evts.filter(e=>{
-    if(sportF!=='all'&&e.sport!==sportF)return false;
+    if(!sportF.has('all')&&!sportF.has(e.sport))return false;
     if(haF!=='all'&&e.homeAway!==haF)return false;
     if(q){const s=(e.visitor+e.host+e.venue+e.sport+e.driver+e.notes).toLowerCase();if(!s.includes(q))return false;}
+    // Separate past vs upcoming — past games only shown in completed section
+    if(e.date<today&&!showCompleted)return false;
+    if(e.date>=today&&showCompleted)return false;
     return true;
+  });
+}
+
+function filteredUpcoming(){
+  const today=new Date().toISOString().slice(0,10);
+  const prev=showCompleted;showCompleted=false;
+  const result=evts.filter(e=>{
+    if(!sportF.has('all')&&!sportF.has(e.sport))return false;
+    if(haF!=='all'&&e.homeAway!==haF)return false;
+    if(q){const s=(e.visitor+e.host+e.venue+e.sport+e.driver+e.notes).toLowerCase();if(!s.includes(q))return false;}
+    return e.date>=today;
+  });
+  showCompleted=prev;
+  return result;
+}
+
+function filteredPast(){
+  const today=new Date().toISOString().slice(0,10);
+  return evts.filter(e=>{
+    if(!sportF.has('all')&&!sportF.has(e.sport))return false;
+    if(haF!=='all'&&e.homeAway!==haF)return false;
+    if(q){const s=(e.visitor+e.host+e.venue+e.sport+e.driver+e.notes).toLowerCase();if(!s.includes(q))return false;}
+    return e.date<today;
   });
 }
 
@@ -304,10 +331,53 @@ function buildFilters(){
   const c=document.getElementById('sport-filters');
   const all=document.createElement('div');
   all.className='filter-pill active';all.style.color='var(--t1)';all.textContent='All';all.dataset.sport='all';
-  all.onclick=()=>setSport(all);c.appendChild(all);
-  SPORTS.forEach(s=>{const p=document.createElement('div');p.className='filter-pill';p.style.color=BASE.find(e=>e.sport===s).color;p.textContent=s.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F');p.dataset.sport=s;p.onclick=()=>setSport(p);c.appendChild(p);});
+  all.onclick=()=>toggleSport(all);c.appendChild(all);
+  SPORTS.forEach(s=>{
+    const p=document.createElement('div');
+    p.className='filter-pill';
+    p.style.color=BASE.find(e=>e.sport===s).color;
+    p.textContent=s.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F');
+    p.dataset.sport=s;
+    p.onclick=()=>toggleSport(p);
+    c.appendChild(p);
+  });
 }
-function setSport(el){document.querySelectorAll('#sport-filters .filter-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');sportF=el.dataset.sport;render();}
+
+function toggleSport(el){
+  const sport=el.dataset.sport;
+  const allPill=document.querySelector('#sport-filters .filter-pill[data-sport="all"]');
+  if(sport==='all'){
+    // All selected — clear everything else
+    sportF=new Set(['all']);
+    document.querySelectorAll('#sport-filters .filter-pill').forEach(p=>{
+      p.classList.toggle('active',p.dataset.sport==='all');
+    });
+  } else {
+    // Toggle this sport
+    if(sportF.has('all')){
+      // Was "All" — switch to just this sport
+      sportF=new Set([sport]);
+      document.querySelectorAll('#sport-filters .filter-pill').forEach(p=>{
+        p.classList.toggle('active',p.dataset.sport===sport);
+      });
+    } else if(sportF.has(sport)){
+      // Deselect this sport
+      sportF.delete(sport);
+      el.classList.remove('active');
+      // If nothing selected, go back to All
+      if(sportF.size===0){
+        sportF=new Set(['all']);
+        if(allPill)allPill.classList.add('active');
+      }
+    } else {
+      // Add this sport to selection
+      sportF.add(sport);
+      el.classList.add('active');
+      if(allPill)allPill.classList.remove('active');
+    }
+  }
+  render();
+}
 function setHA(el){document.querySelectorAll('.toolbar .filter-pill[data-ha]').forEach(p=>p.classList.remove('active'));el.classList.add('active');haF=el.dataset.ha;render();}
 function setSearch(v){q=v.toLowerCase();render();}
 function setView(v,btn){view=v;document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
@@ -346,11 +416,47 @@ function renderVans(){
 }
 
 function renderList(){
-  const f=filtered(),c=conflicts();
-  if(!f.length){document.getElementById('view-area').innerHTML='<div class="empty-state">No events match your filters</div>';return;}
+  const c=conflicts();
+  const upcoming=filteredUpcoming();
+  const past=filteredPast();
+  const today=new Date().toISOString().slice(0,10);
+
+  if(!upcoming.length&&!past.length){
+    document.getElementById('view-area').innerHTML='<div class="empty-state">No events match your filters</div>';
+    return;
+  }
+
+  const TABLE_HEADER=`<table class="sched-table"><thead><tr><th>Sport / Vans</th><th>Date</th><th>Time</th><th>H/A</th><th>Opponent / Event</th><th>Venue</th><th>Leave</th><th>Coaches</th><th>Van</th><th>Driver</th><th>Status</th><th></th></tr></thead><tbody>`;
+
+  let h='';
+
+  // Upcoming / scheduled games
+  if(upcoming.length){
+    h+=`<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px">📅 Upcoming — ${upcoming.length} event${upcoming.length!==1?'s':''}</div>`;
+    h+=TABLE_HEADER;
+    h+=renderEventRows(upcoming,c);
+    h+='</tbody></table>';
+  }
+
+  // Completed / past games toggle
+  h+=`<div style="margin-top:18px;border-top:2px solid var(--border);padding-top:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${past.length&&showCompleted?'10px':'0'}">
+      <div style="font-size:13px;font-weight:700;color:var(--t2)">✓ Completed Games — ${past.length} event${past.length!==1?'s':''}</div>
+      <button class="btn btn-sm" onclick="toggleCompleted()" style="font-size:11px">${showCompleted?'Hide Completed':'Show Completed'}</button>
+    </div>
+    ${showCompleted&&past.length?TABLE_HEADER+renderEventRows([...past].reverse(),c)+'</tbody></table>':''}
+    ${showCompleted&&!past.length?'<div class="empty-state" style="padding:16px">No past games yet</div>':''}
+  </div>`;
+
+  document.getElementById('view-area').innerHTML=h;
+}
+
+function toggleCompleted(){showCompleted=!showCompleted;render();}
+
+function renderEventRows(events,c){
+  let h='';
   const byDate={};
-  f.forEach(e=>{if(!byDate[e.date])byDate[e.date]=[];byDate[e.date].push(e);});
-  let h=`<table class="sched-table"><thead><tr><th>Sport / Vans</th><th>Date</th><th>Time</th><th>H/A</th><th>Opponent / Event</th><th>Venue</th><th>Leave</th><th>Coaches</th><th>Van</th><th>Driver</th><th>Status</th><th></th></tr></thead><tbody>`;
+  events.forEach(e=>{if(!byDate[e.date])byDate[e.date]=[];byDate[e.date].push(e);});
   Object.keys(byDate).sort().forEach(date=>{
     const day=byDate[date];
     h+=`<tr class="date-hdr"><td colspan="12">📅 ${fmt(date)} — ${day.length} event${day.length>1?'s':''}</td></tr>`;
