@@ -1996,7 +1996,27 @@ function render(){
   }
 
   const sl=document.getElementById('sub-list');
-  if(sl)sl.innerHTML='';
+  if(sl){
+    if(!S.subs.length){
+      sl.innerHTML='<div style="font-size:12px;color:var(--t3);padding:8px 0">No subs added — go to Substitutes tab to add</div>';
+    } else {
+      sl.innerHTML=S.subs.map(s=>{
+        const isPlaced=s.placed||(Object.entries(S.attendance).find(([n,a])=>a.sub===s.name||(a.periodSubs&&Object.values(a.periodSubs).includes(s.name))));
+        const placedName=s.placed||(isPlaced?isPlaced[0]:null);
+        const statusColor=placedName?'var(--amber-t)':'var(--green-t)';
+        const statusLabel=placedName?'Covering '+placedName:'Available';
+        return`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)">
+          <div class="att-avatar" style="width:30px;height:30px;font-size:11px;background:${placedName?'var(--amber-bg)':'var(--green-bg)'};color:${statusColor}">${ini(s.name)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700">${s.name}${s.isSwing?' <span class="badge b-amber" style="font-size:9px">Agency</span>':''}</div>
+            <div style="font-size:11px;color:var(--t2)">${s.phone}</div>
+            ${s.email?`<div style="font-size:10px;color:var(--blue-t)">${s.email}</div>`:''}
+          </div>
+          <span style="font-size:11px;font-weight:700;color:${statusColor}">${statusLabel}</span>
+        </div>`;
+      }).join('');
+    }
+  }
 
   renderBudget();
   // planned days
@@ -2395,7 +2415,7 @@ function getFYEnd(date){
 }
 function get14MonthsAgo(){
   const d=new Date();
-  d.setMonth(d.getMonth()-14);
+  d.setMonth(d.getMonth()-24);
   return d.toISOString().slice(0,10);
 }
 
@@ -2403,12 +2423,12 @@ function get14MonthsAgo(){
 let detailGroupId=null;
 let detailFromDate='';
 let detailToDate='';
-let detailMode='fy'; // 'fy' or 'custom'
+let detailMode='both'; // 'both', 'fy', 'lastfy', or 'custom'
 
 function openGroupDetail(groupId){
   detailGroupId=groupId;
-  detailMode='fy';
-  detailFromDate=getFYStart();
+  detailMode='both';
+  detailFromDate=getLastFYStart();
   detailToDate=getFYEnd();
   // Hide tab bar and list, show detail
   document.getElementById('budget-tab-bar').style.display='none';
@@ -2445,7 +2465,7 @@ function renderGroupDetail(groupId){
   // FY label
   const fyStartYear=detailFromDate.slice(0,4);
   const fyEndYear=detailToDate.slice(0,4);
-  const fyLabel=detailMode==='fy'?'Fiscal Year '+fyStartYear+'–'+fyEndYear:'Custom Range';
+  const fyLabel=detailMode==='both'?'FY '+fyStartYear+'–'+fyEndYear+' & Prior Year':detailMode==='fy'?'FY '+fyStartYear+'–'+fyEndYear:detailMode==='lastfy'?'Last FY '+fyStartYear+'–'+fyEndYear:'Custom Range';
 
   det.innerHTML=`
     <!-- Back button + header -->
@@ -2473,8 +2493,14 @@ function renderGroupDetail(groupId){
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:12px;font-weight:700;color:var(--t2)">Showing:</span>
+        <button class="btn btn-sm ${detailMode==='both'?'btn-primary':''}" onclick="setDetailMode('both')">
+          📅 Both Years
+        </button>
         <button class="btn btn-sm ${detailMode==='fy'?'btn-primary':''}" onclick="setDetailMode('fy')">
-          📅 Current Fiscal Year
+          📅 Current FY
+        </button>
+        <button class="btn btn-sm ${detailMode==='lastfy'?'btn-primary':''}" onclick="setDetailMode('lastfy')">
+          📅 Last FY
         </button>
         <button class="btn btn-sm ${detailMode==='custom'?'btn-primary':''}" onclick="setDetailMode('custom')">
           📆 Custom Range
@@ -2549,14 +2575,35 @@ function renderGroupDetail(groupId){
     </div>`;
 }
 
+function getLastFYStart(){
+  // Last fiscal year starts July 1 of the year before current FY
+  const currentFYStart=getFYStart();
+  const y=parseInt(currentFYStart.slice(0,4));
+  return (y-1)+'-07-01';
+}
+function getLastFYEnd(){
+  // Last fiscal year ends June 30 of the current FY start year
+  const currentFYStart=getFYStart();
+  const y=parseInt(currentFYStart.slice(0,4));
+  return y+'-06-30';
+}
+
 function setDetailMode(mode){
   detailMode=mode;
-  if(mode==='fy'){
+  if(mode==='both'){
+    detailFromDate=getLastFYStart();
+    detailToDate=getFYEnd();
+  } else if(mode==='fy'){
     detailFromDate=getFYStart();
     detailToDate=getFYEnd();
+  } else if(mode==='lastfy'){
+    detailFromDate=getLastFYStart();
+    detailToDate=getLastFYEnd();
   } else {
-    // Custom: default to last 14 months
-    detailFromDate=get14MonthsAgo();
+    // Custom: default to last 24 months
+    const d=new Date();
+    d.setMonth(d.getMonth()-24);
+    detailFromDate=d.toISOString().slice(0,10);
     detailToDate=new Date().toISOString().slice(0,10);
   }
   if(detailGroupId)renderGroupDetail(detailGroupId);
