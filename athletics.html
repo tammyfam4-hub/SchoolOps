@@ -286,7 +286,7 @@ function conflicts(){
 }
 
 function filtered(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
   return evts.filter(e=>{
     if(!sportF.has('all')&&!sportF.has(e.sport))return false;
     if(haF!=='all'&&e.homeAway!==haF)return false;
@@ -299,7 +299,7 @@ function filtered(){
 }
 
 function filteredUpcoming(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
   const prev=showCompleted;showCompleted=false;
   const result=evts.filter(e=>{
     if(!sportF.has('all')&&!sportF.has(e.sport))return false;
@@ -312,7 +312,7 @@ function filteredUpcoming(){
 }
 
 function filteredPast(){
-  const today=new Date().toISOString().slice(0,10);
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
   return evts.filter(e=>{
     if(!sportF.has('all')&&!sportF.has(e.sport))return false;
     if(haF!=='all'&&e.homeAway!==haF)return false;
@@ -419,7 +419,7 @@ function renderList(){
   const c=conflicts();
   const upcoming=filteredUpcoming();
   const past=filteredPast();
-  const today=new Date().toISOString().slice(0,10);
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
 
   if(!upcoming.length&&!past.length){
     document.getElementById('view-area').innerHTML='<div class="empty-state">No events match your filters</div>';
@@ -495,8 +495,7 @@ function renderEventRows(events,c){
       </tr>`;
     });
   });
-  h+='</tbody></table>';
-  document.getElementById('view-area').innerHTML=h;
+  return h;
 }
 
 function renderCalendar(){
@@ -511,7 +510,7 @@ function renderCalendar(){
     for(let d=1;d<=days;d++){
       const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const dayEvts=filtered().filter(e=>e.date===iso);
-      const isToday=iso===new Date().toISOString().slice(0,10);
+      const isToday=iso===new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
       h+=`<div class="cal-cell${isToday?' today':''}"><div class="cal-num">${d}</div>`;
       dayEvts.forEach(e=>{
         const short=e.sport.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F').replace('Volleyball','VB').replace('Baseball','⚾').replace('Softball','🥎');
