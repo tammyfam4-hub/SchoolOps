@@ -183,9 +183,15 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     <div class="panel active" id="panel-dashboard">
       <div style="max-width:900px;margin:0 auto">
-        <div style="margin-bottom:28px">
-          <div style="font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px">Good morning, Highland Prep 👋</div>
-          <div style="font-size:14px;color:var(--t3)" id="dash-date-line">Select a module below to get started.</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px">Good morning, Highland Prep 👋</div>
+            <div style="font-size:14px;color:var(--t3)" id="dash-date-line">Select a module below to get started.</div>
+          </div>
+          <button class="btn btn-primary" onclick="manualSave()" id="manual-save-btn" style="display:flex;align-items:center;gap:7px;padding:9px 18px;font-size:13px;flex-shrink:0">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 14h12V5l-3-3H2v12z"/><path d="M5 14V9h6v5M5 2v4h5"/></svg>
+            Save Now
+          </button>
         </div>
         <!-- Module cards grid -->
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px" id="module-grid">
@@ -1191,6 +1197,29 @@ async function initData(){
   document.getElementById('footer-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
   render();
   planCalYear=new Date().getFullYear();planCalMonth=new Date().getMonth();
+}
+
+async function manualSave(){
+  const btn=document.getElementById('manual-save-btn');
+  if(btn){btn.disabled=true;btn.innerHTML='<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6" stroke-dasharray="20" stroke-dashoffset="20" style="animation:spin .7s linear infinite"/></svg> Saving...';}
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    if(session){
+      await sb.from('app_state').upsert({
+        user_email:session.user.email,
+        state_json:JSON.stringify(S),
+        updated_at:new Date().toISOString()
+      },{onConflict:'user_email'});
+      toast('✓ Saved successfully');
+    }
+  } catch(e){
+    toast('Save failed — check your connection');
+    console.error('Manual save error:',e);
+  }
+  if(btn){
+    btn.disabled=false;
+    btn.innerHTML='<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 14h12V5l-3-3H2v12z"/><path d="M5 14V9h6v5M5 2v4h5"/></svg> Save Now';
+  }
 }
 
 function exportData(){const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='schoolops-'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('Exported ✓');}
