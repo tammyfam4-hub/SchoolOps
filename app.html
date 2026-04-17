@@ -368,7 +368,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
         <div class="g2">
           <div class="card">
             <div class="shdr"><div class="stitle" id="att-list-title">Teacher Attendance</div><button class="btn btn-primary btn-sm" onclick="openModal('att-modal')">+ Log event</button></div>
-            <div class="legend"><span class="sp sp-P">P</span> Present &nbsp;<span class="sp sp-EA">EA</span> Excused &nbsp;<span class="sp sp-T">T</span> Tardy &nbsp;<span class="sp sp-UA">UA</span> Unexcused — click to change status</div>
+            <div class="legend"><span class="sp sp-P">P</span> Present &nbsp;<span class="sp sp-EA">EA</span> Excused Absence &nbsp;<span class="sp sp-T">T</span> Tardy &nbsp;<span class="sp sp-T">ED</span> Early Departure — click to mark</div>
             <div id="att-list"></div>
           </div>
           <div class="card">
@@ -901,8 +901,9 @@ function initAtt(){
   S.lastDate=todayStr;
   // Initialize anyone missing
   [...TEACHERS,...STAFF].forEach(p=>{
-    if(!S.attendance[p.name])S.attendance[p.name]={status:'P',sub:null,reason:'',periods:[],departTime:'',contractEnd:'15:30'};
+    if(!S.attendance[p.name])S.attendance[p.name]={status:'P',sub:null,reason:'',periods:[],departTime:'',contractEnd:'15:30',swingName:''};
     if(!S.attendance[p.name].periods)S.attendance[p.name].periods=[];
+    if(!S.attendance[p.name].periodSubs)S.attendance[p.name].periodSubs={};
   });
   if(!S.attendanceHistory)S.attendanceHistory={};
   // Always ensure the permanent sub roster exists — never wipe on update
@@ -1414,16 +1415,22 @@ function logAttendance(){
 function quickStatus(name,status){
   if(!S.attendance[name])S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30'};
   if(status==='P'){
-    // Free the sub
     const prev=S.attendance[name].sub;
-    if(prev){const ps=S.subs.find(s=>s.name===prev);if(ps){ps.placed=null;ps.avail=true;}}
-    // Free any period subs too
+    if(prev){const ps=S.subs.find(s=>s.name===prev);if(ps)ps.placed=null;}
     const ps2=S.attendance[name].periodSubs||{};
-    Object.values(ps2).forEach(sn=>{const sub=S.subs.find(s=>s.name===sn);if(sub){sub.placed=null;sub.avail=true;}});
-    S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30'};
+    Object.values(ps2).forEach(sn=>{const sub=S.subs.find(s=>s.name===sn);if(sub)sub.placed=null;});
+    S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
+  } else if(status==='ED'){
+    S.attendance[name].status='ED';
+    if(!S.attendance[name].periods)S.attendance[name].periods=[];
+    if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
+  } else if(status==='EA'){
+    S.attendance[name].status='EA';
+    if(!S.attendance[name].periods)S.attendance[name].periods=[];
+    if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
+    S.attendance[name].departTime='';
   } else {
     S.attendance[name].status=status;
-    // Initialize periods array if not set
     if(!S.attendance[name].periods)S.attendance[name].periods=[];
     if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
   }
@@ -1483,7 +1490,7 @@ function renderSubCoverageOnly(){
     const att=S.attendance[t.name]||{};
     const displaySub=att.swingName||(att.sub&&att.sub!=='Swing Sub'?att.sub:null);
     const swingLabel=att.swingName?'Swing: '+att.swingName:att.sub==='Swing Sub'?'⏳ Swing Sub (name pending)':'';
-    const statusLabel={'EA':'Full Day','EA-partial':'Partial Day','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[att.status]||att.status;
+    const statusLabel={'EA':'Full Day','EA-partial':'Partial Day','ED':'Early Departure','early-departure':'Early Departure','ED':'Early Departure','T':'Tardy','UA':'Unexcused'}[att.status]||att.status;
     return`<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
       <div style="display:flex;align-items:center;gap:8px">
         <span class="sp sp-${att.status==='EA-partial'||att.status==='early-departure'?'EA':att.status==='UA'?'UA':att.status==='T'?'T':'EA'}">${statusLabel}</span>
@@ -1520,6 +1527,41 @@ function assignSubInline(teacherName,subName){
     toast('Sub removed');
   }
   scheduleSave();render();
+}
+
+function togglePeriod(name,periodNum,checked){
+  if(!S.attendance[name])return;
+  const att=S.attendance[name];
+  if(!att.periods)att.periods=[];
+  const pLabel='Period '+periodNum;
+  if(checked){if(!att.periods.includes(pLabel))att.periods.push(pLabel);}
+  else{att.periods=att.periods.filter(p=>p!==pLabel);}
+  att.periods.sort();
+  scheduleSave();render();
+}
+
+function toggleFullDay(name,checked){
+  if(!S.attendance[name])return;
+  const att=S.attendance[name];
+  if(checked){
+    att.periods=['Period 1','Period 2','Period 3','Period 4'];
+  } else {
+    att.periods=[];
+  }
+  scheduleSave();render();
+}
+
+function updateDepartTime(name,time){
+  if(!S.attendance[name])return;
+  S.attendance[name].departTime=time;
+  S.attendance[name].status='ED';
+  scheduleSave();
+}
+
+function updateContractEnd(name,time){
+  if(!S.attendance[name])return;
+  S.attendance[name].contractEnd=time;
+  scheduleSave();
 }
 
 function updateAttReason(name,reason){
@@ -1703,46 +1745,87 @@ function render(){
         }
       }
 
-      return`<div class="att-row" style="flex-wrap:wrap">
-        <!-- Row: avatar + name + status buttons -->
+      // Period checkboxes shown when EA is active
+      const showPeriods=att.status==='EA'||att.status==='EA-partial';
+      const showED=att.status==='ED'||att.status==='early-departure';
+      const pKey=p.name.replace(/[^a-z]/gi,'_');
+
+      // Build period checkboxes for EA
+      const periodCheckboxes=showPeriods?`
+        <div style="width:100%;margin-top:6px;padding:8px 12px;background:var(--amber-bg);border-radius:var(--r);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:var(--amber-t);white-space:nowrap">Periods absent:</span>
+          ${['P1','P2','P3','P4'].map((per,i)=>{
+            const pNum='Period '+(i+1);
+            const checked=(att.periods||[]).includes(pNum);
+            return`<label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px;background:${checked?'var(--amber-t)':'var(--bg1)'};color:${checked?'#fff':'var(--t2)'};border:0.5px solid ${checked?'var(--amber-t)':'var(--border-md)'}">
+              <input type="checkbox" ${checked?'checked':''} style="display:none" onchange="togglePeriod('${p.name}',${i+1},this.checked)"> ${per}
+            </label>`;
+          }).join('')}
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer;padding:4px 10px;border-radius:6px;background:${(att.periods||[]).length===4?'var(--amber-t)':'var(--bg1)'};color:${(att.periods||[]).length===4?'#fff':'var(--t2)'};border:0.5px solid ${(att.periods||[]).length===4?'var(--amber-t)':'var(--border-md)'}">
+            <input type="checkbox" ${(att.periods||[]).length===4?'checked':''} style="display:none" onchange="toggleFullDay('${p.name}',this.checked)"> Full Day
+          </label>
+        </div>`:'';
+
+      // ED time fields
+      const edFields=showED?`
+        <div style="width:100%;margin-top:6px;padding:8px 12px;background:var(--blue-bg);border-radius:var(--r);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:var(--blue-t);white-space:nowrap">🕐 Early Departure:</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--t2)">Leaves:</span>
+            <input type="time" value="${att.departTime||''}" style="padding:4px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit" onchange="updateDepartTime('${p.name}',this.value)">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--t2)">Contract ends:</span>
+            <input type="time" value="${att.contractEnd||'15:30'}" style="padding:4px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit" onchange="updateContractEnd('${p.name}',this.value)">
+          </div>
+          ${['P1','P2','P3','P4'].map((per,i)=>{
+            const pNum='Period '+(i+1);
+            const checked=(att.periods||[]).includes(pNum);
+            return`<label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px;background:${checked?'var(--blue-t)':'var(--bg1)'};color:${checked?'#fff':'var(--t2)'};border:0.5px solid ${checked?'var(--blue-t)':'var(--border-md)'}">
+              <input type="checkbox" ${checked?'checked':''} style="display:none" onchange="togglePeriod('${p.name}',${i+1},this.checked)"> ${per} missed
+            </label>`;
+          }).join('')}
+        </div>`:'';
+
+      // Sub assignment panel
+      const subPanel=isTeacher&&isAbsent?`
+        <div style="width:100%;margin-top:6px;padding:8px 12px;background:var(--blue-bg);border-radius:var(--r);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--blue-t);white-space:nowrap">📋 Sub:</span>
+          <select id="sub-sel-${pKey}" style="flex:1;min-width:160px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit" onchange="handleSubSelect('${p.name}',this.value)">${subOpts}</select>
+          ${att.sub==='Swing Sub'||att.swingName?`<input id="swing-name-${pKey}" placeholder="Swing sub name..." value="${att.swingName||''}" style="min-width:150px;padding:5px 8px;font-size:12px;border:1.5px solid var(--amber);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit" oninput="updateSwingName('${p.name}',this.value)">`:'' }
+          <input placeholder="Reason (optional)" value="${att.reason||''}" style="flex:1;min-width:120px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit" onchange="updateAttReason('${p.name}',this.value)">
+        </div>`:'';
+
+      // Status summary (shown in name row when absent)
+      const statusBadge=isAbsent?
+        att.status==='EA'||att.status==='EA-partial'?`<span class="badge b-amber" style="margin-left:6px">EA${att.periods&&att.periods.length?' · '+(att.periods.length===4?'Full Day':att.periods.join(', ')):''}</span>`:
+        att.status==='ED'||att.status==='early-departure'?`<span class="badge b-blue" style="margin-left:6px">ED${att.departTime?' · leaves '+att.departTime:''}</span>`:
+        att.status==='T'?`<span class="badge b-blue" style="margin-left:6px">Tardy</span>`:
+        `<span class="badge b-red" style="margin-left:6px">Unexcused</span>`:'';
+
+      const subBadge=isTeacher&&isAbsent&&(att.sub||att.swingName)?
+        `<span class="sub-tag" style="margin-left:6px">📋 ${att.swingName?'Swing: '+att.swingName:att.sub}</span>`:'';
+
+      return`<div class="att-row" style="flex-wrap:wrap;padding:10px 4px">
         <div class="att-avatar" style="background:${col}22;color:${col};flex-shrink:0">${ini(p.name)}</div>
         <div style="flex:1;min-width:120px">
-          <div class="att-name">${p.name}${p.isAdmin?' ⭐':''}</div>
-          <div class="att-meta">${p.startTime}${att.reason?' · <em>'+att.reason+'</em>':''}
-            ${statusSummary?`<span style="color:var(--blue-t);font-weight:600;margin-left:4px">${statusSummary}</span>`:''}
-            ${subSummary}
+          <div class="att-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+            ${p.name}${p.isAdmin?' ⭐':''}${statusBadge}${subBadge}
           </div>
+          <div class="att-meta">${p.startTime}${att.reason?' · <em>'+att.reason+'</em>':''}</div>
         </div>
-        <!-- Status buttons -->
+        <!-- Status buttons: P  EA  T  ED -->
         <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
-          ${['P','EA','T','UA'].map(s=>{
-            const isActive=att.status===s||(s==='EA'&&(att.status==='EA-partial'||att.status==='early-departure'));
-            return`<button class="sp sp-${s}" style="${isActive?'':'opacity:.3;'}border:none;cursor:pointer" onclick="quickStatus('${p.name}','${s}')">${s}</button>`;
-          }).join('')}
-          ${isTeacher&&isAbsent
-            ? `<button class="btn btn-sm" style="font-size:10px;padding:3px 8px;margin-left:4px" onclick="openAttDetailModal('${p.name}')">⋯ Details</button>`
-            : ''}
+          ${[
+            {s:'P',  label:'P',  cls:'sp-P',  active:att.status==='P'},
+            {s:'EA', label:'EA', cls:'sp-EA', active:att.status==='EA'||att.status==='EA-partial'},
+            {s:'T',  label:'T',  cls:'sp-T',  active:att.status==='T'},
+            {s:'ED', label:'ED', cls:'sp-T',  active:att.status==='ED'||att.status==='early-departure'},
+          ].map(btn=>`<button class="sp ${btn.cls}" style="${btn.active?'':'opacity:.3;'}border:none;cursor:pointer;font-size:11px;padding:3px 8px" onclick="quickStatus('${p.name}','${btn.s}')">${btn.label}</button>`).join('')}
         </div>
-        <!-- Inline sub assignment — shown when teacher is absent -->
-        ${isTeacher&&isAbsent?`
-        <div style="width:100%;margin-top:8px;padding:10px 12px;background:var(--blue-bg);border-radius:var(--r);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:700;color:var(--blue-t);white-space:nowrap">📋 Assign Sub:</span>
-          <select id="sub-sel-${p.name.replace(/[^a-z]/gi,'_')}"
-            style="flex:1;min-width:140px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
-            onchange="handleSubSelect('${p.name}',this.value)">${subOpts}</select>
-          ${att.sub==='Swing Sub'||att.swingName?`
-            <input id="swing-name-${p.name.replace(/[^a-z]/gi,'_')}"
-              placeholder="Swing sub name..." value="${att.swingName||''}"
-              style="min-width:150px;padding:5px 8px;font-size:12px;border:0.5px solid var(--amber);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
-              onchange="updateSwingName('${p.name}',this.value)"
-              oninput="updateSwingName('${p.name}',this.value)">
-          `:''}
-          ${att.sub&&att.sub!=='Swing Sub'?`<span style="font-size:12px;color:var(--blue-t);font-weight:600">✓ ${att.sub} covering ${att.periods&&att.periods.length?att.periods.join(', '):'all periods'}</span>`:''}
-          ${att.swingName?`<span style="font-size:12px;color:var(--amber-t);font-weight:600">✓ Swing: ${att.swingName} covering ${att.periods&&att.periods.length?att.periods.join(', '):'all periods'}</span>`:''}
-          <input placeholder="Reason (optional)" value="${att.reason||''}"
-            style="flex:1;min-width:120px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
-            onchange="updateAttReason('${p.name}',this.value)">
-        </div>`:''}
+        ${periodCheckboxes}
+        ${edFields}
+        ${subPanel}
       </div>`;
     }).join('');
   }
