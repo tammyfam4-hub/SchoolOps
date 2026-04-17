@@ -166,6 +166,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
     <div class="nav-item" onclick="showPanel('budget',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 4v1.5M8 10.5V12M6 6.5c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5 0 .74-.48 1.35-1.2 1.46L8 8.1c-.66.1-1.2.7-1.2 1.4v.5"/></svg>Budget
     </div>
+    <div class="nav-item" onclick="showPanel('calendar',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="13" rx="1.5"/><path d="M1 6h14M5 1v3M11 1v3M4 9h2M7 9h2M10 9h2M4 12h2M7 12h2M10 12h2"/></svg>Master Calendar
+    </div>
   </nav>
   <div class="sidebar-footer">
     <div class="footer-date" id="footer-date"></div>
@@ -479,6 +482,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
       </div>
     </div>
 
+    <div class="panel" id="panel-calendar">
+      <div id="cal-master-content"></div>
+    </div>
+
     <div class="panel" id="panel-budget">
       <!-- Tab bar — hidden when group detail is open -->
       <div id="budget-tab-bar" class="tab-bar">
@@ -693,11 +700,27 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   </div>
 </div></div>
 
-<div id="trip-modal" class="overlay" onclick="if(event.target===this)closeModal('trip-modal')"><div class="modal">
-  <div class="modal-title">🗺️ Field Trip Request</div>
-  <div class="frow"><label class="flabel">Destination</label><input id="tr-dest" placeholder="e.g. Science Museum"></div>
-  <div class="g2" style="gap:10px"><div class="frow"><label class="flabel">Date</label><input type="date" id="tr-date"></div><div class="frow"><label class="flabel">Students</label><input type="number" id="tr-students" min="0"></div></div>
-  <div class="frow"><label class="flabel">Requested By</label><input id="tr-by" placeholder="Teacher name..."></div>
+<div id="trip-modal" class="overlay" onclick="if(event.target===this)closeModal('trip-modal')"><div class="modal" style="width:460px">
+  <div class="modal-title">🗺️ Field Trip / Event Request</div>
+  <div class="frow"><label class="flabel">Destination / Event</label><input id="tr-dest" placeholder="e.g. Science Museum"></div>
+  <div class="g2" style="gap:10px">
+    <div class="frow"><label class="flabel">Date</label><input type="date" id="tr-date"></div>
+    <div class="frow"><label class="flabel">Students / Attendees</label><input type="number" id="tr-students" min="0"></div>
+  </div>
+  <div class="g2" style="gap:10px">
+    <div class="frow"><label class="flabel">Requested By</label><input id="tr-by" placeholder="Teacher name..."></div>
+    <div class="frow"><label class="flabel">Van Assignment</label>
+      <select id="tr-van">
+        <option value="">— No van needed —</option>
+        <option value="1">Van 1</option>
+        <option value="2">Van 2</option>
+        <option value="3">Van 3</option>
+        <option value="4">Van 4</option>
+        <option value="5">Van 5</option>
+      </select>
+    </div>
+  </div>
+  <div class="frow"><label class="flabel">Notes (optional)</label><input id="tr-notes" placeholder="Any special instructions..."></div>
   <div class="modal-actions"><button class="btn btn-sm" onclick="closeModal('trip-modal')">Cancel</button><button class="btn btn-primary btn-sm" onclick="addTrip()">Submit</button></div>
 </div></div>
 
@@ -754,7 +777,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 <script>
 const TEACHERS=[
   {name:'Anderson',startTime:'7:30 AM',phone:'760-481-0251',type:'teacher'},
-  {name:'Cajthamal',startTime:'7:30 AM',phone:'623-419-4030',type:'teacher'},
+  {name:'Cajthaml',startTime:'7:30 AM',phone:'623-419-4030',type:'teacher'},
   {name:'Cline, A',startTime:'7:30 AM',phone:'424-495-0088',type:'teacher'},
   {name:'Chandler',startTime:'7:30 AM',phone:'318-228-4239',type:'teacher'},
   {name:'Duenas',startTime:'7:30 AM',phone:'602-710-9892',type:'teacher'},
@@ -804,7 +827,7 @@ const DEFAULT={
     {name:'Swing Sub',phone:'Agency',email:'',placed:null,avail:true,isSwing:true},
   ],
   classroomSupplies:[{"id":500,"name":"Anderson","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":501,"name":"Cajthaml","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":502,"name":"Cline, A","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":503,"name":"Chandler","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":504,"name":"Duenas","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":505,"name":"Gulian","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":506,"name":"Hancock","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":507,"name":"Harb","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":508,"name":"Heath","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":509,"name":"Heinz","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":510,"name":"Humiston","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":511,"name":"Holland","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":512,"name":"Kooklani","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":513,"name":"Laguit","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":514,"name":"Merrill","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":515,"name":"Moeller","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":516,"name":"Moreno","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":517,"name":"Renckly","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":518,"name":"Taghikhani","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":519,"name":"Vanden Brande","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]}],
-  ptoData:{"Anderson, Derek":{"available":8.0,"used":13.0,"remaining":-5.0,"absences":[{"date":"2026-04-06","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-03-03","days":1.0},{"date":"2026-02-25","days":1.0},{"date":"2026-01-30","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-15","days":1.0},{"date":"2026-01-14","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-12","days":1.0},{"date":"2025-12-12","days":1.0},{"date":"2025-12-12","days":1.0},{"date":"2025-12-11","days":1.0},{"date":"2025-11-24","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-10-30","days":1.0},{"date":"2025-10-29","days":1.0},{"date":"2025-09-24","days":1.0},{"date":"2025-09-23","days":1.0},{"date":"2025-09-22","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-09-15","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-08-15","days":1.0},{"date":"2025-08-13","days":1.0}]},"Brazinsky, Shantelle":{"available":8.0,"used":6.0,"remaining":2.0,"absences":[{"date":"2026-03-25","days":1.0},{"date":"2026-03-03","days":1.0},{"date":"2026-03-02","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2026-01-15","days":1.0},{"date":"2026-01-14","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-12","days":1.0},{"date":"2025-12-12","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-09-17","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-09-15","days":1.0},{"date":"2025-09-05","days":1.0}]},"Cajthaml, Caleb":{"available":8.0,"used":7.0,"remaining":1.0,"absences":[{"date":"2026-04-16","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-03-03","days":1.0},{"date":"2026-03-02","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2026-01-15","days":1.0},{"date":"2026-01-14","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-12","days":1.0},{"date":"2025-12-12","days":1.0},{"date":"2025-11-25","days":1.0},{"date":"2025-09-26","days":1.0},{"date":"2025-09-17","days":1.0}]},"Chandler, Karen":{"available":10.0,"used":1.0,"remaining":9.0,"absences":[{"date":"2026-04-16","days":1.0},{"date":"2026-04-14","days":0.5},{"date":"2026-04-10","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2025-11-25","days":1.0},{"date":"2025-11-10","days":1.0},{"date":"2025-11-03","days":1.0},{"date":"2025-09-26","days":1.0},{"date":"2025-09-17","days":1.0}]},"Cline, Tammy":{"available":9.0,"used":5.0,"remaining":4.0,"absences":[{"date":"2026-04-16","days":1.0},{"date":"2026-04-14","days":0.5},{"date":"2026-04-10","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2025-11-25","days":1.0},{"date":"2025-11-10","days":1.0},{"date":"2025-11-03","days":1.0},{"date":"2025-09-26","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-08-21","days":1.0}]},"Duenas, Silvia":{"available":7.0,"used":4.5,"remaining":2.5,"absences":[{"date":"2026-04-14","days":0.5},{"date":"2026-04-10","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-11-10","days":1.0},{"date":"2025-11-03","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-08-22","days":1.0},{"date":"2025-08-21","days":1.0}]},"Gulian, Maximillian":{"available":8.0,"used":4.0,"remaining":4.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-11-04","days":1.0},{"date":"2025-10-07","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-08-22","days":1.0},{"date":"2025-08-21","days":1.0},{"date":"2025-08-08","days":1.0}]},"Hancock, Tabatha":{"available":8.0,"used":5.0,"remaining":3.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-12","days":1.0},{"date":"2026-01-27","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-11-04","days":1.0},{"date":"2025-10-23","days":1.0},{"date":"2025-10-08","days":1.0},{"date":"2025-10-07","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-18","days":1.0},{"date":"2025-08-22","days":1.0},{"date":"2025-08-18","days":1.0},{"date":"2025-08-08","days":1.0},{"date":"2020-11-25","days":1.0}]},"Harb, Andre":{"available":10.0,"used":5.0,"remaining":5.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-02-25","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-12","days":1.0},{"date":"2026-01-27","days":1.0},{"date":"2025-10-23","days":1.0},{"date":"2025-10-08","days":1.0},{"date":"2025-10-07","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-19","days":1.0},{"date":"2025-09-18","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-08-18","days":1.0},{"date":"2025-08-08","days":1.0},{"date":"2025-08-08","days":1.0},{"date":"2025-01-26","days":1.0},{"date":"2020-11-25","days":1.0}]},"Heath, Tiffany":{"available":8,"used":0.0,"remaining":0.0,"absences":[{"date":"2026-03-25","days":1.0},{"date":"2026-03-05","days":1.0},{"date":"2026-02-25","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-12","days":1.0},{"date":"2026-01-27","days":1.0},{"date":"2025-10-23","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-19","days":1.0},{"date":"2025-09-18","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-08-18","days":1.0},{"date":"2025-08-08","days":1.0},{"date":"2025-01-26","days":1.0},{"date":"2020-11-25","days":1.0}]},"Heinz, Jeffrey":{"available":7.0,"used":7.0,"remaining":0.0,"absences":[{"date":"2026-04-02","days":1.0},{"date":"2026-03-05","days":1.0},{"date":"2026-02-25","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-08-15","days":1.0},{"date":"2025-08-08","days":1.0},{"date":"2025-01-26","days":1.0}]},"Holland, Larissa":{"available":8,"used":0.0,"remaining":0.0,"absences":[{"date":"2026-04-02","days":1.0},{"date":"2026-03-05","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2025-12-09","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-15","days":0.5},{"date":"2025-08-21","days":0.5},{"date":"2025-08-15","days":1.0}]},"Jones, Shane":{"available":10.0,"used":5.0,"remaining":5.0,"absences":[{"date":"2026-04-17","days":1.0},{"date":"2026-04-16","days":0.5},{"date":"2026-04-02","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-01-30","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2026-01-14","days":1.0},{"date":"2025-12-09","days":1.0},{"date":"2025-12-05","days":0.5},{"date":"2025-11-05","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-09-19","days":0.5},{"date":"2025-09-16","days":0.5},{"date":"2025-09-16","days":0.5},{"date":"2025-09-15","days":0.5},{"date":"2025-08-22","days":1.0},{"date":"2025-08-21","days":0.5},{"date":"2025-08-18","days":0.5},{"date":"2025-08-15","days":1.0}]},"King, Jamie":{"available":7.0,"used":2.5,"remaining":4.5,"absences":[{"date":"2026-09-03","days":0.25},{"date":"2026-04-17","days":1.0},{"date":"2026-04-16","days":0.5},{"date":"2026-04-01","days":0.5},{"date":"2026-01-30","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2026-01-27","days":1.0},{"date":"2026-01-23","days":1.0},{"date":"2026-01-14","days":1.0},{"date":"2025-12-09","days":1.0},{"date":"2025-12-05","days":0.5},{"date":"2025-11-10","days":1.0},{"date":"2025-11-05","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-10-01","days":0.25},{"date":"2025-09-19","days":0.5},{"date":"2025-09-16","days":0.5},{"date":"2025-09-16","days":0.5},{"date":"2025-09-15","days":0.5},{"date":"2025-08-22","days":1.0},{"date":"2025-08-21","days":0.5},{"date":"2025-08-18","days":0.5}]},"Kooklani, Neda":{"available":6.0,"used":12.0,"remaining":-6.0,"absences":[{"date":"2026-09-03","days":0.25},{"date":"2026-04-17","days":1.0},{"date":"2026-04-16","days":0.5},{"date":"2026-04-01","days":0.5},{"date":"2026-02-19","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-13","days":1.0},{"date":"2026-01-30","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2026-01-27","days":1.0},{"date":"2026-01-23","days":1.0},{"date":"2026-01-14","days":1.0},{"date":"2025-12-05","days":0.5},{"date":"2025-11-10","days":1.0},{"date":"2025-11-05","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-10-01","days":0.25},{"date":"2025-09-19","days":0.5},{"date":"2025-09-16","days":0.5},{"date":"2025-08-22","days":1.0},{"date":"2025-08-18","days":0.5}]},"Laguit, Joshua":{"available":9.0,"used":1.0,"remaining":8.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-03-30","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-13","days":1.0},{"date":"2026-01-23","days":1.0},{"date":"2026-01-23","days":1.0},{"date":"2026-01-22","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2025-10-01","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-22","days":0.5},{"date":"2025-08-28","days":1.0},{"date":"2025-08-26","days":1.0},{"date":"2025-08-25","days":1.0}]},"Magana, Mary":{"available":7.0,"used":4.0,"remaining":3.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-03-30","days":1.0},{"date":"2026-03-03","days":1.0},{"date":"2026-02-23","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-13","days":1.0},{"date":"2026-01-23","days":1.0},{"date":"2026-01-22","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2025-10-01","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-23","days":1.0},{"date":"2025-09-22","days":0.5},{"date":"2025-09-16","days":1.0},{"date":"2025-09-15","days":1.0},{"date":"2025-09-11","days":1.0},{"date":"2025-09-10","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-09-03","days":1.0},{"date":"2025-09-02","days":1.0},{"date":"2025-08-28","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-26","days":1.0},{"date":"2025-08-25","days":1.0},{"date":"2025-08-07","days":1.0}]},"Merrill, Daniel":{"available":6.0,"used":16.0,"remaining":-10.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-03-30","days":1.0},{"date":"2026-03-12","days":0.5},{"date":"2026-03-03","days":1.0},{"date":"2026-02-23","days":1.0},{"date":"2026-01-28","days":1.0},{"date":"2026-01-23","days":1.0},{"date":"2026-01-22","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2025-11-21","days":1.0},{"date":"2025-11-20","days":1.0},{"date":"2025-10-01","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-23","days":1.0},{"date":"2025-09-22","days":0.5},{"date":"2025-09-22","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-09-15","days":1.0},{"date":"2025-09-12","days":1.0},{"date":"2025-09-11","days":1.0},{"date":"2025-09-10","days":1.0},{"date":"2025-09-09","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-09-04","days":1.0},{"date":"2025-09-03","days":1.0},{"date":"2025-09-02","days":1.0},{"date":"2025-08-28","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-26","days":1.0},{"date":"2025-08-25","days":1.0},{"date":"2025-08-07","days":1.0}]},"Moeller, Scott":{"available":9.0,"used":31.0,"remaining":-22.0,"absences":[{"date":"2026-03-12","days":0.5},{"date":"2026-02-25","days":1.0},{"date":"2026-02-23","days":1.0},{"date":"2026-01-28","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2025-11-21","days":1.0},{"date":"2025-11-20","days":1.0},{"date":"2025-11-12","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-22","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-09-15","days":1.0},{"date":"2025-09-12","days":1.0},{"date":"2025-09-11","days":1.0},{"date":"2025-09-10","days":1.0},{"date":"2025-09-09","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-09-04","days":1.0},{"date":"2025-09-03","days":1.0},{"date":"2025-09-02","days":1.0},{"date":"2025-08-21","days":1.0},{"date":"2025-08-07","days":1.0}]},"Moreno, Sarah":{"available":6.0,"used":6.5,"remaining":-0.5,"absences":[{"date":"2026-05-01","days":1.0},{"date":"2026-03-12","days":0.5},{"date":"2026-02-25","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2026-01-28","days":1.0},{"date":"2025-11-21","days":1.0},{"date":"2025-11-12","days":1.0},{"date":"2025-11-04","days":1.0},{"date":"2025-10-09","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-22","days":1.0},{"date":"2025-08-21","days":1.0}]},"Renckly, Kayla":{"available":6.0,"used":3.0,"remaining":3.0,"absences":[{"date":"2026-05-01","days":1.0},{"date":"2026-02-23","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-05","days":1.0},{"date":"2025-11-04","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-10-09","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-08-21","days":1.0},{"date":"2025-08-13","days":1.0}]},"Steele, Andrea":{"available":8.0,"used":3.0,"remaining":5.0,"absences":[{"date":"2026-05-01","days":1.0},{"date":"2026-02-25","days":1.0},{"date":"2026-02-23","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-09","days":1.0},{"date":"2026-02-06","days":1.0},{"date":"2026-02-04","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-05","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-11-19","days":1.0},{"date":"2025-11-06","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-10-09","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-04","days":0.5},{"date":"2025-08-20","days":1.0},{"date":"2025-08-18","days":1.0},{"date":"2025-08-13","days":1.0},{"date":"2025-02-23","days":1.0}]},"Taghikhani, Rahim":{"available":6.0,"used":7.5,"remaining":-1.5,"absences":[{"date":"2026-02-25","days":1.0},{"date":"2026-02-23","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-09","days":1.0},{"date":"2026-02-06","days":1.0},{"date":"2026-02-04","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-05","days":1.0},{"date":"2025-12-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-11-19","days":1.0},{"date":"2025-11-06","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-09-29","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-04","days":0.5},{"date":"2025-08-27","days":1.0},{"date":"2025-08-21","days":1.0},{"date":"2025-08-20","days":1.0},{"date":"2025-08-18","days":1.0},{"date":"2025-08-14","days":1.0},{"date":"2025-08-13","days":1.0},{"date":"2025-02-23","days":1.0},{"date":"2025-02-17","days":1.0}]},"VandenBrande, Daniel":{"available":8.0,"used":13.5,"remaining":-5.5,"absences":[{"date":"2026-02-25","days":1.0},{"date":"2026-02-09","days":1.0},{"date":"2026-02-06","days":1.0},{"date":"2025-12-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-11-19","days":1.0},{"date":"2025-09-29","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-04","days":0.5},{"date":"2025-08-29","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-21","days":1.0},{"date":"2025-08-20","days":1.0},{"date":"2025-08-18","days":1.0},{"date":"2025-08-14","days":1.0},{"date":"2025-02-23","days":1.0},{"date":"2025-02-17","days":1.0}]},"Walker, Kenny":{"available":7.0,"used":3.0,"remaining":4.0,"absences":[{"date":"2025-11-06","days":1.0},{"date":"2025-11-03","days":1.0},{"date":"2025-08-29","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-14","days":1.0}]}},
+  ptoData:{"Anderson, Derek":{"available":8.0,"used":13.0,"remaining":-5.0,"absences":[{"date":"2025-12-11","days":1.0},{"date":"2025-11-24","days":1.0},{"date":"2025-10-30","days":1.0},{"date":"2025-10-29","days":1.0},{"date":"2025-10-24","days":1.0,"type":"wellness"},{"date":"2025-09-24","days":1.0},{"date":"2025-09-23","days":1.0},{"date":"2025-09-22","days":1.0},{"date":"2025-08-15","days":1.0},{"date":"2025-08-13","days":1.0}]},"Brazinsky, Shantelle":{"available":8.0,"used":6.0,"remaining":2.0,"absences":[{"date":"2026-03-25","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-09-15","days":1.0},{"date":"2025-09-05","days":1.0}]},"Cajthaml, Caleb":{"available":8.0,"used":7.0,"remaining":1.0,"absences":[{"date":"2026-03-02","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2026-01-15","days":1.0},{"date":"2025-12-12","days":1.0}]},"Chandler, Karen":{"available":10.0,"used":1.0,"remaining":9.0,"absences":[{"date":"2025-09-17","days":1.0}]},"Cline, Tammy":{"available":9.0,"used":5.0,"remaining":4.0,"absences":[{"date":"2026-04-16","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2025-11-25","days":1.0},{"date":"2025-10-22","days":1.0,"type":"wellness"},{"date":"2025-09-26","days":1.0}]},"Duenas, Silvia":{"available":7.0,"used":4.5,"remaining":2.5,"absences":[{"date":"2026-04-30","days":1.0,"type":"wellness"},{"date":"2026-04-14","days":0.5},{"date":"2026-04-10","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2025-11-10","days":1.0},{"date":"2025-11-03","days":1.0}]},"Gulian, Maximillian":{"available":8.0,"used":4.0,"remaining":4.0,"absences":[{"date":"2026-01-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-12-08","days":1.0,"type":"wellness"},{"date":"2025-09-16","days":1.0},{"date":"2025-08-21","days":1.0}]},"Hancock, Tabatha":{"available":8.0,"used":5.0,"remaining":3.0,"absences":[{"date":"2026-01-21","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-11-04","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-08-22","days":1.0}]},"Harb, Andre":{"available":10.0,"used":5.0,"remaining":5.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-12","days":1.0,"type":"wellness"},{"date":"2025-10-08","days":1.0},{"date":"2025-10-07","days":1.0},{"date":"2025-08-08","days":1.0}]},"Heath, Tiffany":{"available":8,"used":0.0,"remaining":0.0,"absences":[]},"Heinz, Jeffrey":{"available":7.0,"used":7.0,"remaining":0.0,"absences":[{"date":"2026-02-25","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-08-22","days":1.0,"type":"wellness"},{"date":"2025-08-08","days":1.0},{"date":"2025-01-26","days":1.0}]},"Holland, Larissa":{"available":8,"used":0.0,"remaining":0.0,"absences":[]},"Jones, Shane":{"available":10.0,"used":5.0,"remaining":5.0,"absences":[{"date":"2026-04-02","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2025-08-15","days":1.0}]},"King, Jamie":{"available":7.0,"used":2.5,"remaining":4.5,"absences":[{"date":"2025-12-09","days":1.0},{"date":"2025-09-16","days":0.5},{"date":"2025-09-15","days":0.5},{"date":"2025-08-21","days":0.5}]},"Kooklani, Neda":{"available":6.0,"used":12.0,"remaining":-6.0,"absences":[{"date":"2026-09-03","days":0.25},{"date":"2025-11-10","days":1.0},{"date":"2025-11-05","days":1.0},{"date":"2025-11-05","days":1.0,"type":"wellness"},{"date":"2025-10-29","days":0.5},{"date":"2025-10-01","days":0.25},{"date":"2025-09-19","days":0.5},{"date":"2025-09-16","days":0.5},{"date":"2025-08-22","days":1.0},{"date":"2025-08-18","days":0.5}]},"Laguit, Joshua":{"available":9.0,"used":1.0,"remaining":8.0,"absences":[{"date":"2026-01-23","days":1.0},{"date":"2025-12-05","days":1.0,"type":"wellness"}]},"Magana, Mary":{"available":7.0,"used":4.0,"remaining":3.0,"absences":[{"date":"2026-02-19","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-13","days":1.0},{"date":"2025-08-14","days":1.0,"type":"wellness"}]},"Merrill, Daniel":{"available":6.0,"used":16.0,"remaining":-10.0,"absences":[{"date":"2025-10-01","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-23","days":1.0},{"date":"2025-09-22","days":0.5},{"date":"2025-08-28","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-26","days":1.0},{"date":"2025-08-25","days":1.0}]},"Moeller, Scott":{"available":9.0,"used":31.0,"remaining":-22.0,"absences":[{"date":"2025-10-07","days":1.0,"type":"wellness"},{"date":"2025-09-09","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-09-04","days":1.0},{"date":"2025-09-03","days":1.0},{"date":"2025-09-02","days":1.0},{"date":"2025-08-07","days":1.0}]},"Moreno, Sarah":{"available":6.0,"used":6.5,"remaining":-0.5,"absences":[{"date":"2026-03-12","days":0.5},{"date":"2026-02-25","days":1.0},{"date":"2026-01-28","days":1.0},{"date":"2025-11-21","days":1.0},{"date":"2025-11-12","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-22","days":1.0}]},"Renckly, Kayla":{"available":6.0,"used":3.0,"remaining":3.0,"absences":[{"date":"2025-11-04","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-08-21","days":1.0}]},"Steele, Andrea":{"available":8.0,"used":3.0,"remaining":5.0,"absences":[{"date":"2026-02-19","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2025-10-09","days":1.0}]},"Taghikhani, Rahim":{"available":6.0,"used":7.5,"remaining":-1.5,"absences":[{"date":"2026-02-23","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-04","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-05","days":1.0},{"date":"2025-11-06","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-08-13","days":1.0}]},"VandenBrande, Daniel":{"available":8.0,"used":13.5,"remaining":-5.5,"absences":[{"date":"2025-12-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-11-19","days":1.0},{"date":"2025-09-29","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-04","days":0.5},{"date":"2025-08-21","days":1.0},{"date":"2025-08-20","days":1.0},{"date":"2025-08-18","days":1.0}]},"Walker, Kenny":{"available":7.0,"used":3.0,"remaining":4.0,"absences":[{"date":"2025-08-29","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-14","days":1.0}]}},
   adminEmailGroup:['kwalker@highlandprepaz.org','sjones@highlandprepaz.org','asteele@highlandprepaz.org','sbrazinsky@highlandprepaz.org','mmagana@highlandprepaz.org','tcline@highlandprepaz.org'],
   plannedDays:[],
   tasks:[
@@ -899,7 +922,21 @@ function initAtt(){
     if(!S.attendance[p.name].periodSubs)S.attendance[p.name].periodSubs={};
   });
   if(!S.attendanceHistory)S.attendanceHistory={};
-  if(!S.ptoData)S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
+  // Always merge ptoData from DEFAULT — ensures new spreadsheet data is applied
+  if(!S.ptoData)S.ptoData={};
+  Object.keys(DEFAULT.ptoData).forEach(k=>{
+    if(!S.ptoData[k]){
+      S.ptoData[k]=JSON.parse(JSON.stringify(DEFAULT.ptoData[k]));
+    } else {
+      // Update available/used/remaining from DEFAULT (spreadsheet is source of truth)
+      // but keep any manual allowance changes the user made (if different from DEFAULT)
+      const def=DEFAULT.ptoData[k];
+      if(S.ptoData[k].used===0&&def.used>0){
+        // Clearly stale — update everything
+        S.ptoData[k]=JSON.parse(JSON.stringify(def));
+      }
+    }
+  });
 }
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -1147,6 +1184,18 @@ async function initData(){
   if(!S.lastDate||S.lastDate<'2026-04-17')S.lastDate='2026-04-16'; // will trigger reset to 04-17
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
+  // Ensure all sports and clubs have IDs (fix for Supabase-loaded state without IDs)
+  S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
+  S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
+  // Sync credits/debits from transactions if missing
+  [...S.sports,...S.clubs].forEach(g=>{
+    if(!g.transactions)g.transactions=[];
+    // Restore from DEFAULT if this group has no transactions but DEFAULT does
+    const def=[...DEFAULT.sports,...DEFAULT.clubs].find(d=>d.name===g.name);
+    if(def&&def.transactions&&def.transactions.length&&g.transactions.length===0){
+      g.transactions=def.transactions;
+    }
+  });
   if(!S.plannedDays||!Array.isArray(S.plannedDays))S.plannedDays=[];
   if(typeof S.nextGroupId!=='number')S.nextGroupId=200;
   if(!S.trips||!Array.isArray(S.trips))S.trips=[];
@@ -1226,9 +1275,11 @@ function showPanel(id,el){
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
   else document.querySelectorAll('.nav-item').forEach(n=>{if((n.getAttribute('onclick')||'').includes("'"+id+"'"))n.classList.add('active');});
-  const TT={dashboard:'Dashboard',tasks:'Task Management',facilities:'Facility Scheduling',transport:'Transportation',attendance:'Attendance — Teachers & Staff',budget:'Budget Management'};
-  const TB={dashboard:'Overview',tasks:'Tasks',facilities:'Scheduling',transport:'Routing',attendance:'HR',budget:'Finance'};
-  _set('topbar-title',TT[id]);_set('topbar-badge',TB[id]);render();
+  const TT={dashboard:'Dashboard',tasks:'Task Management',facilities:'Facility Scheduling',transport:'Transportation',attendance:'Attendance — Teachers & Staff',budget:'Budget Management',calendar:'Master Calendar'};
+  const TB={dashboard:'Overview',tasks:'Tasks',facilities:'Scheduling',transport:'Routing',attendance:'HR',budget:'Finance',calendar:'Calendar'};
+  _set('topbar-title',TT[id]);_set('topbar-badge',TB[id]);
+  if(id==='calendar')renderMasterCalendar();
+  render();
 }
 
 function switchTab(el,mod,tab){
@@ -1272,13 +1323,13 @@ function switchTab(el,mod,tab){
 }
 
 document.addEventListener('keydown',e=>{
-  if(e.metaKey||e.ctrlKey){const m={'1':'dashboard','2':'tasks','3':'facilities','4':'transport','5':'attendance','6':'budget'};if(m[e.key]){e.preventDefault();showPanel(m[e.key],null);}}
+  if(e.metaKey||e.ctrlKey){const m={'1':'dashboard','2':'tasks','3':'facilities','4':'transport','5':'attendance','6':'budget','7':'calendar'};if(m[e.key]){e.preventDefault();showPanel(m[e.key],null);}}
   if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));
 });
 
 // ── TASK SYSTEM ──────────────────────────────────────────────────
-const TEAM_MEMBERS=['Anderson', 'Cajthamal', 'Cline, A', 'Chandler', 'Duenas', 'Gulian', 'Hancock', 'Harb', 'Heath', 'Heinz', 'Humiston', 'Holland', 'Kooklani', 'Laguit', 'Merrill', 'Moeller', 'Moreno', 'Renckly', 'Taghikhani', 'Vanden Brande', 'Brazinsky, Shantelle', 'Walker, Kenny', 'Jones, Shane', 'Steele, Andrea', 'Magana, Mary', 'King, Jamie', 'Cline, Tammy'];
-const TEAM_EMAILS={'Anderson':'anderson@highlandprep.org','Cajthamal':'cajthamal@highlandprep.org','Cline, A':'acline@highlandprep.org','Chandler':'chandler@highlandprep.org','Duenas':'duenas@highlandprep.org','Gulian':'gulian@highlandprep.org','Hancock':'hancock@highlandprep.org','Harb':'harb@highlandprep.org','Heath':'heath@highlandprep.org','Heinz':'heinz@highlandprep.org','Humiston':'humiston@highlandprep.org','Holland':'holland@highlandprep.org','Kooklani':'kooklani@highlandprep.org','Laguit':'laguit@highlandprep.org','Merrill':'merrill@highlandprep.org','Moeller':'moeller@highlandprep.org','Moreno':'moreno@highlandprep.org','Renckly':'renckly@highlandprep.org','Taghikhani':'taghikhani@highlandprep.org','Vanden Brande':'vbrande@highlandprep.org','Brazinsky, Shantelle':'sbrazinsky@highlandprep.org','Walker, Kenny':'kwalker@highlandprep.org','Jones, Shane':'sjones@highlandprep.org','Steele, Andrea':'asteele@highlandprep.org','Magana, Mary':'mmagana@highlandprep.org','King, Jamie':'jking@highlandprep.org','Cline, Tammy':'tcline@highlandprep.org'};
+const TEAM_MEMBERS=['Anderson', 'Cajthaml', 'Cline, A', 'Chandler', 'Duenas', 'Gulian', 'Hancock', 'Harb', 'Heath', 'Heinz', 'Humiston', 'Holland', 'Kooklani', 'Laguit', 'Merrill', 'Moeller', 'Moreno', 'Renckly', 'Taghikhani', 'Vanden Brande', 'Brazinsky, Shantelle', 'Walker, Kenny', 'Jones, Shane', 'Steele, Andrea', 'Magana, Mary', 'King, Jamie', 'Cline, Tammy'];
+const TEAM_EMAILS={'Anderson':'anderson@highlandprep.org','Cajthaml':'cajthamal@highlandprep.org','Cline, A':'acline@highlandprep.org','Chandler':'chandler@highlandprep.org','Duenas':'duenas@highlandprep.org','Gulian':'gulian@highlandprep.org','Hancock':'hancock@highlandprep.org','Harb':'harb@highlandprep.org','Heath':'heath@highlandprep.org','Heinz':'heinz@highlandprep.org','Humiston':'humiston@highlandprep.org','Holland':'holland@highlandprep.org','Kooklani':'kooklani@highlandprep.org','Laguit':'laguit@highlandprep.org','Merrill':'merrill@highlandprep.org','Moeller':'moeller@highlandprep.org','Moreno':'moreno@highlandprep.org','Renckly':'renckly@highlandprep.org','Taghikhani':'taghikhani@highlandprep.org','Vanden Brande':'vbrande@highlandprep.org','Brazinsky, Shantelle':'sbrazinsky@highlandprep.org','Walker, Kenny':'kwalker@highlandprep.org','Jones, Shane':'sjones@highlandprep.org','Steele, Andrea':'asteele@highlandprep.org','Magana, Mary':'mmagana@highlandprep.org','King, Jamie':'jking@highlandprep.org','Cline, Tammy':'tcline@highlandprep.org'};
 let editingTaskId=null,stCounter=1000;
 
 function populateTaskAssignSelect(){
@@ -1390,8 +1441,36 @@ function sendEmail(){
 function addBooking(){const date=document.getElementById('f-date').value;if(!date)return;S.bookings.unshift({id:S.nextId++,room:document.getElementById('f-room').value,date,time:document.getElementById('f-time').value,by:document.getElementById('f-by').value||'Unknown',purpose:document.getElementById('f-purpose').value||'—',status:'Pending'});closeModal('fac-modal');toast('Booked ✓');scheduleSave();render();}
 function deleteBooking(id){if(!confirm('Remove this booking?'))return;S.bookings=S.bookings.filter(x=>x.id!==id);toast('Removed');scheduleSave();render();}
 function markBookingComplete(id){const b=S.bookings.find(x=>x.id===id);if(b){b.status='Completed';toast(b.room+' marked complete ✓');scheduleSave();render();}}
+function assignTripVan(id,vanVal){
+  const t=S.trips.find(x=>x.id===id);
+  if(!t)return;
+  t.van=vanVal?parseInt(vanVal):null;
+  t.vehicle=vanVal?'Van '+vanVal:'Pending';
+  toast(vanVal?'Van '+vanVal+' assigned ✓':'Van removed');
+  scheduleSave();render();
+}
+
 function markTripComplete(id){const t=S.trips.find(x=>x.id===id);if(t){t.status='Completed';toast(t.dest+' marked complete ✓');scheduleSave();render();}}
-function addTrip(){const d=document.getElementById('tr-dest').value.trim();if(!d)return;S.trips.unshift({id:S.nextId++,dest:d,date:document.getElementById('tr-date').value||'—',by:document.getElementById('tr-by').value||'Unknown',students:parseInt(document.getElementById('tr-students').value)||0,vehicle:'Pending',status:'Pending'});closeModal('trip-modal');toast('Request submitted ✓');scheduleSave();render();}
+function addTrip(){
+  const d=document.getElementById('tr-dest').value.trim();
+  if(!d)return;
+  const vanVal=document.getElementById('tr-van').value;
+  const notes=(document.getElementById('tr-notes')||{}).value||'';
+  S.trips.unshift({
+    id:S.nextId++,dest:d,
+    date:document.getElementById('tr-date').value||'',
+    by:document.getElementById('tr-by').value||'Unknown',
+    students:parseInt(document.getElementById('tr-students').value)||0,
+    vehicle:vanVal?'Van '+vanVal:'Pending',
+    van:vanVal?parseInt(vanVal):null,
+    notes:notes.trim(),
+    status:'Pending'
+  });
+  ['tr-dest','tr-date','tr-by','tr-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const vs=document.getElementById('tr-van');if(vs)vs.value='';
+  closeModal('trip-modal');
+  toast('Request submitted ✓');scheduleSave();render();
+}
 function addTransaction(){const desc=document.getElementById('tr2-desc').value.trim();const amt=parseFloat(document.getElementById('tr2-amount').value)||0;if(!desc||!amt)return;const isExp=document.getElementById('tr2-type').value==='expense';S.transactions.unshift({date:document.getElementById('tr2-date').value||new Date().toISOString().slice(0,10),desc,cat:document.getElementById('tr2-cat').value,amount:isExp?-amt:amt});closeModal('trans-modal');toast('Recorded ✓');scheduleSave();render();}
 function addSub(){const f=document.getElementById('s-first').value.trim(),l=document.getElementById('s-last').value.trim();if(!f||!l)return;S.subs.push({name:f+' '+l,phone:document.getElementById('s-phone').value||'—',email:document.getElementById('s-email').value.trim()||'',avail:true,placed:null});closeModal('sub-modal');toast('Sub added ✓');scheduleSave();render();}
 
@@ -1759,21 +1838,28 @@ function render(){
   const vsc=document.getElementById('van-status-cards');
   if(vsc){
     try{
-      const athRaw3=localStorage.getItem('hp-athletics');
-      const ov3=athRaw3?JSON.parse(athRaw3):{};
-      const today3=new Date().toISOString().slice(0,10);
+      // Van cards — combine field trips (S.trips) with athletics events
+      const today3=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
       const vanColors=['#185FA5','#1D9E75','#D85A30','#534AB7','#BA7517'];
+      let athEvents3=[];
+      try{const raw3=localStorage.getItem('hp-athletics');if(raw3)athEvents3=Object.values(JSON.parse(raw3));}catch(e2){}
+      const fieldTrips3=(S.trips||[]).filter(t=>t.van&&t.status!=='Completed'&&t.status!=='Done');
       vsc.innerHTML=[1,2,3,4,5].map((v,i)=>{
-        const trips=Object.values(ov3).filter(e=>e.van==v);
-        const upcoming=trips.filter(e=>(e.date||'')>=today3);
-        const next=upcoming.sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0];
         const col=vanColors[i];
-        return`<div class="metric" style="border-left:3px solid ${col}">`+
-          `<div style="font-size:18px;margin-bottom:4px">🚐</div>`+
-          `<div style="font-size:13px;font-weight:700;color:${col}">Van ${v}</div>`+
-          `<div style="font-size:11px;color:var(--t2);margin-top:2px">${trips.length} trip${trips.length!==1?'s':''} total</div>`+
-          `<div style="font-size:10px;color:var(--t3);margin-top:2px">${next?'Next: '+next.date:'No upcoming'}</div>`+
-          `</div>`;
+        const athVan=athEvents3.filter(e=>e.van==v);
+        const tripVan=fieldTrips3.filter(t=>t.van==v);
+        const upcoming=[
+          ...athVan.filter(e=>(e.date||'')>=today3).map(e=>({date:e.date,label:(e.sport||'Game')})),
+          ...tripVan.filter(t=>(t.date||'')>=today3).map(t=>({date:t.date,label:t.dest}))
+        ].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+        const next=upcoming[0];
+        const total=athVan.length+tripVan.length;
+        return('<div class="metric" style="border-left:3px solid '+col+'">'+
+          '<div style="font-size:18px;margin-bottom:4px">🚐</div>'+
+          '<div style="font-size:13px;font-weight:700;color:'+col+'">Van '+v+'</div>'+
+          '<div style="font-size:11px;color:var(--t2);margin-top:2px">'+total+' assignment'+(total!==1?'s':'')+'</div>'+
+          '<div style="font-size:10px;color:var(--t3);margin-top:2px">'+(next?'Next: '+next.label+' · '+next.date:'No upcoming')+'</div>'+
+          '</div>');
       }).join('');
     } catch(e){ vsc.innerHTML=''; }
   }
@@ -1806,9 +1892,18 @@ function render(){
   if(trp){
     const activeTrips=S.trips.filter(t=>t.status!=='Completed'&&t.status!=='Done');
     trp.innerHTML=activeTrips.length?activeTrips.map(t=>`<tr>
-      <td>${t.dest}</td><td>${fmt(t.date)}</td><td>${t.by}</td><td>${t.students}</td><td>${t.vehicle}</td>
-      <td><span class="badge ${SC[t.status]||'b-gray'}">${t.status}</span></td>
-      <td style="white-space:nowrap">
+      <td style="padding:8px 6px;border-bottom:0.5px solid var(--border);font-weight:600">${t.dest}${t.notes?'<div style="font-size:11px;color:var(--t2);font-weight:400">'+t.notes+'</div>':''}</td>
+      <td style="padding:8px 6px;border-bottom:0.5px solid var(--border);white-space:nowrap">${fmt(t.date)}</td>
+      <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)">${t.by}</td>
+      <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)">${t.students}</td>
+      <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)">
+        <select style="padding:3px 6px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1)" onchange="assignTripVan(${t.id},this.value)">
+          <option value="" ${!t.van?'selected':''}>— None —</option>
+          ${[1,2,3,4,5].map(v=>'<option value="'+v+'" '+(t.van==v?'selected':'')+'>Van '+v+'</option>').join('')}
+        </select>
+      </td>
+      <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)"><span class="badge ${SC[t.status]||'b-gray'}">${t.status}</span></td>
+      <td style="padding:8px 6px;border-bottom:0.5px solid var(--border);white-space:nowrap">
         <button class="btn btn-sm" style="font-size:11px" onclick="markTripComplete(${t.id})">&#10003; Done</button>
         <button class="btn btn-sm btn-danger" style="font-size:11px;margin-left:4px" onclick="deleteTrip(${t.id})">&#10005;</button>
       </td></tr>`).join('')
@@ -2280,26 +2375,48 @@ function openClassroomTransaction(teacherId){
 }
 
 // ─── PTO TRACKING ─────────────────────────────────────────────────
+// Explicit map from TEACHER/STAFF short names to ptoData keys
+const PTO_NAME_MAP={
+  'Anderson':'Anderson, Derek',
+  'Cajthaml':'Cajthaml, Caleb',
+  'Cline, A':'Cline, Tammy',
+  'Chandler':'Chandler, Karen',
+  'Duenas':'Duenas, Silvia',
+  'Gulian':'Gulian, Maximillian',
+  'Hancock':'Hancock, Tabatha',
+  'Harb':'Harb, Andre',
+  'Heath':'Heath, Tiffany',
+  'Heinz':'Heinz, Jeffrey',
+  'Holland':'Holland, Larissa',
+  'Kooklani':'Kooklani, Neda',
+  'Laguit':'Laguit, Joshua',
+  'Merrill':'Merrill, Daniel',
+  'Moeller':'Moeller, Scott',
+  'Moreno':'Moreno, Sarah',
+  'Renckly':'Renckly, Kayla',
+  'Taghikhani':'Taghikhani, Rahim',
+  'Vanden Brande':'VandenBrande, Daniel',
+  'Brazinsky, Shantelle':'Brazinsky, Shantelle',
+  'Walker, Kenny':'Walker, Kenny',
+  'Jones, Shane':'Jones, Shane',
+  'Steele, Andrea':'Steele, Andrea',
+  'Magana, Mary':'Magana, Mary',
+  'King, Jamie':'King, Jamie',
+  'Cline, Tammy':'Cline, Tammy',
+};
+
 function findPTO(personName){
   if(!S.ptoData)return null;
   // 1. Direct match
   if(S.ptoData[personName])return S.ptoData[personName];
-  // 2. Normalize: remove spaces, lowercase, strip commas for comparison
-  const norm=s=>s.toLowerCase().replace(/[,.\s]/g,'');
-  const pName=norm(personName);
-  // Get just the last name portion (before comma if present)
+  // 2. Use explicit name map
+  const mappedKey=PTO_NAME_MAP[personName];
+  if(mappedKey&&S.ptoData[mappedKey])return S.ptoData[mappedKey];
+  // 3. Fallback: match by last name
   const pLast=personName.split(',')[0].trim().toLowerCase().replace(/\s/g,'');
-  // 3. Find best matching key
   const key=Object.keys(S.ptoData).find(k=>{
-    const kNorm=norm(k);
     const kLast=k.split(',')[0].trim().toLowerCase().replace(/\s/g,'');
-    // Exact normalized match
-    if(kNorm===pName)return true;
-    // Last name matches (handles "Anderson" -> "Anderson, Derek")
-    if(kLast===pLast)return true;
-    // Key starts with person name normalized (handles "Vanden Brande" -> "VandenBrande")
-    if(kNorm.startsWith(pName)||pName.startsWith(kNorm))return true;
-    return false;
+    return kLast===pLast;
   });
   return key?S.ptoData[key]:null;
 }
@@ -2307,7 +2424,21 @@ function findPTO(personName){
 function renderPTOTab(){
   const el=document.getElementById('att-pto-content');
   if(!el)return;
-  if(!S.ptoData)S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
+  // Always merge ptoData from DEFAULT — ensures new spreadsheet data is applied
+  if(!S.ptoData)S.ptoData={};
+  Object.keys(DEFAULT.ptoData).forEach(k=>{
+    if(!S.ptoData[k]){
+      S.ptoData[k]=JSON.parse(JSON.stringify(DEFAULT.ptoData[k]));
+    } else {
+      // Update available/used/remaining from DEFAULT (spreadsheet is source of truth)
+      // but keep any manual allowance changes the user made (if different from DEFAULT)
+      const def=DEFAULT.ptoData[k];
+      if(S.ptoData[k].used===0&&def.used>0){
+        // Clearly stale — update everything
+        S.ptoData[k]=JSON.parse(JSON.stringify(def));
+      }
+    }
+  });
 
   const WARNING_THRESHOLD=0.75; // warn at 75% used
   const overLimit=[],nearLimit=[],ok=[];
@@ -2662,6 +2793,363 @@ function deleteTransaction(groupId,txId){
   grp.transactions.splice(idx,1);
   toast('Transaction deleted ✓');scheduleSave();
   renderGroupDetail(groupId);
+}
+
+// ─── MASTER CALENDAR ─────────────────────────────────────────────────
+let calView='month'; // 'month' | 'week' | 'day'
+let calDate=new Date();
+
+function azToday(){
+  return new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+}
+
+// Gather all events from all modules for a given date range
+function getCalEvents(fromDate,toDate){
+  const events=[];
+  const from=fromDate||'2000-01-01';
+  const to=toDate||'2099-12-31';
+
+  // Field Trips
+  (S.trips||[]).forEach(t=>{
+    if(!t.date||t.date<from||t.date>to)return;
+    events.push({date:t.date,type:'trip',label:t.dest,sub:t.by+(t.van?' · Van '+t.van:''),color:'#1D9E75',icon:'🗺️',data:t});
+  });
+
+  // Facility Bookings
+  (S.bookings||[]).forEach(b=>{
+    if(!b.date||b.date<from||b.date>to)return;
+    events.push({date:b.date,type:'booking',label:b.room,sub:b.by+' · '+b.purpose,color:'#534AB7',icon:'🏢',data:b});
+  });
+
+  // Planned Days Off
+  (S.plannedDays||[]).forEach(p=>{
+    const start=p.start||p.date;
+    const end=p.end||start;
+    if(!start)return;
+    // Expand multi-day ranges
+    let d=new Date(start+'T12:00:00');
+    const endD=new Date(end+'T12:00:00');
+    while(d<=endD){
+      const iso=d.toISOString().slice(0,10);
+      if(iso>=from&&iso<=to){
+        events.push({date:iso,type:'planned',label:p.person+' — '+p.type,sub:p.notes||'',color:'#BA7517',icon:'📅',data:p});
+      }
+      d.setDate(d.getDate()+1);
+    }
+  });
+
+  // Attendance absences (today only from live, history for past)
+  const today=azToday();
+  // Today's absences
+  if(today>=from&&today<=to){
+    Object.entries(S.attendance||{}).forEach(([name,a])=>{
+      if(a.status&&a.status!=='P'){
+        const label={EA:'Excused Absence',T:'Tardy',ED:'Early Departure',UA:'Unexcused'}[a.status]||a.status;
+        events.push({date:today,type:'absent',label:name+' — '+label,sub:a.sub?'Sub: '+(a.swingName||a.sub):'No sub assigned',color:'#E24B4A',icon:'👤',data:{name,att:a}});
+      }
+    });
+  }
+  // History absences
+  Object.entries(S.attendanceHistory||{}).forEach(([date,dayData])=>{
+    if(date<from||date>to)return;
+    Object.entries(dayData).forEach(([name,a])=>{
+      if(a.status&&a.status!=='P'){
+        const label={EA:'Excused Absence',T:'Tardy',ED:'Early Departure',UA:'Unexcused'}[a.status]||a.status;
+        events.push({date,type:'absent',label:name+' — '+label,sub:a.sub?'Sub: '+(a.swingName||a.sub):'',color:'#E24B4A',icon:'👤',data:{name,att:a}});
+      }
+    });
+  });
+
+  // Athletics from BASE data in athletics.html (baked in)
+  try{
+    if(typeof BASE!=='undefined'){
+      BASE.filter(e=>e.date>=from&&e.date<=to).forEach(e=>{
+        events.push({date:e.date,type:'athletics',label:e.sport+(e.homeAway==='Away'?' @ '+e.host:' vs '+e.visitor),sub:e.gameTime+(e.van?' · Van '+e.van:''),color:e.color||'#185FA5',icon:'🏆',data:e});
+      });
+    }
+  }catch(e2){}
+
+  return events.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function calNavPrev(){
+  if(calView==='month'){calDate.setMonth(calDate.getMonth()-1);}
+  else if(calView==='week'){calDate.setDate(calDate.getDate()-7);}
+  else{calDate.setDate(calDate.getDate()-1);}
+  renderMasterCalendar();
+}
+function calNavNext(){
+  if(calView==='month'){calDate.setMonth(calDate.getMonth()+1);}
+  else if(calView==='week'){calDate.setDate(calDate.getDate()+7);}
+  else{calDate.setDate(calDate.getDate()+1);}
+  renderMasterCalendar();
+}
+function calGoToday(){calDate=new Date();renderMasterCalendar();}
+function calSetView(v){calView=v;renderMasterCalendar();}
+
+function renderMasterCalendar(){
+  const el=document.getElementById('cal-master-content');
+  if(!el)return;
+
+  const today=azToday();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // Header
+  let title='';
+  if(calView==='month') title=MONTHS[calDate.getMonth()]+' '+calDate.getFullYear();
+  else if(calView==='week'){
+    const weekStart=new Date(calDate);weekStart.setDate(calDate.getDate()-calDate.getDay());
+    const weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);
+    title='Week of '+MONTHS[weekStart.getMonth()]+' '+weekStart.getDate()+', '+weekStart.getFullYear();
+  } else {
+    title=MONTHS[calDate.getMonth()]+' '+calDate.getDate()+', '+calDate.getFullYear();
+  }
+
+  const LEGEND=[
+    {color:'#1D9E75',label:'Field Trips'},
+    {color:'#534AB7',label:'Facility Bookings'},
+    {color:'#BA7517',label:'Planned Days Off'},
+    {color:'#E24B4A',label:'Absences'},
+    {color:'#185FA5',label:'Athletics'},
+  ];
+
+  el.innerHTML=`
+    <!-- Toolbar -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="calNavPrev()">&#8249;</button>
+      <button class="btn btn-sm" onclick="calGoToday()">Today</button>
+      <button class="btn btn-sm" onclick="calNavNext()">&#8250;</button>
+      <span style="font-size:15px;font-weight:700;flex:1;text-align:center">${title}</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-sm ${calView==='day'?'btn-primary':''}" onclick="calSetView('day')">Day</button>
+        <button class="btn btn-sm ${calView==='week'?'btn-primary':''}" onclick="calSetView('week')">Week</button>
+        <button class="btn btn-sm ${calView==='month'?'btn-primary':''}" onclick="calSetView('month')">Month</button>
+      </div>
+      <button class="btn btn-sm" onclick="exportCalPDF()" title="Export to PDF">&#128196; PDF</button>
+      <button class="btn btn-sm" onclick="exportCalExcel()" title="Export to Excel">&#128202; Excel</button>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+      ${LEGEND.map(l=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)"><div style="width:10px;height:10px;border-radius:3px;background:${l.color};flex-shrink:0"></div>${l.label}</div>`).join('')}
+    </div>
+
+    <!-- Calendar view -->
+    <div id="cal-view-body"></div>
+  `;
+
+  // Render the correct view
+  if(calView==='month') renderCalMonth();
+  else if(calView==='week') renderCalWeek();
+  else renderCalDay();
+}
+
+function renderCalMonth(){
+  const el=document.getElementById('cal-view-body');
+  if(!el)return;
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  const firstDay=new Date(y,m,1).getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const today=azToday();
+
+  // Get all events for this month
+  const from=y+'-'+String(m+1).padStart(2,'0')+'-01';
+  const to=y+'-'+String(m+1).padStart(2,'0')+'-'+String(daysInMonth).padStart(2,'0');
+  const events=getCalEvents(from,to);
+
+  // Group by date
+  const byDate={};
+  events.forEach(e=>{if(!byDate[e.date])byDate[e.date]=[];byDate[e.date].push(e);});
+
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let h=`<div style="display:grid;grid-template-columns:repeat(7,1fr);border-left:0.5px solid var(--border);border-top:0.5px solid var(--border)">`;
+
+  // Day headers
+  DAYS.forEach(d=>{h+=`<div style="padding:6px;font-size:10px;font-weight:700;text-align:center;color:var(--t3);text-transform:uppercase;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);background:var(--bg2)">${d}</div>`;});
+
+  // Empty cells before first day
+  for(let i=0;i<firstDay;i++) h+=`<div style="border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);min-height:90px;background:var(--bg2)"></div>`;
+
+  // Day cells
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isToday=iso===today;
+    const dayEvts=byDate[iso]||[];
+    const dayOfWeek=new Date(iso+'T12:00:00').getDay();
+    const isWeekend=dayOfWeek===0||dayOfWeek===6;
+    h+=`<div onclick="calClickDay('${iso}')" style="border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);min-height:90px;padding:4px;cursor:pointer;background:${isWeekend?'var(--bg2)':'var(--bg1)'};transition:background .1s" onmouseenter="this.style.background='var(--blue-bg)'" onmouseleave="this.style.background='${isWeekend?'var(--bg2)':'var(--bg1)'}'">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:700;${isToday?'background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;':''}">${d}</span>
+        ${dayEvts.length>0?`<span style="font-size:9px;color:var(--t3)">${dayEvts.length} event${dayEvts.length>1?'s':''}</span>`:''}
+      </div>
+      ${dayEvts.slice(0,3).map(e=>`<div style="font-size:10px;padding:2px 4px;border-radius:3px;background:${e.color}22;color:${e.color};margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600" title="${e.label}">${e.icon} ${e.label}</div>`).join('')}
+      ${dayEvts.length>3?`<div style="font-size:10px;color:var(--t3);padding:2px 4px">+${dayEvts.length-3} more</div>`:''}
+    </div>`;
+  }
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+function renderCalWeek(){
+  const el=document.getElementById('cal-view-body');
+  if(!el)return;
+  const weekStart=new Date(calDate);
+  weekStart.setDate(calDate.getDate()-calDate.getDay());
+  const today=azToday();
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const dates=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+
+  const from=dates[0],to=dates[6];
+  const events=getCalEvents(from,to);
+  const byDate={};
+  events.forEach(e=>{if(!byDate[e.date])byDate[e.date]=[];byDate[e.date].push(e);});
+
+  let h=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">`;
+  dates.forEach((iso,i)=>{
+    const d=new Date(iso+'T12:00:00');
+    const isToday=iso===today;
+    const dayEvts=byDate[iso]||[];
+    h+=`<div style="border:0.5px solid ${isToday?'var(--blue)':'var(--border)'};border-radius:var(--rl);padding:10px;min-height:140px;background:${isToday?'var(--blue-bg)':'var(--bg1)'}">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:2px">${DAYS[d.getDay()]}</div>
+      <div style="font-size:16px;font-weight:800;color:${isToday?'var(--blue)':'var(--t1)'};margin-bottom:8px">${d.getDate()} <span style="font-size:12px;font-weight:500;color:var(--t2)">${MONTHS[d.getMonth()]}</span></div>
+      ${dayEvts.map(e=>`<div onclick="calClickDay('${iso}')" style="font-size:11px;padding:4px 6px;border-radius:4px;background:${e.color}18;color:${e.color};margin-bottom:4px;font-weight:600;cursor:pointer;border-left:2px solid ${e.color}" title="${e.label}">${e.icon} ${e.label}${e.sub?'<div style="font-size:10px;font-weight:400;opacity:.8">'+e.sub+'</div>':''}</div>`).join('')}
+      ${!dayEvts.length?'<div style="font-size:11px;color:var(--t3);font-style:italic">No events</div>':''}
+    </div>`;
+  });
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+function renderCalDay(){
+  const el=document.getElementById('cal-view-body');
+  if(!el)return;
+  const iso=calDate.toISOString().slice(0,10);
+  const today=azToday();
+  const events=getCalEvents(iso,iso);
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const d=new Date(iso+'T12:00:00');
+
+  const typeLabels={trip:'Field Trips',booking:'Facility Bookings',planned:'Planned Days Off',absent:'Absences',athletics:'Athletics'};
+  const grouped={};
+  events.forEach(e=>{if(!grouped[e.type])grouped[e.type]=[];grouped[e.type].push(e);});
+
+  let h=`<div style="max-width:700px">`;
+
+  // Day header card
+  h+=`<div style="background:${iso===today?'var(--blue-bg)':'var(--bg2)'};border:0.5px solid ${iso===today?'var(--blue)':'var(--border)'};border-radius:var(--rl);padding:20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.06em">${DAYS[d.getDay()]}</div>
+      <div style="font-size:28px;font-weight:800;color:${iso===today?'var(--blue)':'var(--t1)'}">${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}</div>
+      ${iso===today?'<div style="font-size:12px;color:var(--blue-t);font-weight:600;margin-top:4px">Today</div>':''}
+    </div>
+    <div style="font-size:32px;font-weight:800;color:var(--t3)">${events.length}<div style="font-size:12px;font-weight:500;color:var(--t3)">event${events.length!==1?'s':''}</div></div>
+  </div>`;
+
+  if(!events.length){
+    h+=`<div class="empty">No events scheduled for this day.</div>`;
+  } else {
+    Object.entries(grouped).forEach(([type,evts])=>{
+      h+=`<div class="card" style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">${typeLabels[type]||type} (${evts.length})</div>
+        ${evts.map(e=>`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:8px;background:${e.color}18;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${e.icon}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:var(--t1)">${e.label}</div>
+            ${e.sub?`<div style="font-size:11px;color:var(--t2);margin-top:2px">${e.sub}</div>`:''}
+          </div>
+          <div style="width:10px;height:10px;border-radius:50%;background:${e.color};flex-shrink:0;margin-top:4px"></div>
+        </div>`).join('')}
+      </div>`;
+    });
+  }
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+function calClickDay(iso){
+  calDate=new Date(iso+'T12:00:00');
+  calView='day';
+  renderMasterCalendar();
+}
+
+// ─── EXPORT FUNCTIONS ─────────────────────────────────────────────────
+function exportCalPDF(){
+  const{jsPDF}=window.jspdf;
+  if(!jsPDF){toast('PDF library not loaded');return;}
+  const doc=new jsPDF({orientation:'landscape'});
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.text('Highland Prep — Master Calendar',14,14);
+  doc.setFontSize(11);doc.setFont('helvetica','normal');
+  doc.text(MONTHS[m]+' '+y,14,22);
+
+  // Get events for current view range
+  let from,to;
+  if(calView==='month'){
+    const days=new Date(y,m+1,0).getDate();
+    from=y+'-'+String(m+1).padStart(2,'0')+'-01';
+    to=y+'-'+String(m+1).padStart(2,'0')+'-'+String(days).padStart(2,'0');
+  } else if(calView==='week'){
+    const ws=new Date(calDate);ws.setDate(calDate.getDate()-calDate.getDay());
+    const we=new Date(ws);we.setDate(ws.getDate()+6);
+    from=ws.toISOString().slice(0,10);to=we.toISOString().slice(0,10);
+  } else {
+    from=to=calDate.toISOString().slice(0,10);
+  }
+
+  const events=getCalEvents(from,to);
+  const rows=events.map(e=>[e.date,e.icon+' '+({trip:'Field Trip',booking:'Facility',planned:'Planned Off',absent:'Absence',athletics:'Athletics'}[e.type]||e.type),e.label,e.sub||'']);
+
+  doc.autoTable({
+    startY:28,
+    head:[['Date','Type','Event','Details']],
+    body:rows,
+    styles:{fontSize:9},
+    headStyles:{fillColor:[24,95,165]},
+    columnStyles:{0:{cellWidth:25},1:{cellWidth:25},2:{cellWidth:120},3:{cellWidth:100}},
+  });
+  doc.save('schoolops-calendar-'+from+'.pdf');
+  toast('PDF exported ✓');
+}
+
+function exportCalExcel(){
+  // Build CSV for Excel
+  let from,to;
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  if(calView==='month'){
+    const days=new Date(y,m+1,0).getDate();
+    from=y+'-'+String(m+1).padStart(2,'0')+'-01';
+    to=y+'-'+String(m+1).padStart(2,'0')+'-'+String(days).padStart(2,'0');
+  } else if(calView==='week'){
+    const ws=new Date(calDate);ws.setDate(calDate.getDate()-calDate.getDay());
+    const we=new Date(ws);we.setDate(ws.getDate()+6);
+    from=ws.toISOString().slice(0,10);to=we.toISOString().slice(0,10);
+  } else {
+    from=to=calDate.toISOString().slice(0,10);
+  }
+  const events=getCalEvents(from,to);
+  const TYPE_LABELS={trip:'Field Trip',booking:'Facility Booking',planned:'Planned Day Off',absent:'Absence',athletics:'Athletics'};
+  let csv='Date,Type,Event,Details\n';
+  events.forEach(e=>{
+    const row=[e.date,TYPE_LABELS[e.type]||e.type,'"'+e.label.replace(/"/g,"''")+'"','"'+(e.sub||'').replace(/"/g,"''")+'"'];
+    csv+=row.join(',')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='schoolops-calendar-'+from+'.csv';
+  a.click();
+  toast('Excel/CSV exported ✓');
 }
 
 function renderBudget(){
