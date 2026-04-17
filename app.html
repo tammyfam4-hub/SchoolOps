@@ -774,7 +774,16 @@ const DEFAULT={
   attendance:{},
   attendanceHistory:{},
   lastDate:'',
-  subs:[],
+  subs:[
+    {name:'Ali AlNimary',phone:'832-722-6306',placed:null,avail:true},
+    {name:'Travis Head',phone:'623-341-0506',placed:null,avail:true},
+    {name:'Marissa Bittner',phone:'480-358-7296',placed:null,avail:true},
+    {name:'Tiffany Heath',phone:'623-523-9431',placed:null,avail:true},
+    {name:'Wendy James',phone:'623-792-0759',placed:null,avail:true},
+    {name:'Sadikie Bennett',phone:'623-262-5885',placed:null,avail:true},
+    {name:'Larissa Holland',phone:'919-592-4262',placed:null,avail:true},
+    {name:'Swing Sub',phone:'Agency',placed:null,avail:true,isSwing:true},
+  ],
   plannedDays:[],
   tasks:[
     {id:1,title:'Spring Awards Ceremony',cat:'Events',pri:'High',status:'inprogress',due:'2026-05-15',assign:'Cline, Tammy',email:'tcline@highlandprep.org',notes:'Annual end-of-year awards night',done:false,subtasks:[
@@ -864,6 +873,21 @@ function initAtt(){
   if(S.lastDate && S.lastDate !== todayStr && Object.keys(S.attendance).some(k=>S.attendance[k].status!=='P')){
     // Save yesterday's attendance to history before resetting
     if(!S.attendanceHistory)S.attendanceHistory={};
+  // Always ensure the permanent sub roster exists — never wipe on update
+  if(!S.subs||!S.subs.length){
+    S.subs=JSON.parse(JSON.stringify(DEFAULT.subs));
+  } else {
+    // Make sure Swing Sub is always in the list
+    if(!S.subs.find(s=>s.isSwing)){
+      S.subs.push({name:'Swing Sub',phone:'Agency',placed:null,avail:true,isSwing:true});
+    }
+    // Make sure all permanent subs are present (add any missing)
+    DEFAULT.subs.filter(d=>!d.isSwing).forEach(d=>{
+      if(!S.subs.find(s=>s.name===d.name)){
+        S.subs.push({...d});
+      }
+    });
+  }
     S.attendanceHistory[S.lastDate]=JSON.parse(JSON.stringify(S.attendance));
     // Reset all to Present for the new day
     Object.keys(S.attendance).forEach(name=>{
@@ -881,6 +905,21 @@ function initAtt(){
     if(!S.attendance[p.name].periods)S.attendance[p.name].periods=[];
   });
   if(!S.attendanceHistory)S.attendanceHistory={};
+  // Always ensure the permanent sub roster exists — never wipe on update
+  if(!S.subs||!S.subs.length){
+    S.subs=JSON.parse(JSON.stringify(DEFAULT.subs));
+  } else {
+    // Make sure Swing Sub is always in the list
+    if(!S.subs.find(s=>s.isSwing)){
+      S.subs.push({name:'Swing Sub',phone:'Agency',placed:null,avail:true,isSwing:true});
+    }
+    // Make sure all permanent subs are present (add any missing)
+    DEFAULT.subs.filter(d=>!d.isSwing).forEach(d=>{
+      if(!S.subs.find(s=>s.name===d.name)){
+        S.subs.push({...d});
+      }
+    });
+  }
 }
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -1072,6 +1111,21 @@ async function initData(){
   if(window.electronAPI){const saved=await window.electronAPI.loadData();if(saved)S=saved;window.electronAPI.onNav(p=>showPanel(p,null));window.electronAPI.onExport(exportData);}
   // Safety guards — ensure new keys exist if user has old saved data
   if(!S.attendanceHistory)S.attendanceHistory={};
+  // Always ensure the permanent sub roster exists — never wipe on update
+  if(!S.subs||!S.subs.length){
+    S.subs=JSON.parse(JSON.stringify(DEFAULT.subs));
+  } else {
+    // Make sure Swing Sub is always in the list
+    if(!S.subs.find(s=>s.isSwing)){
+      S.subs.push({name:'Swing Sub',phone:'Agency',placed:null,avail:true,isSwing:true});
+    }
+    // Make sure all permanent subs are present (add any missing)
+    DEFAULT.subs.filter(d=>!d.isSwing).forEach(d=>{
+      if(!S.subs.find(s=>s.name===d.name)){
+        S.subs.push({...d});
+      }
+    });
+  }
   if(!S.lastDate)S.lastDate='';
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
@@ -1376,6 +1430,74 @@ function quickStatus(name,status){
   scheduleSave();render();
 }
 
+function handleSubSelect(teacherName,value){
+  if(value==='Swing Sub'){
+    // Assign Swing Sub and wait for name to be typed
+    if(!S.attendance[teacherName])S.attendance[teacherName]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30'};
+    S.attendance[teacherName].sub='Swing Sub';
+    S.attendance[teacherName].swingName='';
+    scheduleSave();render();
+    // Focus the swing name input after render
+    setTimeout(()=>{
+      const nameKey=teacherName.replace(/[^a-z]/gi,'_');
+      const el=document.getElementById('swing-name-'+nameKey);
+      if(el)el.focus();
+    },100);
+  } else {
+    assignSubInline(teacherName,value);
+  }
+}
+
+function updateSwingName(teacherName,name){
+  if(!S.attendance[teacherName])return;
+  S.attendance[teacherName].swingName=name;
+  // Update period subs with the swing name if set
+  if(name){
+    const att=S.attendance[teacherName];
+    if(!att.periods||!att.periods.length){
+      att.periodSubs={'Period 1':name,'Period 2':name,'Period 3':name,'Period 4':name};
+    } else {
+      att.periods.forEach(p=>{att.periodSubs[p]=name;});
+    }
+  }
+  scheduleSave();
+  // Update the sub coverage panel without full re-render to avoid losing focus
+  renderSubCoverageOnly();
+}
+
+function renderSubCoverageOnly(){
+  // Light refresh of just the sub coverage panel
+  const scl=document.getElementById('sub-coverage-list');
+  if(!scl)return;
+  // Trigger a sub-coverage-only render
+  const absent=TEACHERS.filter(t=>{
+    const st=(S.attendance[t.name]||{}).status;
+    return st&&st!=='P';
+  });
+  if(!absent.length){
+    scl.innerHTML='<div style="text-align:center;padding:14px;color:var(--green-t);font-size:13px;font-weight:600">✓ All teachers present — no coverage needed</div>';
+    return;
+  }
+  // Build coverage html — simplified version that won't re-render the whole list
+  scl.innerHTML=absent.map(t=>{
+    const att=S.attendance[t.name]||{};
+    const displaySub=att.swingName||(att.sub&&att.sub!=='Swing Sub'?att.sub:null);
+    const swingLabel=att.swingName?'Swing: '+att.swingName:att.sub==='Swing Sub'?'⏳ Swing Sub (name pending)':'';
+    const statusLabel={'EA':'Full Day','EA-partial':'Partial Day','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[att.status]||att.status;
+    return`<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="sp sp-${att.status==='EA-partial'||att.status==='early-departure'?'EA':att.status==='UA'?'UA':att.status==='T'?'T':'EA'}">${statusLabel}</span>
+        <span style="font-size:13px;font-weight:600">${t.name}</span>
+      </div>
+      <div style="margin-top:4px">
+        ${displaySub?`<span class="sub-tag">📋 ${displaySub} covering ${att.periods&&att.periods.length?att.periods.join(', '):'all periods'}</span>`:
+          swingLabel?`<span class="badge b-amber">${swingLabel}</span>`:
+          `<span style="font-size:11px;color:var(--red-t);font-weight:600">⚠ Sub needed</span>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function assignSubInline(teacherName,subName){
   if(!S.attendance[teacherName])return;
   const prev=S.attendance[teacherName].sub;
@@ -1553,11 +1675,12 @@ function render(){
       const isTeacher=p.type==='teacher';
       const col=COLORS[i%COLORS.length];
 
-      // Build sub options
+      // Build sub options — permanent roster always shown
+      const regularSubs=S.subs.filter(s=>!s.isSwing);
+      const swingSub=S.subs.find(s=>s.isSwing);
       const subOpts='<option value="">-- No sub --</option>'+
-        (S.subs.length
-          ? S.subs.map(s=>`<option value="${s.name}" ${att.sub===s.name?'selected':''}>${s.name}${s.placed&&s.placed!==p.name?' (covering: '+s.placed+')':''}</option>`).join('')
-          : '<option disabled>Add subs first</option>');
+        regularSubs.map(s=>`<option value="${s.name}" ${att.sub===s.name?'selected':''}>${s.name}${s.placed&&s.placed!==p.name?' · covering '+s.placed:''}</option>`).join('')+
+        (swingSub?`<option value="Swing Sub" ${att.sub==='Swing Sub'?'selected':''}  style="font-weight:700;color:#BA7517">── Swing Sub (Agency) ──</option>`:'');
 
       // Status summary line
       const statusSummary=
@@ -1604,9 +1727,18 @@ function render(){
         ${isTeacher&&isAbsent?`
         <div style="width:100%;margin-top:8px;padding:10px 12px;background:var(--blue-bg);border-radius:var(--r);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <span style="font-size:12px;font-weight:700;color:var(--blue-t);white-space:nowrap">📋 Assign Sub:</span>
-          <select style="flex:1;min-width:140px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
-            onchange="assignSubInline('${p.name}',this.value)">${subOpts}</select>
-          ${att.sub?`<span style="font-size:12px;color:var(--blue-t);font-weight:600">✓ ${att.sub} covering ${att.periods&&att.periods.length?att.periods.join(', '):'all periods'}</span>`:''}
+          <select id="sub-sel-${p.name.replace(/[^a-z]/gi,'_')}"
+            style="flex:1;min-width:140px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
+            onchange="handleSubSelect('${p.name}',this.value)">${subOpts}</select>
+          ${att.sub==='Swing Sub'||att.swingName?`
+            <input id="swing-name-${p.name.replace(/[^a-z]/gi,'_')}"
+              placeholder="Swing sub name..." value="${att.swingName||''}"
+              style="min-width:150px;padding:5px 8px;font-size:12px;border:0.5px solid var(--amber);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
+              onchange="updateSwingName('${p.name}',this.value)"
+              oninput="updateSwingName('${p.name}',this.value)">
+          `:''}
+          ${att.sub&&att.sub!=='Swing Sub'?`<span style="font-size:12px;color:var(--blue-t);font-weight:600">✓ ${att.sub} covering ${att.periods&&att.periods.length?att.periods.join(', '):'all periods'}</span>`:''}
+          ${att.swingName?`<span style="font-size:12px;color:var(--amber-t);font-weight:600">✓ Swing: ${att.swingName} covering ${att.periods&&att.periods.length?att.periods.join(', '):'all periods'}</span>`:''}
           <input placeholder="Reason (optional)" value="${att.reason||''}"
             style="flex:1;min-width:120px;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg1);color:var(--t1);font-family:inherit"
             onchange="updateAttReason('${p.name}',this.value)">
@@ -2321,11 +2453,13 @@ function buildSubReportRows(from,to){
         // One row per period with its own sub
         a.periods.forEach(p=>{
           const subForPeriod=(a.periodSubs||{})[p]||null;
-          rows.push({date,name,type:typeLabel,periods:p,sub:subForPeriod});
+          const dispSub=a.swingName&&subForPeriod===a.swingName?'Swing: '+a.swingName:subForPeriod||null;
+          rows.push({date,name,type:typeLabel,periods:p,sub:dispSub});
         });
       } else {
         const periodsStr=a.periods&&a.periods.length?a.periods.join(', '):'';
-        rows.push({date,name,type:typeLabel,periods:periodsStr,sub:a.sub||null});
+        const subDisplay=a.swingName?'Swing: '+a.swingName:a.sub||null;
+      rows.push({date,name,type:typeLabel,periods:periodsStr,sub:subDisplay,swingName:a.swingName||null});
       }
     });
   });
@@ -2371,7 +2505,7 @@ function generateSubReport(){
           r.name,
           r.type,
           r.periods||'Full Day',
-          r.sub||'— None assigned —'
+          r.sub==='Swing Sub'&&r.swingName?'Swing: '+r.swingName:r.sub||'— None assigned —'
         ]),
         theme:'grid',
         headStyles:{fillColor:[24,95,165],textColor:255,fontStyle:'bold',fontSize:9},
