@@ -931,7 +931,43 @@ function _set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 function ini(name){return name.split(/[\s,]+/).filter(Boolean).map(x=>x[0].toUpperCase()).slice(0,2).join('');}
 
 let saveTimer;
-function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{if(window.electronAPI)await window.electronAPI.saveData(S);const i=document.getElementById('save-ind');i.classList.add('show');setTimeout(()=>i.classList.remove('show'),2000);},700);}
+// ─── SUPABASE SYNC ────────────────────────────────────────────────────
+// Single table "app_state" stores the entire app as one JSON blob per user.
+// Simple, reliable, and survives any app update forever.
+async function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{
+      // Save to Supabase — one row per user keyed by their email
+      const{data:{session}}=await sb.auth.getSession();
+      if(session){
+        const payload={
+          user_email: session.user.email,
+          state_json: JSON.stringify(S),
+          updated_at: new Date().toISOString()
+        };
+        await sb.from('app_state').upsert(payload,{onConflict:'user_email'});
+      }
+    } catch(e){ console.warn('Supabase save error:',e); }
+    // Show saved indicator
+    const i=document.getElementById('save-ind');
+    if(i){i.classList.add('show');setTimeout(()=>i.classList.remove('show'),2000);}
+  },800);
+}
+
+async function loadFromSupabase(userEmail){
+  try{
+    const{data,error}=await sb.from('app_state')
+      .select('state_json')
+      .eq('user_email',userEmail)
+      .single();
+    if(data&&data.state_json){
+      const saved=JSON.parse(data.state_json);
+      return saved;
+    }
+  } catch(e){ console.warn('Supabase load error:',e); }
+  return null;
+}
 
 // ── PLANNED DAYS OFF ──────────────────────────────────────────────
 let planCalYear=new Date().getFullYear();
@@ -1105,28 +1141,24 @@ function renderPlannedTable(){
 
 async function signOut(){await sb.auth.signOut();window.location.href='index.html';}
 async function initData(){
+  // ── 1. Check auth ──────────────────────────────────────────────
   const{data:{session}}=await sb.auth.getSession();
   if(!session){window.location.href='index.html';return;}
+  const userEmail=session.user.email;
   const emailEl=document.getElementById('user-email-display');
-  if(emailEl)emailEl.textContent=session.user.email;
-  if(window.electronAPI){const saved=await window.electronAPI.loadData();if(saved)S=saved;window.electronAPI.onNav(p=>showPanel(p,null));window.electronAPI.onExport(exportData);}
-  // Safety guards — ensure new keys exist if user has old saved data
-  if(!S.attendanceHistory)S.attendanceHistory={};
-  // Always ensure the permanent sub roster exists — never wipe on update
-  if(!S.subs||!S.subs.length){
-    S.subs=JSON.parse(JSON.stringify(DEFAULT.subs));
+  if(emailEl)emailEl.textContent=userEmail;
+
+  // ── 2. Load saved state from Supabase ──────────────────────────
+  const saved=await loadFromSupabase(userEmail);
+  if(saved){
+    S=saved;
+    console.log('✓ Loaded from Supabase');
   } else {
-    // Make sure Swing Sub is always in the list
-    if(!S.subs.find(s=>s.isSwing)){
-      S.subs.push({name:'Swing Sub',phone:'Agency',placed:null,avail:true,isSwing:true});
-    }
-    // Make sure all permanent subs are present (add any missing)
-    DEFAULT.subs.filter(d=>!d.isSwing).forEach(d=>{
-      if(!S.subs.find(s=>s.name===d.name)){
-        S.subs.push({...d});
-      }
-    });
+    console.log('No saved state — starting fresh with defaults');
   }
+
+  // ── 3. Safety guards — ensure all keys exist ───────────────────
+  if(!S.attendanceHistory)S.attendanceHistory={};
   if(!S.lastDate)S.lastDate='';
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
@@ -1134,10 +1166,30 @@ async function initData(){
   if(typeof S.nextGroupId!=='number')S.nextGroupId=200;
   if(!S.trips||!Array.isArray(S.trips))S.trips=[];
   if(!S.hr||!Array.isArray(S.hr))S.hr=JSON.parse(JSON.stringify(DEFAULT.hr));
+  if(!S.transactions||!Array.isArray(S.transactions))S.transactions=[];
+  if(!S.tasks||!Array.isArray(S.tasks))S.tasks=JSON.parse(JSON.stringify(DEFAULT.tasks));
+  if(!S.bookings||!Array.isArray(S.bookings))S.bookings=JSON.parse(JSON.stringify(DEFAULT.bookings));
+  if(!S.subs||!Array.isArray(S.subs))S.subs=[];
+  // Always ensure permanent sub roster is present
+  if(!S.subs.length){
+    S.subs=JSON.parse(JSON.stringify(DEFAULT.subs));
+  } else {
+    if(!S.subs.find(s=>s.isSwing)){
+      S.subs.push({name:'Swing Sub',phone:'Agency',placed:null,avail:true,isSwing:true});
+    }
+    DEFAULT.subs.filter(d=>!d.isSwing).forEach(d=>{
+      if(!S.subs.find(s=>s.name===d.name))S.subs.push({...d});
+    });
+  }
+
+  // ── 4. If no saved state exists yet, do initial save to Supabase ─
+  if(!saved){
+    await scheduleSave();
+  }
+
   initAtt();
   document.getElementById('footer-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
   render();
-  // init planned calendar to current month
   planCalYear=new Date().getFullYear();planCalMonth=new Date().getMonth();
 }
 
