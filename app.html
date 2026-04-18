@@ -131,13 +131,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .dmcard-arrow{font-size:22px;color:var(--t3);flex-shrink:0;margin-left:4px;transition:transform .15s}
 .dash-module-card:hover .dmcard-arrow{transform:translateX(3px)}
 </style>
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const SUPABASE_URL  = 'https://idjratpppoubqehqvjpx.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-</script>
 </head>
 <body>
 <div class="sidebar">
@@ -922,21 +915,8 @@ function initAtt(){
     if(!S.attendance[p.name].periodSubs)S.attendance[p.name].periodSubs={};
   });
   if(!S.attendanceHistory)S.attendanceHistory={};
-  // Always merge ptoData from DEFAULT — ensures new spreadsheet data is applied
-  if(!S.ptoData)S.ptoData={};
-  Object.keys(DEFAULT.ptoData).forEach(k=>{
-    if(!S.ptoData[k]){
-      S.ptoData[k]=JSON.parse(JSON.stringify(DEFAULT.ptoData[k]));
-    } else {
-      // Update available/used/remaining from DEFAULT (spreadsheet is source of truth)
-      // but keep any manual allowance changes the user made (if different from DEFAULT)
-      const def=DEFAULT.ptoData[k];
-      if(S.ptoData[k].used===0&&def.used>0){
-        // Clearly stale — update everything
-        S.ptoData[k]=JSON.parse(JSON.stringify(def));
-      }
-    }
-  });
+  // Always overwrite ptoData from DEFAULT — spreadsheet is always source of truth
+  S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
 }
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -2424,21 +2404,8 @@ function findPTO(personName){
 function renderPTOTab(){
   const el=document.getElementById('att-pto-content');
   if(!el)return;
-  // Always merge ptoData from DEFAULT — ensures new spreadsheet data is applied
-  if(!S.ptoData)S.ptoData={};
-  Object.keys(DEFAULT.ptoData).forEach(k=>{
-    if(!S.ptoData[k]){
-      S.ptoData[k]=JSON.parse(JSON.stringify(DEFAULT.ptoData[k]));
-    } else {
-      // Update available/used/remaining from DEFAULT (spreadsheet is source of truth)
-      // but keep any manual allowance changes the user made (if different from DEFAULT)
-      const def=DEFAULT.ptoData[k];
-      if(S.ptoData[k].used===0&&def.used>0){
-        // Clearly stale — update everything
-        S.ptoData[k]=JSON.parse(JSON.stringify(def));
-      }
-    }
-  });
+  // Always overwrite ptoData from DEFAULT — spreadsheet is always source of truth
+  S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
 
   const WARNING_THRESHOLD=0.75; // warn at 75% used
   const overLimit=[],nearLimit=[],ok=[];
