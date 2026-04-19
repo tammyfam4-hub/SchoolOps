@@ -1156,6 +1156,8 @@ async function initData(){
   } else {
     console.log('No saved state — starting fresh with defaults');
   }
+  // Always overwrite ptoData from spreadsheet — must happen right after load
+  S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
 
   // ── 3. Safety guards — ensure all keys exist ───────────────────
   if(!S.attendanceHistory)S.attendanceHistory={};
