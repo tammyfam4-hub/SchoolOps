@@ -160,6 +160,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <option value="3">Van 3</option><option value="4">Van 4</option>
           <option value="5">Van 5</option>
         </select>
+        <div style="margin-top:8px">
+          <label class="flabel">Additional Vans (if needed)</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="extra-vans-area">
+            ${[1,2,3,4,5].map(v=>`<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="ev-${v}" style="width:auto" ${(e.extraVans||[]).includes(v)?'checked':''}> Van ${v}
+            </label>`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">Check additional vans needed beyond the primary van</div>
+        </div>
       </div>
       <div class="frow" style="margin:0"><label class="flabel">Driver</label><input id="m-driver" placeholder="Driver name..."></div>
     </div>
@@ -491,7 +500,10 @@ function renderEventRows(events,c){
         </select></td>
         <td onclick="event.stopPropagation()"><input class="drv-inp" value="${e.driver||''}" placeholder="Driver..." onchange="qDriver(${e.id},this.value)"></td>
         <td style="white-space:nowrap"><span style="font-size:11px;font-weight:700;color:${sc}"><span class="status-dot" style="background:${sc}"></span>${e.status}</span></td>
-        <td><button class="btn btn-sm" onclick="event.stopPropagation();openModal(${e.id})">Edit</button></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" onclick="event.stopPropagation();openModal(${e.id})">Edit</button>
+          ${e.extraVans&&e.extraVans.length?e.extraVans.map(v=>'<span class="badge b-green" style="margin-left:3px">+Van '+v+'</span>').join(''):''}
+        </td>
       </tr>`;
     });
   });
@@ -596,6 +608,7 @@ function openModal(id){
   }
 
   document.getElementById('m-van').value=e.van||'';
+  [1,2,3,4,5].forEach(v=>{const cb=document.getElementById('ev-'+v);if(cb)cb.checked=(e.extraVans||[]).includes(v)||(e.extraVans||[]).includes(String(v));});
   document.getElementById('m-driver').value=e.driver||'';
   document.getElementById('m-athletes').value=e.athletes||'';
   document.getElementById('m-sup').value=e.supervisor||info?.headCoach?.name||'';
@@ -624,6 +637,7 @@ function checkConflict(){
 function saveModal(){
   const e=evts.find(x=>x.id===editId);if(!e)return;
   e.van=document.getElementById('m-van').value||null;
+  e.extraVans=[1,2,3,4,5].filter(v=>{const cb=document.getElementById('ev-'+v);return cb&&cb.checked;}).filter(v=>String(v)!==String(e.van));
   e.driver=document.getElementById('m-driver').value;
   e.athletes=parseInt(document.getElementById('m-athletes').value)||0;
   e.supervisor=document.getElementById('m-sup').value;
@@ -655,24 +669,35 @@ function exportCSV(){
 function renderSportInfoBar(){
   const bar = document.getElementById('sport-info-bar');
   if (!bar) return;
-  const sportOrder = ['Baseball','Softball',"Tennis - Boy's","Tennis - Girl's",'Track & Field',"Volleyball - Boy's"];
+  // Tennis Boy's and Girl's share 1 van - combine them in the card
+  const sportOrder = ['Baseball','Softball','Tennis','Track & Field',"Volleyball - Boy's"];
   bar.innerHTML = sportOrder.map(sport => {
-    const info = SPORT_INFO[sport];
-    if (!info) return '';
-    const col = BASE.find(e=>e.sport===sport)?.color || '#888';
+    // Handle combined Tennis card
+    let info, col, sportEvtsAll;
+    if(sport==='Tennis'){
+      info = {...SPORT_INFO["Tennis - Boy's"], vansNeeded:1, icon:'🎾', combinedLabel:"Tennis (Boys & Girls)"};
+      col = '#534AB7';
+      sportEvtsAll = filtered().filter(e=>e.sport==="Tennis - Boy's"||e.sport==="Tennis - Girl's");
+    } else {
+      info = SPORT_INFO[sport];
+      if (!info) return '';
+      col = BASE.find(e=>e.sport===sport)?.color || '#888';
+      sportEvtsAll = null;
+    }
     const coaches = [
       info.headCoach ? { ...info.headCoach, role: 'HC' } : null,
       ...(info.assistCoaches || []).map(c => ({ ...c, role: 'Asst' }))
     ].filter(Boolean);
     // Count events for this sport
-    const sportEvts = filtered().filter(e => e.sport === sport);
+    const sportEvts = sportEvtsAll || filtered().filter(e => e.sport === sport);
     const awayEvts = sportEvts.filter(e => e.homeAway === 'Away');
     const coverageEvts = awayEvts.filter(e => needsCoverage(sport, e.leaveTime));
+    const displayName = info.combinedLabel || sport;
     return `<div class="sport-card">
       <div class="sport-card-hdr">
         <div class="sport-icon" style="background:${col}22">${info.icon}</div>
         <div style="flex:1">
-          <div class="sport-title" style="color:${col}">${sport}</div>
+          <div class="sport-title" style="color:${col}">${displayName}</div>
           <div class="sport-subtitle">${sportEvts.length} events · ${awayEvts.length} away</div>
         </div>
         <span class="van-needed">🚐 ${info.vansNeeded} van${info.vansNeeded>1?'s':''}</span>
