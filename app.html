@@ -52,8 +52,8 @@ tr:last-child td{border-bottom:none}tbody tr:hover td{background:var(--bg2)}
 .task-chk.done{background:var(--blue);border-color:var(--blue)}
 .task-title{font-size:13px;line-height:1.45}.task-title.done{text-decoration:line-through;color:var(--t3)}
 .task-meta{font-size:11px;color:var(--t3);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.task-del{margin-left:auto;opacity:0;cursor:pointer;color:var(--t3);font-size:13px;padding:2px 6px;border-radius:4px;transition:all .12s;flex-shrink:0}
-.task-row:hover .task-del{opacity:1}.task-del:hover{background:var(--red-bg);color:var(--red-t)}
+.task-del{margin-left:auto;opacity:1;cursor:pointer;color:var(--red-t);font-size:13px;padding:2px 6px;border-radius:4px;transition:all .12s;flex-shrink:0;background:var(--red-bg);font-weight:700}
+.task-del:hover{background:var(--red-t);color:#fff}
 input,select,textarea{width:100%;padding:8px 11px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);outline:none;font-family:inherit}
 input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.12);background:var(--bg1)}
 .flabel{font-size:12px;color:var(--t2);margin-bottom:4px;display:block;font-weight:600}.frow{margin-bottom:13px}
@@ -1423,6 +1423,53 @@ function sendEmail(){
 function addBooking(){const date=document.getElementById('f-date').value;if(!date)return;S.bookings.unshift({id:S.nextId++,room:document.getElementById('f-room').value,date,time:document.getElementById('f-time').value,by:document.getElementById('f-by').value||'Unknown',purpose:document.getElementById('f-purpose').value||'—',status:'Pending'});closeModal('fac-modal');toast('Booked ✓');scheduleSave();render();}
 function deleteBooking(id){if(!confirm('Remove this booking?'))return;S.bookings=S.bookings.filter(x=>x.id!==id);toast('Removed');scheduleSave();render();}
 function markBookingComplete(id){const b=S.bookings.find(x=>x.id===id);if(b){b.status='Completed';toast(b.room+' marked complete ✓');scheduleSave();render();}}
+function showVanDetail(vanNum){
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+  const col=['','#185FA5','#1D9E75','#D85A30','#534AB7','#BA7517'][vanNum];
+  // Get athletics events
+  let athVan=[];
+  if(typeof BASE!=='undefined')athVan=BASE.filter(e=>e.van==vanNum);
+  else{try{const r=localStorage.getItem('hp-athletics');if(r)athVan=Object.values(JSON.parse(r)).filter(e=>e.van==vanNum);}catch(e){}}
+  // Get field trips
+  const tripVan=(S.trips||[]).filter(t=>t.van==vanNum);
+  const allEvents=[
+    ...athVan.map(e=>({date:e.date,label:e.sport+' '+(e.homeAway==='Away'?'@ '+e.host:'vs '+e.visitor),type:'Athletics',past:e.date<today})),
+    ...tripVan.map(t=>({date:t.date,label:t.dest+' ('+t.by+')',type:'Field Trip',past:(t.date||'')< today}))
+  ].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  const upcoming=allEvents.filter(e=>!e.past);
+  const past=allEvents.filter(e=>e.past);
+
+  const html='<div style="max-width:500px">'+
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
+      '<div style="font-size:32px">🚐</div>'+
+      '<div><div style="font-size:18px;font-weight:800;color:'+col+'">Van '+vanNum+'</div>'+
+      '<div style="font-size:12px;color:var(--t2)">'+allEvents.length+' total assignments</div></div>'+
+    '</div>'+
+    (upcoming.length?'<div class="card" style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--green-t);text-transform:uppercase;margin-bottom:8px">Upcoming ('+upcoming.length+')</div>'+
+      upcoming.map(e=>'<div style="display:flex;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)">'+
+        '<div style="font-size:11px;color:var(--t2);white-space:nowrap;min-width:80px">'+e.date+'</div>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+e.label+'</div>'+
+        '<span class="badge '+(e.type==='Athletics'?'b-blue':'b-green')+'">'+e.type+'</span></div></div>').join('')+'</div>':'<div class="empty">No upcoming assignments</div>')+
+    (past.length?'<div class="card"><div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:8px">Past ('+past.length+')</div>'+
+      past.slice(0,5).map(e=>'<div style="display:flex;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border);opacity:.6">'+
+        '<div style="font-size:11px;color:var(--t2);white-space:nowrap;min-width:80px">'+e.date+'</div>'+
+        '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+e.label+'</div></div></div>').join('')+
+      (past.length>5?'<div style="font-size:11px;color:var(--t3);padding:6px 0">...and '+(past.length-5)+' more</div>':'')+
+    '</div>':'')+'</div>';
+
+  // Show in a simple overlay
+  const ov=document.createElement('div');
+  ov.className='overlay open';
+  const ovInner=document.createElement('div');
+  ovInner.className='modal';
+  ovInner.style.cssText='width:520px;max-height:80vh;overflow-y:auto';
+  ovInner.innerHTML='<div class="modal-title" style="color:'+col+'">🚐 Van '+vanNum+' Assignments</div>'+html+'<div class="modal-actions"><button class="btn btn-primary btn-sm" onclick="this.closest(\'.overlay\').remove()">Close</button></div>';
+  ov.appendChild(ovInner);
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  document.body.appendChild(ov);
+}
+
 function assignTripVan(id,vanVal){
   const t=S.trips.find(x=>x.id===id);
   if(!t)return;
@@ -1836,11 +1883,12 @@ function render(){
         ].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
         const next=upcoming[0];
         const total=athVan.length+tripVan.length;
-        return('<div class="metric" style="border-left:3px solid '+col+'">'+
+        return('<div class="metric" style="border-left:3px solid '+col+';cursor:pointer" onclick="showVanDetail('+v+')">'+
           '<div style="font-size:18px;margin-bottom:4px">🚐</div>'+
           '<div style="font-size:13px;font-weight:700;color:'+col+'">Van '+v+'</div>'+
-          '<div style="font-size:11px;color:var(--t2);margin-top:2px">'+total+' assignment'+(total!==1?'s':'')+'</div>'+
+          '<div style="font-size:11px;color:var(--t2);margin-top:2px">'+total+' assignment'+(total!==1?'s':'')+' total</div>'+
           '<div style="font-size:10px;color:var(--t3);margin-top:2px">'+(next?'Next: '+next.label+' · '+next.date:'No upcoming')+'</div>'+
+          '<div style="font-size:10px;color:var(--blue-t);margin-top:4px;font-weight:600">Click to view ›</div>'+
           '</div>');
       }).join('');
     } catch(e){ vsc.innerHTML=''; }
@@ -1849,25 +1897,23 @@ function render(){
   const ugEl=document.getElementById('upcoming-games');
   if(ugEl){
     try{
-      const athRaw4=localStorage.getItem('hp-athletics');
-      const today4=new Date().toISOString().slice(0,10);
-      if(athRaw4){
-        const ov4=JSON.parse(athRaw4);
-        const games=Object.values(ov4).filter(e=>e.date&&e.date>=today4).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
-        const SPORT_COLORS={'Baseball':'#185FA5','Softball':'#D85A30','Track & Field':'#1D9E75',"Tennis - Boy's":'#534AB7',"Tennis - Girl's":'#993556',"Volleyball - Boy's":'#BA7517'};
-        ugEl.innerHTML=games.length
-          ?games.map(e=>{
-            const col=SPORT_COLORS[e.sport]||'#185FA5';
-            return`<div class="att-row">`+
-              `<div style="width:34px;height:34px;border-radius:8px;background:${col}22;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${col};flex-shrink:0">${(e.sport||'').replace('Baseball','⚾').replace('Softball','🥎').replace('Track & Field','🏃').replace("Tennis - Boy's",'🎾B').replace("Tennis - Girl's",'🎾G').replace("Volleyball - Boy's",'🏐')}</div>`+
-              `<div style="flex:1"><div style="font-size:12px;font-weight:600">${e.sport||'Game'}</div><div style="font-size:11px;color:var(--t2)">${e.date||''} · ${e.venue||''}</div></div>`+
-              `${e.van?`<span class="badge b-green">Van ${e.van}</span>`:'<span class="badge b-amber">No van</span>'}`+
-              `</div>`;
-          }).join('')
-          :'<div class="empty" style="padding:16px">No upcoming games</div>';
-      } else {
-        ugEl.innerHTML='<div style="text-align:center;padding:16px;font-size:12px;color:var(--t3)">Open Athletics Schedule to see games<br><button class="btn btn-sm btn-primary" style="margin-top:8px;font-size:11px" onclick="window.open(\'athletics.html\')">Open &#8599;</button></div>';
-      }
+      const today4=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+      const SPORT_COLORS4={'Baseball':'#185FA5','Softball':'#D85A30','Track & Field':'#1D9E75',"Tennis - Boy's":'#534AB7',"Tennis - Girl's":'#993556',"Volleyball - Boy's":'#BA7517',"Boys Soccer":'#1D9E75',"Girls Soccer":'#993556'};
+      const SPORT_ICONS4={'Baseball':'⚾','Softball':'🥎','Track & Field':'🏃',"Tennis - Boy's":'🎾',"Tennis - Girl's":'🎾',"Volleyball - Boy's":'🏐',"Boys Soccer":'⚽',"Girls Soccer":'⚽',"Cross Country":'🏃'};
+      let baseGames4=[];
+      if(typeof BASE!=='undefined'&&BASE.length){baseGames4=BASE;}
+      else{try{const r=localStorage.getItem('hp-athletics');if(r)baseGames4=Object.values(JSON.parse(r));}catch(e4){}}
+      const awayGames4=baseGames4.filter(e=>e.homeAway==='Away'&&e.date&&e.date>=today4).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,10);
+      ugEl.innerHTML=awayGames4.length?awayGames4.map(e=>{
+        const col=SPORT_COLORS4[e.sport]||'#185FA5';
+        const icon=SPORT_ICONS4[e.sport]||'🏆';
+        return('<div class="att-row">'+
+          '<div style="width:34px;height:34px;border-radius:8px;background:'+col+'22;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+icon+'</div>'+
+          '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+e.sport+'</div>'+
+          '<div style="font-size:11px;color:var(--t2)">'+e.date+' · '+(e.venue||e.host||'')+'</div></div>'+
+          (e.van?'<span class="badge b-green">Van '+e.van+'</span>':'<span class="badge b-amber">No van</span>')+
+          '</div>');
+      }).join(''):'<div class="empty" style="padding:16px">No upcoming away games<br><button class="btn btn-sm btn-primary" style="margin-top:8px;font-size:11px" onclick="window.open(&quot;./athletics.html&quot;)">Open Athletics &#8599;</button></div>';
     } catch(e){ ugEl.innerHTML='<div class="empty">Could not load games</div>'; }
   }
   const trp=document.getElementById('trips-table');
@@ -3189,10 +3235,12 @@ function renderBudgetOverview(bc){
 function renderBudgetList(bc,listType){
   const list=listType==='sport'?S.sports:S.clubs;
   const label=listType==='sport'?'Sport':'Club';
+  const accentColor=listType==='sport'?'#1D9E75':'#BA7517';
+  const accentBg=listType==='sport'?'rgba(29,158,117,.08)':'rgba(186,117,23,.08)';
   bc.innerHTML=`<div class="card">
     <div class="shdr">
-      <div class="stitle">${label} Budgets (${list.length})</div>
-      <button class="btn btn-primary btn-sm" onclick="document.getElementById('g-type').value='${listType}';openModal('group-modal')">+ Add ${label}</button>
+      <div class="stitle" style="color:${accentColor}">${listType==='sport'?'🏆':'🎭'} ${label} Budgets (${list.length})</div>
+      <button class="btn btn-sm" style="background:${accentColor};color:#fff;border:none" onclick="document.getElementById('g-type').value='${listType}';openModal('group-modal')">+ Add ${label}</button>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr>
@@ -3206,7 +3254,7 @@ function renderBudgetList(bc,listType){
         ${list.map(g=>{
           return `<tr style="cursor:pointer" onclick="openGroupDetail(${g.id})">
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
-              <div style="font-weight:700;color:var(--blue-t)">${g.name}${g.id>=200?'<span class="badge b-green" style="margin-left:6px;font-size:10px">New</span>':''}</div>
+              <div style="font-weight:700;color:${accentColor}">${g.name}${g.id>=200?'<span class="badge b-green" style="margin-left:6px;font-size:10px">New</span>':''}</div>
               <div style="font-size:11px;color:var(--t3);margin-top:2px">${(g.transactions||[]).length} transaction${(g.transactions||[]).length!==1?'s':''} · Click to open</div>
             </td>
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;color:var(--green-t);font-weight:600">$${g.credits.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
