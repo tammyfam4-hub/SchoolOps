@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1244,21 +1243,26 @@ async function manualSave(){
   const btn=document.getElementById('manual-save-btn');
   if(btn){btn.disabled=true;btn.innerHTML='<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6" stroke-dasharray="20" stroke-dashoffset="20" style="animation:spin .7s linear infinite"/></svg> Saving...';}
   try{
-    const{data:{session}}=await sb.auth.getSession();
+    let{data:{session}}=await sb.auth.getSession();
+    if(!session){const r=await sb.auth.refreshSession();session=r.data.session;}
     if(session){
-      // Strip large data before saving
       const sp=(S.sports||[]).map(g=>({...g,transactions:[]}));
       const cl=(S.clubs||[]).map(g=>({...g,transactions:[]}));
       const toSave={...S,sports:sp,clubs:cl,ptoData:{}};
-      await sb.from('app_state').upsert({
+      const payload=JSON.stringify(toSave);
+      console.log('Saving',payload.length,'bytes for',session.user.email);
+      const{error}=await sb.from('app_state').upsert({
         user_email:session.user.email,
-        state_json:JSON.stringify(toSave),
+        state_json:payload,
         updated_at:new Date().toISOString()
       },{onConflict:'user_email'});
+      if(error){console.error('Save error detail:',JSON.stringify(error));throw error;}
       toast('✓ Saved successfully');
+    } else {
+      toast('Not signed in — please refresh and log in again');
     }
   } catch(e){
-    toast('Save failed — check your connection');
+    toast('Save failed: '+(e.message||e));
     console.error('Manual save error:',e);
   }
   if(btn){
