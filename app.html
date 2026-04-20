@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2654,6 +2655,18 @@ function renderGroupDetail(groupId){
     grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
   }
   if(!grp){closeGroupDetail();return;}
+  
+  // Always inject historical transactions before rendering
+  const _hist=HISTORICAL_TX[grp.name];
+  if(_hist&&_hist.length){
+    const userTx=(grp.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
+    grp.transactions=[..._hist,...userTx];
+    // Recalculate totals
+    grp.credits=Math.round(_hist.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
+    grp.debits=Math.round(_hist.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
+    grp.balance=Math.round((grp.credits-grp.debits)*100)/100;
+  }
+
   const det=document.getElementById('budget-detail');
   if(!det)return;
 
