@@ -2297,7 +2297,15 @@ function addGroup(){
 let grpTransTarget=null;
 function openGroupTransaction(groupId,groupList){
   grpTransTarget={id:groupId,list:groupList};
-  const grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  // Find by ID first, fall back to index position if IDs are missing
+  let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  if(!grp){
+    // IDs may not be set - reassign them
+    S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
+    S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
+    (S.classroomSupplies||[]).forEach((g,i)=>{if(!g.id)g.id=500+i;});
+    grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  }
   document.getElementById('grp-trans-title').textContent='💰 '+(grp?grp.name:'Group')+' — Record Transaction';
   document.getElementById('gt-desc').value='';
   document.getElementById('gt-ref').value='';
@@ -2618,8 +2626,8 @@ let detailMode='both'; // 'both', 'fy', 'lastfy', or 'custom'
 function openGroupDetail(groupId){
   detailGroupId=groupId;
   detailMode='both';
-  detailFromDate=getLastFYStart();
-  detailToDate=getFYEnd();
+  detailFromDate='2020-01-01';
+  detailToDate=new Date().toISOString().slice(0,10);
   // Hide tab bar and list, show detail
   document.getElementById('budget-tab-bar').style.display='none';
   document.getElementById('budget-content').style.display='none';
@@ -2636,7 +2644,15 @@ function closeGroupDetail(){
 }
 
 function renderGroupDetail(groupId){
-  const grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  // Find by ID first, fall back to index position if IDs are missing
+  let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  if(!grp){
+    // IDs may not be set - reassign them
+    S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
+    S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
+    (S.classroomSupplies||[]).forEach((g,i)=>{if(!g.id)g.id=500+i;});
+    grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  }
   if(!grp){closeGroupDetail();return;}
   const det=document.getElementById('budget-detail');
   if(!det)return;
@@ -2655,7 +2671,7 @@ function renderGroupDetail(groupId){
   // FY label
   const fyStartYear=detailFromDate.slice(0,4);
   const fyEndYear=detailToDate.slice(0,4);
-  const fyLabel=detailMode==='both'?'FY '+fyStartYear+'–'+fyEndYear+' & Prior Year':detailMode==='fy'?'FY '+fyStartYear+'–'+fyEndYear:detailMode==='lastfy'?'Last FY '+fyStartYear+'–'+fyEndYear:'Custom Range';
+  const fyLabel=detailMode==='both'?'All Time':detailMode==='fy'?'FY '+fyStartYear+'–'+fyEndYear:detailMode==='lastfy'?'Last FY '+fyStartYear+'–'+fyEndYear:'Custom Range';
 
   det.innerHTML=`
     <!-- Back button + header -->
@@ -2684,7 +2700,7 @@ function renderGroupDetail(groupId){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:12px;font-weight:700;color:var(--t2)">Showing:</span>
         <button class="btn btn-sm ${detailMode==='both'?'btn-primary':''}" onclick="setDetailMode('both')">
-          📅 Both Years
+          📅 All Time
         </button>
         <button class="btn btn-sm ${detailMode==='fy'?'btn-primary':''}" onclick="setDetailMode('fy')">
           📅 Current FY
@@ -2781,8 +2797,8 @@ function getLastFYEnd(){
 function setDetailMode(mode){
   detailMode=mode;
   if(mode==='both'){
-    detailFromDate=getLastFYStart();
-    detailToDate=getFYEnd();
+    detailFromDate='2020-01-01'; // All time - show everything
+    detailToDate=new Date().toISOString().slice(0,10);
   } else if(mode==='fy'){
     detailFromDate=getFYStart();
     detailToDate=getFYEnd();
@@ -2800,7 +2816,15 @@ function setDetailMode(mode){
 }
 
 function deleteTransaction(groupId,txId){
-  const grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  // Find by ID first, fall back to index position if IDs are missing
+  let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  if(!grp){
+    // IDs may not be set - reassign them
+    S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
+    S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
+    (S.classroomSupplies||[]).forEach((g,i)=>{if(!g.id)g.id=500+i;});
+    grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
+  }
   if(!grp)return;
   if(!confirm('Delete this transaction? This will adjust the group balance.'))return;
   const idx=grp.transactions.findIndex(t=>(t.id||String(grp.transactions.indexOf(t)))===String(txId));
