@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -936,11 +937,15 @@ async function scheduleSave(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     try{
-      // Strip historical transactions before saving — they're always reloaded from HISTORICAL_TX
-      // This keeps the Supabase payload small
+      // Strip large data before saving to keep Supabase payload small
+      // These are always reloaded from DEFAULT/HISTORICAL_TX on every load
       const sportsToSave=(S.sports||[]).map(g=>({...g,transactions:[]}));
       const clubsToSave=(S.clubs||[]).map(g=>({...g,transactions:[]}));
-      const stateToSave={...S,sports:sportsToSave,clubs:clubsToSave};
+      const stateToSave={...S,
+        sports:sportsToSave,
+        clubs:clubsToSave,
+        ptoData:{}  // Always reloaded from DEFAULT.ptoData on load
+      };
       // Save to Supabase — one row per user keyed by their email
       const{data:{session}}=await sb.auth.getSession();
       if(session){
@@ -1241,9 +1246,13 @@ async function manualSave(){
   try{
     const{data:{session}}=await sb.auth.getSession();
     if(session){
+      // Strip large data before saving
+      const sp=(S.sports||[]).map(g=>({...g,transactions:[]}));
+      const cl=(S.clubs||[]).map(g=>({...g,transactions:[]}));
+      const toSave={...S,sports:sp,clubs:cl,ptoData:{}};
       await sb.from('app_state').upsert({
         user_email:session.user.email,
-        state_json:JSON.stringify(stateToSave),
+        state_json:JSON.stringify(toSave),
         updated_at:new Date().toISOString()
       },{onConflict:'user_email'});
       toast('✓ Saved successfully');
