@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3219,6 +3218,19 @@ function renderBudget(){
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
+  // Always inject historical transactions for all groups
+  try{
+    [...S.sports,...S.clubs].forEach(g=>{
+      const hist=HISTORICAL_TX[g.name];
+      if(hist&&hist.length){
+        const userTx=(g.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
+        g.transactions=[...hist,...userTx];
+        g.credits=Math.round(hist.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
+        g.debits=Math.round(hist.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
+        g.balance=Math.round((g.credits-g.debits)*100)/100;
+      }
+    });
+  }catch(e){console.error('TX inject error:',e);}
   if(S.budgetTab==='overview') renderBudgetOverview(bc);
   else if(S.budgetTab==='sports') renderBudgetList(bc,'sport');
   else if(S.budgetTab==='clubs') renderBudgetList(bc,'club');
