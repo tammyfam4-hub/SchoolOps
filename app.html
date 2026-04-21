@@ -3251,7 +3251,7 @@ function renderBudget(){
       }
     });
   }catch(e){console.error('TX inject error:',e);}
-  const _htxKeys=Object.keys(HISTORICAL_TX);[...S.sports,...S.clubs].forEach(g=>{const hist=HISTORICAL_TX[g.name]||HISTORICAL_TX[_htxKeys.find(k=>k.toLowerCase()===g.name.toLowerCase())||'']||null;if(hist&&hist.length){const userTx=(g.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));g.transactions=[...hist,...userTx];g.credits=Math.round(hist.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;g.debits=Math.round(hist.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;g.balance=Math.round((g.credits-g.debits)*100)/100;}});if(S.budgetTab==='overview') renderBudgetOverview(bc);
+  if(S.budgetTab==='overview') renderBudgetOverview(bc);
   else if(S.budgetTab==='sports') renderBudgetList(bc,'sport');
   else if(S.budgetTab==='clubs') renderBudgetList(bc,'club');
   else if(S.budgetTab==='classroom') renderClassroomSupplies(bc);
