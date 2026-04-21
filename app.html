@@ -3613,7 +3613,7 @@ function generateSubReport(){
 
 // ─── FACILITY: toggle completed bookings ─────────────────────────
 let showCompletedBookings=false;
-function toggleCompletedBookings(){
+function facSelectDate(d){facSelectedDate=d;render();}function toggleCompletedBookings(){
   showCompletedBookings=!showCompletedBookings;
   const btn=document.getElementById('fac-completed-btn');
   const sec=document.getElementById('fac-completed-section');
