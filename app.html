@@ -1985,7 +1985,7 @@ function render(){
     al.innerHTML=roster.map((p,i)=>{
       const att=S.attendance[p.name]||{status:'P',sub:null,reason:''};
       const isAbsent=att.status!=='P';
-      const isTeacher=p.type==='teacher';
+      STAFF_COLORS=['#534AB7','#993556','#0F6E56','#6B3FA0','#2D6A8F'];const col=isTeacher?COLORS[i%COLORS.length]:STAFF_COLORS[i%STAFF_COLORS.length];
       const col=COLORS[i%COLORS.length];
 
       // Build sub options — permanent roster always shown
