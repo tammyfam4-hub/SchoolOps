@@ -352,7 +352,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
               <button class="btn btn-primary btn-sm" onclick="openModal('trip-modal')">+ Request</button>
             </div>
           </div>
-          <table><thead><tr><th>Destination</th><th>Date</th><th>Requested By</th><th>Students</th><th>Vehicle</th><th>Status</th><th></th></tr></thead><tbody id="trips-table"></tbody></table>
+          <div style="overflow-x:auto"><table style="min-width:600px"><thead><tr><th>Destination</th><th>Date</th><th>Requested By</th><th>Students</th><th>Vehicle</th><th>Status</th><th></th></tr></thead><tbody id="trips-table"></tbody></table>
           <div id="trips-completed-section" style="display:none;margin-top:16px;border-top:0.5px solid var(--border);padding-top:14px">
             <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">&#10003; Completed Trips</div>
             <table><thead><tr><th>Destination</th><th>Date</th><th>Requested By</th><th>Students</th><th>Vehicle</th><th></th></tr></thead><tbody id="trips-completed-table"></tbody></table>
