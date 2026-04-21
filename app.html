@@ -1183,7 +1183,7 @@ async function initData(){
   // Force today's date to April 17, 2026 Arizona time for initial reset
   if(!S.lastDate||S.lastDate<'2026-04-17')S.lastDate='2026-04-16'; // will trigger reset to 04-17
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));else{S.sports.forEach((g,i)=>{const def=DEFAULT.sports.find(d=>d.name===g.name);if(def&&def.transactions&&def.transactions.length)g.transactions=def.transactions;});}else{S.sports.forEach((g,i)=>{const def=DEFAULT.sports.find(d=>d.name===g.name);if(def&&def.transactions&&def.transactions.length)g.transactions=def.transactions;});}
-  if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
+  if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));else{S.clubs.forEach((g,i)=>{const def=DEFAULT.clubs.find(d=>d.name===g.name);if(def&&def.transactions&&def.transactions.length)g.transactions=def.transactions;});}
   // Ensure all sports and clubs have IDs (fix for Supabase-loaded state without IDs)
   S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
   S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
