@@ -1169,7 +1169,7 @@ async function initData(){
   // ── 2. Load saved state from Supabase ──────────────────────────
   const saved=await loadFromSupabase(userEmail);
   if(saved){
-    S=saved;
+    S=saved;S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
     console.log('✓ Loaded from Supabase');
   } else {
     console.log('No saved state — starting fresh with defaults');
