@@ -3396,6 +3396,8 @@ function exportCalExcel(){
 
 function renderBudget(){
   const bc=document.getElementById('budget-content');if(!bc)return;
+  // Wait for HISTORICAL_TX to be populated
+  if(!HISTORICAL_TX||Object.keys(HISTORICAL_TX).length===0){setTimeout(renderBudget,300);return;}
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
