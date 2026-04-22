@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Athletics Transportation — SchoolOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg1:#fff;--bg2:#f5f6f7;--bg3:#eef0f2;--t1:#111;--t2:#555;--t3:#999;--border:rgba(0,0,0,0.09);--border-md:rgba(0,0,0,0.16);--blue:#185FA5;--blue-bg:#E6F1FB;--blue-t:#185FA5;--green:#1D9E75;--green-bg:#EAF3DE;--green-t:#3B6D11;--amber:#BA7517;--amber-bg:#FAEEDA;--amber-t:#854F0B;--red:#E24B4A;--red-bg:#FCEBEB;--red-t:#A32D2D;--purple:#534AB7;--purple-bg:#EEEDFE;--purple-t:#3C3489;--r:8px;--rl:12px;--shadow:0 1px 3px rgba(0,0,0,.08)}
+@media(prefers-color-scheme:dark){:root{--bg1:#1c1c1e;--bg2:#2c2c2e;--bg3:#111113;--t1:#f2f2f7;--t2:#aeaeb2;--t3:#636366;--border:rgba(255,255,255,0.09);--border-md:rgba(255,255,255,0.16);--blue-bg:#0d2d45;--blue-t:#5badee;--green-bg:#0a2418;--green-t:#7dd4a8;--amber-bg:#271b04;--amber-t:#f0b84a;--red-bg:#2a0e0e;--red-t:#f07070;--purple-bg:#1a1840;--purple-t:#a09cf5}}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:var(--bg3);color:var(--t1);display:flex;flex-direction:column}
+.topbar{height:52px;background:var(--bg1);border-bottom:0.5px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:700;flex:1}
+.topbar-sub{font-size:12px;color:var(--t3)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);cursor:pointer;background:var(--bg1);color:var(--t1);transition:all .12s;font-family:inherit;font-weight:500}
+.btn:hover{background:var(--bg2)}.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn-primary:hover{filter:brightness(1.1)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--bg1);border-bottom:0.5px solid var(--border);flex-wrap:wrap}
+.filter-pill{padding:4px 11px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .12s;user-select:none;opacity:.5;background:var(--bg2)}
+.filter-pill.active{opacity:1;border-color:currentColor;background:transparent}
+.search-box{padding:6px 12px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);outline:none;width:180px;font-family:inherit}
+.search-box:focus{border-color:var(--blue);background:var(--bg1)}
+.vt-bar{display:flex;gap:2px;background:var(--bg2);border-radius:var(--r);padding:2px;border:0.5px solid var(--border)}
+.vt-btn{padding:4px 12px;font-size:12px;border-radius:6px;cursor:pointer;font-weight:600;color:var(--t2);border:none;background:transparent;font-family:inherit}
+.vt-btn.active{background:var(--bg1);color:var(--t1);box-shadow:var(--shadow)}
+.sp{flex:1}
+.main-area{flex:1;overflow-y:auto;padding:14px 20px}
+.stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--rl);padding:12px;text-align:center;box-shadow:var(--shadow)}
+.stat-val{font-size:22px;font-weight:700;letter-spacing:-1px}
+.stat-lbl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.van-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.van-card{background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--rl);padding:12px;box-shadow:var(--shadow)}
+.van-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.van-name{font-size:13px;font-weight:700}
+.van-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.van-info{font-size:11px;color:var(--t2);line-height:1.5}
+.sched-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--bg1);border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow);border:0.5px solid var(--border)}
+.sched-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);background:var(--bg2);border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.sched-table td{padding:8px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+.sched-table tr:last-child td{border-bottom:none}
+.sched-table tbody tr:hover td{background:var(--bg2);cursor:pointer}
+.date-hdr td{background:var(--bg2)!important;font-weight:700;font-size:12px;color:var(--t2);padding:6px 10px!important}
+.sport-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+.sport-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ha-pill{display:inline-flex;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700}
+.ha-home{background:var(--green-bg);color:var(--green-t)}
+.ha-away{background:var(--blue-bg);color:var(--blue-t)}
+.van-sel{padding:3px 6px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;cursor:pointer;max-width:90px}
+.van-sel:focus{outline:none;border-color:var(--blue)}
+.drv-inp{padding:3px 7px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;width:105px}
+.drv-inp:focus{outline:none;border-color:var(--blue);background:var(--bg1)}
+.conflict-row td{background:rgba(186,117,23,.08)!important}
+.conflict-row:hover td{background:rgba(186,117,23,.14)!important}
+.warn-chip{background:var(--amber-bg);color:var(--amber-t);font-size:10px;font-weight:700;padding:1px 5px;border-radius:5px;margin-left:4px}
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:3px}
+.empty-state{text-align:center;padding:60px;color:var(--t3)}
+.sport-info-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:14px}
+.sport-card{background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--rl);padding:14px;box-shadow:var(--shadow)}
+.sport-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sport-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sport-title{font-size:13px;font-weight:700}
+.sport-subtitle{font-size:11px;color:var(--t3);margin-top:1px}
+.coach-row{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:12px}
+.coach-row:last-child{border-bottom:none}
+.coach-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;width:40px;flex-shrink:0}
+.coach-name{flex:1;font-weight:600}
+.teacher-badge{background:var(--amber-bg);color:var(--amber-t);font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px}
+.van-needed{background:var(--blue-bg);color:var(--blue-t);font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;display:inline-flex;align-items:center;gap:3px}
+.coverage-alert{background:var(--red-bg);border:1px solid var(--red-t);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--red-t);font-weight:600;margin-bottom:12px;display:none}
+.coverage-alert.show{display:block}
+.coverage-row{background:var(--amber-bg);border-radius:var(--r);padding:8px 12px;font-size:12px;color:var(--amber-t);font-weight:600;margin-top:8px}
+/* modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(2px)}
+.overlay.open{display:flex}
+.modal{background:var(--bg1);border-radius:var(--rl);border:0.5px solid var(--border);padding:24px;width:500px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:mIn .15s ease}
+@keyframes mIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.modal-meta{font-size:13px;color:var(--t2);margin-bottom:16px}
+.info-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--bg2);border-radius:var(--r);padding:12px;margin-bottom:16px;font-size:13px}
+.ilbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:2px}
+.ival{font-weight:500}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)}
+.flabel{font-size:12px;color:var(--t2);margin-bottom:4px;display:block;font-weight:600}.frow{margin-bottom:12px}
+input,select,textarea{width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);outline:none;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.12);background:var(--bg1)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.conflict-alert{background:var(--amber-bg);border:1px solid var(--amber-t);border-radius:var(--r);padding:9px 12px;font-size:12px;color:var(--amber-t);font-weight:600;margin-bottom:12px;display:none}
+.conflict-alert.show{display:block}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--t1);color:var(--bg1);padding:10px 18px;border-radius:var(--r);font-size:13px;font-weight:600;z-index:400;opacity:0;transform:translateY(6px);transition:all .22s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+/* calendar */
+.month-label{font-size:14px;font-weight:700;margin:0 0 8px}
+.cal-hdr{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:3px}
+.cal-dh{text-align:center;font-size:10px;font-weight:700;color:var(--t3);padding:3px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:20px}
+.cal-cell{min-height:80px;background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--r);padding:5px;font-size:11px}
+.cal-cell.empty{background:var(--bg2);opacity:.4}
+.cal-cell.today{border-color:var(--blue);border-width:2px}
+.cal-num{font-size:11px;font-weight:700;color:var(--t3);margin-bottom:3px}
+.cal-ev{padding:2px 5px;border-radius:4px;font-size:10px;font-weight:600;margin-bottom:2px;cursor:pointer;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media print{.toolbar,.topbar,.van-grid,button{display:none!important}.main-area{padding:0;overflow:visible}.sched-table{font-size:11px}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="font-size:18px">🏆</div>
+  <div class="topbar-title">Athletics Transportation — Highland Prep</div>
+  <div class="topbar-sub" id="season-subtitle">Spring 2026 · 74 Events · 5 Vans</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <label style="font-size:12px;color:var(--t2);font-weight:600">Season:</label>
+    <select id="season-select" onchange="switchSeason(this.value)" style="padding:5px 10px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;font-weight:600">
+      <option value="spring2026" selected>🌸 Spring 2026</option>
+      <option value="fall2026">🍂 Fall 2026</option>
+      <option value="winter2026">❄️ Winter 2026-27</option>
+      <option value="spring2027">🌸 Spring 2027</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-sm" onclick="window.print()">🖨 Print</button>
+    <button class="btn btn-sm btn-primary" onclick="exportCSV()">↓ Export CSV</button>
+    <button class="btn btn-sm btn-primary" onclick="openModal(null)" style="background:#1D9E75;border-color:#1D9E75">+ Add Game</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="toolbar">
+    <div style="display:flex;gap:4px;flex-wrap:wrap" id="sport-filters"></div>
+    <div style="display:flex;gap:4px;margin-left:6px">
+      <div class="filter-pill active" style="color:var(--t1)" data-ha="all" onclick="setHA(this)">All</div>
+      <div class="filter-pill" style="color:var(--green-t)" data-ha="Home" onclick="setHA(this)">Home</div>
+      <div class="filter-pill" style="color:var(--blue-t)" data-ha="Away" onclick="setHA(this)">Away</div>
+    </div>
+    <input class="search-box" placeholder="Search opponent, venue..." oninput="setSearch(this.value)">
+    <div class="sp"></div>
+    <div class="vt-bar">
+      <button class="vt-btn active" onclick="setView('list',this)">List</button>
+      <button class="vt-btn" onclick="setView('calendar',this)">Calendar</button>
+      <button class="vt-btn" onclick="setView('vans',this)">By Van</button>
+    </div>
+  </div>
+  <div class="main-area">
+    <div class="stats-row" id="stats-row"></div>
+    <div class="van-grid" id="van-grid"></div>
+    <div class="sport-info-bar" id="sport-info-bar"></div>
+    <div id="view-area"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title" id="m-title"></div>
+    <div class="modal-meta" id="m-meta"></div>
+    <div class="info-box" id="m-info"></div>
+    <div class="coach-info-box" id="m-coach-info" style="margin-bottom:12px;display:none">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Coaching Staff</div>
+      <div id="m-coach-detail"></div>
+    </div>
+    <div class="coverage-alert" id="m-coverage">⚠ CLASS COVERAGE REQUIRED — Leave time is before 2:30 PM and coach is a teacher. Arrange a substitute for their classes.</div>
+    <div class="conflict-alert" id="m-conflict"></div>
+    <div class="g2" style="gap:10px;margin-bottom:12px">
+      <div class="frow" style="margin:0"><label class="flabel">Assign Van</label>
+        <select id="m-van" onchange="checkConflict()">
+          <option value="">-- No van --</option>
+          <option value="1">Van 1</option><option value="2">Van 2</option>
+          <option value="3">Van 3</option><option value="4">Van 4</option>
+          <option value="5">Van 5</option>
+        </select>
+        <div style="margin-top:8px">
+          <label class="flabel">Additional Vans (if needed)</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="extra-vans-area">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="ev-1" style="width:auto"> Van 1</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="ev-2" style="width:auto"> Van 2</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="ev-3" style="width:auto"> Van 3</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="ev-4" style="width:auto"> Van 4</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="ev-5" style="width:auto"> Van 5</label>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:4px">Check additional vans needed beyond the primary van</div>
+        </div>
+      </div>
+      <div class="frow" style="margin:0"><label class="flabel">Driver</label><input id="m-driver" placeholder="Driver name..."></div>
+    </div>
+    <div class="g2" style="gap:10px;margin-bottom:12px">
+      <div class="frow" style="margin:0"><label class="flabel">Athletes / Students</label><input type="number" id="m-athletes" min="0" placeholder="0" oninput="updateAthVanSuggestion()"><div id="ath-van-suggestion" style="font-size:11px;font-weight:600;margin-top:4px"></div></div>
+      <div class="frow" style="margin:0"><label class="flabel">Supervising Staff</label><input id="m-sup" placeholder="Staff name..."></div>
+    </div>
+    <div class="g2" style="gap:10px;margin-bottom:12px">
+      <div class="frow" style="margin:0"><label class="flabel">Leave Time</label><input type="time" id="m-leave"></div>
+      <div class="frow" style="margin:0"><label class="flabel">Est. Return Time</label><input type="time" id="m-return"></div>
+    </div>
+    <div class="frow"><label class="flabel">Venue Address (add later)</label><input id="m-address" placeholder="Street address..."></div>
+    <div class="frow"><label class="flabel">Status</label>
+      <select id="m-status">
+        <option>Scheduled</option><option>Confirmed</option>
+        <option>En Route</option><option>Returned</option><option>Cancelled</option>
+      </select>
+    </div>
+    <div class="frow"><label class="flabel">Notes</label><textarea id="m-notes" rows="2" placeholder="Any additional info..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-sm" id="modal-delete-btn" onclick="deleteGame()" style="color:#E24B4A;border-color:#E24B4A;margin-right:auto">🗑 Delete</button>
+      <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 74 EVENTS ──────────────────────────────────────────────────────
+// ── SPORT CONFIGURATION ────────────────────────────────────────────
+const SPORT_INFO = {
+  'Baseball': {
+    icon: '⚾',
+    vansNeeded: 2,
+    headCoach: { name: 'Jeff Heinz', isTeacher: true },
+    assistCoaches: [{ name: 'Jacob Cline', isTeacher: false }]
+  },
+  'Softball': {
+    icon: '🥎',
+    vansNeeded: 1,
+    headCoach: { name: 'Andrea Cline', isTeacher: true },
+    assistCoaches: []
+  },
+  "Tennis - Boy's": {
+    icon: '🎾',
+    vansNeeded: 1,
+    headCoach: { name: 'Tiffany Heath', isTeacher: true },
+    assistCoaches: []
+  },
+  "Tennis - Girl's": {
+    icon: '🎾',
+    vansNeeded: 1,
+    headCoach: { name: 'Tiffany Heath', isTeacher: true },
+    assistCoaches: []
+  },
+  'Track & Field': {
+    icon: '🏃',
+    vansNeeded: 3,
+    headCoach: { name: 'Caleb Cajthaml', isTeacher: false },
+    assistCoaches: [
+      { name: 'Brandon Ward', isTeacher: false },
+      { name: 'Cortez Sherman', isTeacher: false }
+    ]
+  },
+  "Volleyball - Boy's": {
+    icon: '🏐',
+    vansNeeded: 1,
+    headCoach: { name: 'Avery Heinle', isTeacher: false },
+    assistCoaches: []
+  }
+};
+
+// Returns true if leave time string is before 2:30 PM
+function leaveBeforeTwo30(leaveTime) {
+  if (!leaveTime) return false;
+  // parse formats like "11:00 AM", "1:30 PM", "12:30 PM"
+  const t = leaveTime.trim().toUpperCase();
+  const m = t.match(/^(\d+):(\d+)\s*(AM|PM)$/);
+  if (!m) return false;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  const ap = m[3];
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  // 2:30 PM = 14:30
+  return h < 14 || (h === 14 && min < 30);
+}
+
+// Returns true if ANY teacher-coach on this sport needs class coverage
+function needsCoverage(sport, leaveTime) {
+  const info = SPORT_INFO[sport];
+  if (!info || !leaveTime) return false;
+  if (!leaveBeforeTwo30(leaveTime)) return false;
+  const coaches = [info.headCoach, ...(info.assistCoaches || [])];
+  return coaches.some(c => c && c.isTeacher);
+}
+
+const SPRING_2026_BASE = [{"id":1,"sport":"Baseball","date":"2026-02-25","gameTime":"6:00 PM","visitor":"Highland Prep","host":"Payson","venue":"Payson High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":2,"sport":"Softball","date":"2026-02-25","gameTime":"6:00 PM","visitor":"Highland Prep","host":"Payson","venue":"Payson High School","leaveTime":"","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":3,"sport":"Baseball","date":"2026-02-26","gameTime":"3:00 PM","visitor":"Madison Highland","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":4,"sport":"Softball","date":"2026-02-26","gameTime":"3:00 PM","visitor":"Madison Highland","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":5,"sport":"Tennis - Boy's","date":"2026-02-27","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Antelope Union","venue":"Antelope Union High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":6,"sport":"Tennis - Girl's","date":"2026-02-27","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Antelope Union","venue":"Antelope Union High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":7,"sport":"Track & Field","date":"2026-02-28","gameTime":"9:30 AM","visitor":"Highland Prep","host":"Shadow Ridge Showcase","venue":"Shadow Ridge High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":8,"sport":"Baseball","date":"2026-03-03","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"1:00 PM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":9,"sport":"Softball","date":"2026-03-03","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"1:00 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":10,"sport":"Track & Field","date":"2026-03-04","gameTime":"2:00 PM","visitor":"Highland Prep","host":"Jaguar Kick Back Invitations","venue":"Canyon View High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":11,"sport":"Tennis - Boy's","date":"2026-03-05","gameTime":"3:30 PM","visitor":"BASIS Flagstaff","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":12,"sport":"Tennis - Girl's","date":"2026-03-05","gameTime":"3:30 PM","visitor":"BASIS Flagstaff","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":13,"sport":"Volleyball - Boy's","date":"2026-03-05","gameTime":"5:30 PM","visitor":"St. John Paul II","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":14,"sport":"Baseball","date":"2026-03-06","gameTime":"3:45 PM","visitor":"Tonopah Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"1:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":15,"sport":"Softball","date":"2026-03-06","gameTime":"3:45 PM","visitor":"Tonopah Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"1:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":16,"sport":"Baseball","date":"2026-03-09","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Somerton","venue":"Somerton High School","leaveTime":"11:00 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":17,"sport":"Softball","date":"2026-03-09","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Somerton","venue":"Somerton High School","leaveTime":"11:00 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":18,"sport":"Tennis - Boy's","date":"2026-03-10","gameTime":"3:30 PM","visitor":"Odyssey Institute","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":19,"sport":"Tennis - Girl's","date":"2026-03-10","gameTime":"3:30 PM","visitor":"Odyssey Institute","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":20,"sport":"Volleyball - Boy's","date":"2026-03-10","gameTime":"5:30 PM","visitor":"Odyssey Institute","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":21,"sport":"Baseball","date":"2026-03-17","gameTime":"3:45 PM","visitor":"River Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":22,"sport":"Softball","date":"2026-03-17","gameTime":"3:45 PM","visitor":"River Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":23,"sport":"Baseball","date":"2026-03-18","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Chino Valley","venue":"Chino Valley High School","leaveTime":"11:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":24,"sport":"Softball","date":"2026-03-18","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Chino Valley","venue":"Chino Valley High School","leaveTime":"11:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":25,"sport":"Tennis - Boy's","date":"2026-03-19","gameTime":"3:30 PM","visitor":"Highland Prep","host":"Valley Lutheran","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":26,"sport":"Tennis - Girl's","date":"2026-03-19","gameTime":"3:30 PM","visitor":"Highland Prep","host":"Valley Lutheran","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":27,"sport":"Baseball","date":"2026-03-20","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Kingman","venue":"Kingman High School","leaveTime":"11:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":28,"sport":"Softball","date":"2026-03-20","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Kingman","venue":"Kingman High School","leaveTime":"11:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":29,"sport":"Track & Field","date":"2026-03-21","gameTime":"9:00 AM","visitor":"Highland Prep","host":"Knight Matador Small School Classic","venue":"Desert Edge High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":30,"sport":"Tennis - Boy's","date":"2026-03-23","gameTime":"3:30 PM","visitor":"Veritas Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":31,"sport":"Tennis - Girl's","date":"2026-03-23","gameTime":"3:30 PM","visitor":"Veritas Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":32,"sport":"Softball","date":"2026-03-23","gameTime":"4:00 PM","visitor":"Highland Prep","host":"Arizona Lutheran","venue":"Arizona Lutheran Academy","leaveTime":"1:30 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":33,"sport":"Baseball","date":"2026-03-24","gameTime":"3:45 PM","visitor":"ALA - West Foothills","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":34,"sport":"Softball","date":"2026-03-24","gameTime":"3:45 PM","visitor":"ALA - West Foothills","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":35,"sport":"Volleyball - Boy's","date":"2026-03-26","gameTime":"5:30 PM","visitor":"North Valley Christian","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":36,"sport":"Track & Field","date":"2026-03-27","gameTime":"11:00 AM","visitor":"Highland Prep","host":"Valley Invitational","venue":"Alhambra High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":37,"sport":"Tennis - Girl's","date":"2026-04-01","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Cicero Prep","venue":"Indian School Park","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":38,"sport":"Tennis - Boy's","date":"2026-04-01","gameTime":"2:30 PM","visitor":"Cicero Prep","host":"Highland Prep","venue":"Indian School Park","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":39,"sport":"Baseball","date":"2026-04-01","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Yuma Catholic","venue":"Yuma Catholic","leaveTime":"11:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":40,"sport":"Softball","date":"2026-04-01","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Yuma Catholic","venue":"Yuma Catholic","leaveTime":"11:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":41,"sport":"Track & Field","date":"2026-04-03","gameTime":"10:00 AM","visitor":"Highland Prep","host":"Ben McIvor Memorial","venue":"Glendale High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":42,"sport":"Tennis - Boy's","date":"2026-04-08","gameTime":"1:30 PM","visitor":"Highland Prep","host":"Lincoln Prep","venue":"Tumbleweed Park","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":43,"sport":"Tennis - Girl's","date":"2026-04-08","gameTime":"1:30 PM","visitor":"Highland Prep","host":"Lincoln Prep","venue":"Tumbleweed Park","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":44,"sport":"Tennis - Boy's","date":"2026-04-10","gameTime":"3:30 PM","visitor":"Glendale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":45,"sport":"Tennis - Girl's","date":"2026-04-10","gameTime":"3:30 PM","visitor":"Glendale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":46,"sport":"Baseball","date":"2026-04-10","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":47,"sport":"Softball","date":"2026-04-10","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":48,"sport":"Track & Field","date":"2026-04-11","gameTime":"8:30 AM","visitor":"Highland Prep","host":"Al Nelson Invitational","venue":"Valley Christian School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":49,"sport":"Baseball","date":"2026-04-13","gameTime":"3:45 PM","visitor":"Highland Prep","host":"River Valley","venue":"River Valley High School","leaveTime":"10:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":50,"sport":"Softball","date":"2026-04-13","gameTime":"3:45 PM","visitor":"Highland Prep","host":"River Valley","venue":"River Valley High School","leaveTime":"10:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":51,"sport":"Track & Field","date":"2026-04-14","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Top of the Mountain Meet","venue":"Red Mountain High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":52,"sport":"Tennis - Boy's","date":"2026-04-14","gameTime":"3:00 PM","visitor":"Highland Prep","host":"Scottsdale Christian","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":53,"sport":"Tennis - Girl's","date":"2026-04-14","gameTime":"3:00 PM","visitor":"Highland Prep","host":"Scottsdale Christian","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":54,"sport":"Baseball","date":"2026-04-14","gameTime":"3:45 PM","visitor":"Highland Prep West","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":55,"sport":"Softball","date":"2026-04-14","gameTime":"3:45 PM","visitor":"Highland Prep West","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":56,"sport":"Volleyball - Boy's","date":"2026-04-15","gameTime":"5:30 PM","visitor":"Highland Prep","host":"Parker","venue":"Parker High School","leaveTime":"1:00 PM","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":57,"sport":"Tennis - Boy's","date":"2026-04-16","gameTime":"3:30 PM","visitor":"Scottsdale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":58,"sport":"Tennis - Girl's","date":"2026-04-16","gameTime":"3:30 PM","visitor":"Scottsdale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":59,"sport":"Baseball","date":"2026-04-16","gameTime":"3:45 PM","visitor":"Highland Prep","host":"ALA - West Foothills","venue":"American Leadership Academy - West Foothills","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":60,"sport":"Softball","date":"2026-04-16","gameTime":"3:45 PM","visitor":"Highland Prep","host":"ALA - West Foothills","venue":"American Leadership Academy - West Foothills","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":61,"sport":"Track & Field","date":"2026-04-17","gameTime":"12:00 PM","visitor":"Highland Prep","host":"Mingus Invitational","venue":"Mingus Union High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":62,"sport":"Baseball","date":"2026-04-20","gameTime":"3:45 PM","visitor":"Chino Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":63,"sport":"Softball","date":"2026-04-20","gameTime":"3:45 PM","visitor":"Chino Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":64,"sport":"Tennis - Boy's","date":"2026-04-21","gameTime":"3:30 PM","visitor":"Rancho Solano Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":65,"sport":"Tennis - Girl's","date":"2026-04-21","gameTime":"3:30 PM","visitor":"Rancho Solano Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":66,"sport":"Volleyball - Boy's","date":"2026-04-21","gameTime":"5:30 PM","visitor":"Madison Highland","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":67,"sport":"Baseball","date":"2026-04-22","gameTime":"3:45 PM","visitor":"Kingman","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":68,"sport":"Softball","date":"2026-04-22","gameTime":"3:45 PM","visitor":"Kingman","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":69,"sport":"Track & Field","date":"2026-04-24","gameTime":"8:00 AM","visitor":"Highland Prep","host":"Shaun Hardt True Grit Invitational","venue":"Queen Creek High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":70,"sport":"Baseball","date":"2026-04-24","gameTime":"3:00 PM","visitor":"Somerton","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":71,"sport":"Softball","date":"2026-04-24","gameTime":"3:00 PM","visitor":"Somerton","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":72,"sport":"Volleyball - Boy's","date":"2026-04-24","gameTime":"5:30 PM","visitor":"Parker","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":73,"sport":"Baseball","date":"2026-04-27","gameTime":"3:45 PM","visitor":"Parker","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":74,"sport":"Softball","date":"2026-04-27","gameTime":"3:45 PM","visitor":"Parker","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"}];
+
+const SPORTS=[...new Set(getSeasonBase(currentSeason).map(e=>e.sport))];
+const SC={Scheduled:'#888',Confirmed:'#1D9E75','En Route':'#185FA5',Returned:'#3B6D11',Cancelled:'#E24B4A'};
+
+function load(season){
+  const s = season || currentSeason || 'spring2026';
+  const base = getSeasonBase(s);
+  if(!base.length) return [];
+  const saved=localStorage.getItem('hp-athletics-'+s);
+  if(!saved)return base.map(e=>({...e}));
+  const ov=JSON.parse(saved);
+  return base.map(e=>({...e,...(ov[e.id]||{})}));
+}
+function save(){
+  const s = currentSeason || 'spring2026';
+  const ov={};
+  evts.forEach(e=>{ov[e.id]={van:e.van,extraVans:e.extraVans,charter:e.charter,driver:e.driver,athletes:e.athletes,supervisor:e.supervisor,leaveTime:e.leaveTime,returnTime:e.returnTime,address:e.address,status:e.status,notes:e.notes};});
+  localStorage.setItem('hp-athletics-'+s,JSON.stringify(ov));
+  // Also keep legacy key for spring2026 so app.html transport panel still works
+  if(s==='spring2026') localStorage.setItem('hp-athletics',JSON.stringify(ov));
+}
+
+// Season data — Fall/Winter to be added in June 2026
+const FALL_2026_BASE = []; // Placeholder — schedule coming June 2026
+const WINTER_2026_BASE = []; // Placeholder — schedule coming June 2026
+const SPRING_2027_BASE = []; // Placeholder
+
+const SEASON_BASES = {
+  spring2026: SPRING_2026_BASE,
+  fall2026: FALL_2026_BASE,
+  winter2026: WINTER_2026_BASE,
+  spring2027: SPRING_2027_BASE
+};
+
+const SEASON_LABELS = {
+  spring2026: 'Spring 2026',
+  fall2026: 'Fall 2026',
+  winter2026: 'Winter 2026-27',
+  spring2027: 'Spring 2027'
+};
+
+const SEASON_SPORTS = {
+  spring2026: ['Baseball','Softball','Track & Field','Tennis - Boys','Tennis - Girls','Boys Soccer','Girls Soccer'],
+  fall2026: ['Football','Girls Volleyball','Cross Country','Cheer','Girls Flag Football'],
+  winter2026: ['Boys Basketball','Girls Basketball','Cheer'],
+  spring2027: []
+};
+
+let currentSeason = localStorage.getItem('hp-current-season') || 'spring2026';
+
+function getSeasonBase(season){ return SEASON_BASES[season]||[]; }
+
+function switchSeason(season){
+  currentSeason = season;
+  localStorage.setItem('hp-current-season', season);
+  evts = load(season);
+  view='list'; sportF=new Set(['all']); haF='all'; q='';
+  updateSeasonUI();
+  render();
+}
+
+function updateSeasonUI(){
+  const sel = document.getElementById('season-select');
+  if(sel) sel.value = currentSeason;
+  const sub = document.getElementById('season-subtitle');
+  const base = getSeasonBase(currentSeason);
+  const label = SEASON_LABELS[currentSeason]||currentSeason;
+  if(sub){
+    if(!base.length){
+      sub.innerHTML = label+' · <span style="color:var(--amber-t)">No schedule yet — coming soon</span>';
+    } else {
+      sub.textContent = label+' · '+evts.length+' Events · 5 Vans';
+    }
+  }
+  // Update sport filters to show relevant sports for season
+  buildSportFilters();
+}
+
+let evts=load(currentSeason);
+let view='list',sportF=new Set(['all']),haF='all',q='',editId=null,showCompleted=false;
+// Initialize season UI after DOM ready
+document.addEventListener('DOMContentLoaded',()=>{ updateSeasonUI(); });
+
+function conflicts(){
+  const c=new Set();
+  const map={};
+  evts.forEach(e=>{if(!e.van)return;const k=e.van+'-'+e.date;if(!map[k])map[k]=[];map[k].push(e.id);});
+  Object.values(map).forEach(ids=>{if(ids.length>1)ids.forEach(id=>c.add(id));});
+  return c;
+}
+
+function filtered(){
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+  return evts.filter(e=>{
+    if(!sportF.has('all')&&!sportF.has(e.sport))return false;
+    if(haF!=='all'&&e.homeAway!==haF)return false;
+    if(q){const s=(e.visitor+e.host+e.venue+e.sport+e.driver+e.notes).toLowerCase();if(!s.includes(q))return false;}
+    // Separate past vs upcoming — past games only shown in completed section
+    if(e.date<today&&!showCompleted)return false;
+    if(e.date>=today&&showCompleted)return false;
+    return true;
+  });
+}
+
+function filteredUpcoming(){
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+  const prev=showCompleted;showCompleted=false;
+  const result=evts.filter(e=>{
+    if(!sportF.has('all')&&!sportF.has(e.sport))return false;
+    if(haF!=='all'&&e.homeAway!==haF)return false;
+    if(q){const s=(e.visitor+e.host+e.venue+e.sport+e.driver+e.notes).toLowerCase();if(!s.includes(q))return false;}
+    return e.date>=today;
+  });
+  showCompleted=prev;
+  return result;
+}
+
+function filteredPast(){
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+  return evts.filter(e=>{
+    if(!sportF.has('all')&&!sportF.has(e.sport))return false;
+    if(haF!=='all'&&e.homeAway!==haF)return false;
+    if(q){const s=(e.visitor+e.host+e.venue+e.sport+e.driver+e.notes).toLowerCase();if(!s.includes(q))return false;}
+    return e.date<today;
+  });
+}
+
+function fmt(d){const x=new Date(d+'T12:00:00');return x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+function t2i(t){if(!t||!t.includes(':'))return'';try{const pm=t.toLowerCase().includes('pm'),am=t.toLowerCase().includes('am');let[h,m]=t.replace(/[apm ]/gi,'').split(':');h=parseInt(h);m=parseInt(m)||0;if(pm&&h!==12)h+=12;if(am&&h===12)h=0;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}catch(e){return'';}}
+function i2t(v){if(!v)return'';const[h,m]=v.split(':');const hi=parseInt(h);const ap=hi>=12?'PM':'AM';const h12=hi>12?hi-12:hi===0?12:hi;return h12+':'+m+' '+ap;}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// filters
+function buildFilters(){
+  const c=document.getElementById('sport-filters');
+  const all=document.createElement('div');
+  all.className='filter-pill active';all.style.color='var(--t1)';all.textContent='All';all.dataset.sport='all';
+  all.onclick=()=>toggleSport(all);c.appendChild(all);
+  SPORTS.forEach(s=>{
+    const p=document.createElement('div');
+    p.className='filter-pill';
+    p.style.color=(getSeasonBase(currentSeason).find(e=>e.sport===s)||{color:'#888'}).color;
+    p.textContent=s.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F');
+    p.dataset.sport=s;
+    p.onclick=()=>toggleSport(p);
+    c.appendChild(p);
+  });
+}
+
+function toggleSport(el){
+  const sport=el.dataset.sport;
+  const allPill=document.querySelector('#sport-filters .filter-pill[data-sport="all"]');
+  if(sport==='all'){
+    // All selected — clear everything else
+    sportF=new Set(['all']);
+    document.querySelectorAll('#sport-filters .filter-pill').forEach(p=>{
+      p.classList.toggle('active',p.dataset.sport==='all');
+    });
+  } else {
+    // Toggle this sport
+    if(sportF.has('all')){
+      // Was "All" — switch to just this sport
+      sportF=new Set([sport]);
+      document.querySelectorAll('#sport-filters .filter-pill').forEach(p=>{
+        p.classList.toggle('active',p.dataset.sport===sport);
+      });
+    } else if(sportF.has(sport)){
+      // Deselect this sport
+      sportF.delete(sport);
+      el.classList.remove('active');
+      // If nothing selected, go back to All
+      if(sportF.size===0){
+        sportF=new Set(['all']);
+        if(allPill)allPill.classList.add('active');
+      }
+    } else {
+      // Add this sport to selection
+      sportF.add(sport);
+      el.classList.add('active');
+      if(allPill)allPill.classList.remove('active');
+    }
+  }
+  render();
+}
+function setHA(el){document.querySelectorAll('.toolbar .filter-pill[data-ha]').forEach(p=>p.classList.remove('active'));el.classList.add('active');haF=el.dataset.ha;render();}
+function setSearch(v){q=v.toLowerCase();render();}
+function setView(v,btn){view=v;document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+
+function renderStats(){
+  const f=filtered(),c=conflicts();
+  const away=f.filter(e=>e.homeAway==='Away').length;
+  const assigned=f.filter(e=>e.van).length;
+  const need=f.filter(e=>e.homeAway==='Away'&&!e.van).length;
+  const conf=[...c].filter(id=>f.find(e=>e.id===id)).length;
+  const done=f.filter(e=>e.status==='Confirmed'||e.status==='Returned').length;
+  const coverageNeeded=f.filter(e=>needsCoverage(e.sport,e.leaveTime)).length;
+  document.getElementById('stats-row').innerHTML=
+    `<div class="stat-card"><div class="stat-val">${f.length}</div><div class="stat-lbl">Total Events</div></div>`+
+    `<div class="stat-card"><div class="stat-val" style="color:var(--blue-t)">${away}</div><div class="stat-lbl">Away Games</div></div>`+
+    `<div class="stat-card"><div class="stat-val" style="color:var(--green-t)">${assigned}</div><div class="stat-lbl">Vans Assigned</div></div>`+
+    `<div class="stat-card"><div class="stat-val" style="color:var(--red-t)">${need}</div><div class="stat-lbl">Need Van</div></div>`+
+    `<div class="stat-card"><div class="stat-val" style="color:${coverageNeeded>0?'var(--red-t)':'var(--green-t)'}">${coverageNeeded}</div><div class="stat-lbl">Class Sub Needed</div></div>`+
+    `<div class="stat-card"><div class="stat-val" style="color:${conf>0?'var(--amber-t)':'var(--green-t)'}">${conf}</div><div class="stat-lbl">Van Conflicts</div></div>`+
+    `<div class="stat-card"><div class="stat-val" style="color:var(--green-t)">${done}</div><div class="stat-lbl">Confirmed</div></div>`;
+  // Update stats-row grid for 7 columns
+  document.getElementById('stats-row').style.gridTemplateColumns='repeat(7,1fr)';
+}
+
+function renderVans(){
+  const c=conflicts();
+  let h='';
+  for(let v=1;v<=5;v++){
+    const a=evts.filter(e=>e.van==v||(e.extraVans||[]).map(String).includes(String(v)));
+    const hasC=a.some(e=>c.has(e.id));
+    const next=a.filter(e=>!['Returned','Cancelled'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date))[0];
+    const col=v===1?'#185FA5':v===2?'#1D9E75':v===3?'#D85A30':v===4?'#534AB7':'#BA7517';
+    h+=`<div class="van-card"><div class="van-hdr"><div class="van-name" style="color:${col}">🚐 Van ${v}</div><span class="van-badge" style="background:${hasC?'var(--amber-bg)':a.length?'var(--green-bg)':'var(--bg2)'};color:${hasC?'var(--amber-t)':a.length?'var(--green-t)':'var(--t3)'}">${hasC?'CONFLICT':a.length?'Active':'Open'}</span></div><div class="van-info">${a.length} trip${a.length!==1?'s':''} total<br>${next?'Next: '+next.sport.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F')+' '+next.date:'<span style="color:var(--green-t)">No upcoming trips</span>'}</div></div>`;
+  }
+  document.getElementById('van-grid').innerHTML=h;
+}
+
+function renderList(){
+  const c=conflicts();
+  const upcoming=filteredUpcoming();
+  const past=filteredPast();
+  const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+
+  if(!upcoming.length&&!past.length){
+    document.getElementById('view-area').innerHTML='<div class="empty-state">No events match your filters</div>';
+    return;
+  }
+
+  const TABLE_HEADER=`<table class="sched-table"><thead><tr><th>Sport / Vans</th><th>Date</th><th>Time</th><th>H/A</th><th>Opponent / Event</th><th>Venue</th><th>Leave</th><th>Coaches</th><th>Van</th><th>Driver</th><th>Status</th><th></th></tr></thead><tbody>`;
+
+  let h='';
+
+  // Upcoming / scheduled games
+  if(upcoming.length){
+    h+=`<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px">📅 Upcoming — ${upcoming.length} event${upcoming.length!==1?'s':''}</div>`;
+    h+=TABLE_HEADER;
+    h+=renderEventRows(upcoming,c);
+    h+='</tbody></table>';
+  }
+
+  // Completed / past games toggle
+  h+=`<div style="margin-top:18px;border-top:2px solid var(--border);padding-top:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${past.length&&showCompleted?'10px':'0'}">
+      <div style="font-size:13px;font-weight:700;color:var(--t2)">✓ Completed Games — ${past.length} event${past.length!==1?'s':''}</div>
+      <button class="btn btn-sm" onclick="toggleCompleted()" style="font-size:11px">${showCompleted?'Hide Completed':'Show Completed'}</button>
+    </div>
+    ${showCompleted&&past.length?TABLE_HEADER+renderEventRows([...past].reverse(),c)+'</tbody></table>':''}
+    ${showCompleted&&!past.length?'<div class="empty-state" style="padding:16px">No past games yet</div>':''}
+  </div>`;
+
+  document.getElementById('view-area').innerHTML=h;
+}
+
+function toggleCompleted(){showCompleted=!showCompleted;render();}
+
+function renderEventRows(events,c){
+  let h='';
+  const byDate={};
+  events.forEach(e=>{if(!byDate[e.date])byDate[e.date]=[];byDate[e.date].push(e);});
+  Object.keys(byDate).sort().forEach(date=>{
+    const day=byDate[date];
+    h+=`<tr class="date-hdr"><td colspan="12">📅 ${fmt(date)} — ${day.length} event${day.length>1?'s':''}</td></tr>`;
+    day.forEach(e=>{
+      const isConflict=c.has(e.id);
+      const opp=e.homeAway==='Away'?e.host:e.visitor;
+      const sc=SC[e.status]||'#888';
+      const info=SPORT_INFO[e.sport];
+      const coaches=info?[info.headCoach,...(info.assistCoaches||[])].filter(c=>c).map(c=>c.name).join(', '):'';
+      const hasCoverage=needsCoverage(e.sport,e.leaveTime);
+      h+=`<tr class="${isConflict?'conflict-row':''}" onclick="openModal(${e.id})">
+        <td>
+          <span class="sport-chip" style="background:${e.color}22;color:${e.color}">
+            <span class="sport-dot" style="background:${e.color}"></span>
+            ${e.sport.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F')}
+          </span>
+          ${info?`<span class="van-needed" style="margin-left:4px">🚐${info.vansNeeded}</span>`:''}
+        </td>
+        <td style="font-size:11px;white-space:nowrap">${e.date}</td>
+        <td style="font-size:12px;white-space:nowrap">${e.gameTime}</td>
+        <td><span class="ha-pill ${e.homeAway==='Home'?'ha-home':'ha-away'}">${e.homeAway}</span></td>
+        <td style="font-weight:500;max-width:145px">
+          ${opp}
+          ${isConflict?'<span class="warn-chip">⚠ VAN CONFLICT</span>':''}
+          ${hasCoverage?'<span class="warn-chip" style="background:var(--red-bg);color:var(--red-t)">⚠ CLASS SUB</span>':''}
+        </td>
+        <td style="font-size:11px;color:var(--t2);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.venue}</td>
+        <td style="font-size:12px;font-weight:700;color:${hasCoverage?'var(--red-t)':'var(--amber-t)'}">${e.leaveTime||'—'}</td>
+        <td style="font-size:11px;color:var(--t3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${coaches}">${coaches||'—'}</td>
+        <td onclick="event.stopPropagation()"><select class="van-sel" onchange="qVan(${e.id},this.value)">
+          <option value="">—</option>${[1,2,3,4,5].map(v=>`<option value="${v}"${e.van==v?' selected':''}>Van ${v}</option>`).join('')}
+        </select></td>
+        <td onclick="event.stopPropagation()"><input class="drv-inp" value="${e.driver||''}" placeholder="Driver..." onchange="qDriver(${e.id},this.value)"></td>
+        <td style="white-space:nowrap"><span style="font-size:11px;font-weight:700;color:${sc}"><span class="status-dot" style="background:${sc}"></span>${e.status}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm" onclick="event.stopPropagation();openModal(${e.id})">Edit</button>
+          ${e.extraVans&&e.extraVans.length?e.extraVans.map(v=>'<span class="badge b-green" style="margin-left:3px">+Van '+v+'</span>').join(''):''}
+        </td>
+      </tr>`;
+    });
+  });
+  return h;
+}
+
+function renderCalendar(){
+  const months=[{y:2026,m:1,l:'February 2026'},{y:2026,m:2,l:'March 2026'},{y:2026,m:3,l:'April 2026'}];
+  let h='';
+  months.forEach(({y,m,l})=>{
+    h+=`<div class="month-label">${l}</div><div class="cal-hdr">`;
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>h+=`<div class="cal-dh">${d}</div>`);
+    h+='</div><div class="cal-grid">';
+    const first=new Date(y,m,1),startDay=first.getDay(),days=new Date(y,m+1,0).getDate();
+    for(let i=0;i<startDay;i++)h+='<div class="cal-cell empty"></div>';
+    for(let d=1;d<=days;d++){
+      const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dayEvts=filtered().filter(e=>e.date===iso);
+      const isToday=iso===new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+      h+=`<div class="cal-cell${isToday?' today':''}"><div class="cal-num">${d}</div>`;
+      dayEvts.forEach(e=>{
+        const short=e.sport.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F').replace('Volleyball','VB').replace('Baseball','⚾').replace('Softball','🥎');
+        h+=`<div class="cal-ev" style="background:${e.color}" onclick="openModal(${e.id})" title="${e.sport} vs ${e.homeAway==='Away'?e.host:e.visitor}">${short}${e.van?' 🚐'+e.van:''}</div>`;
+      });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  document.getElementById('view-area').innerHTML=h;
+}
+
+function renderByVans(){
+  let h='';
+  for(let v=1;v<=5;v++){
+    const va=filtered().filter(e=>e.van==v).sort((a,b)=>a.date.localeCompare(b.date));
+    const col=v===1?'#185FA5':v===2?'#1D9E75':v===3?'#D85A30':v===4?'#534AB7':'#BA7517';
+    h+=`<div style="margin-bottom:20px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:36px;height:36px;background:${col}22;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🚐</div><div><div style="font-size:14px;font-weight:700;color:${col}">Van ${v}</div><div style="font-size:12px;color:var(--t3)">${va.length} trip${va.length!==1?'s':''}</div></div></div>`;
+    if(va.length){
+      h+=`<table class="sched-table"><thead><tr><th>Date</th><th>Sport</th><th>Time</th><th>H/A</th><th>Opponent</th><th>Venue</th><th>Leave</th><th>Driver</th><th>Athletes</th><th>Status</th></tr></thead><tbody>`;
+      va.forEach(e=>{const sc=SC[e.status]||'#888';const opp=e.homeAway==='Away'?e.host:e.visitor;h+=`<tr onclick="openModal(${e.id})" style="cursor:pointer"><td style="font-size:12px">${e.date}</td><td><span class="sport-chip" style="background:${e.color}22;color:${e.color}">${e.sport.replace("Boy's","B's").replace("Girl's","G's").replace('Track & Field','T&F')}</span></td><td style="font-size:12px">${e.gameTime}</td><td><span class="ha-pill ${e.homeAway==='Home'?'ha-home':'ha-away'}">${e.homeAway}</span></td><td style="font-weight:500">${opp}</td><td style="font-size:11px;color:var(--t2)">${e.venue}</td><td style="font-size:12px;font-weight:700;color:var(--amber-t)">${e.leaveTime||'—'}</td><td style="font-size:12px">${e.driver||'—'}</td><td style="font-size:12px">${e.athletes||'—'}</td><td><span style="font-size:11px;font-weight:700;color:${sc}">${e.status}</span></td></tr>`;});
+      h+='</tbody></table>';
+    } else {
+      h+=`<div style="padding:14px;background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--rl);color:var(--t3);font-size:13px;text-align:center">No events assigned to Van ${v}</div>`;
+    }
+    h+='</div>';
+  }
+  // unassigned away
+  const ua=filtered().filter(e=>e.homeAway==='Away'&&!e.van);
+  if(ua.length){
+    h+=`<div style="margin-bottom:20px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:36px;height:36px;background:var(--red-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">⚠️</div><div><div style="font-size:14px;font-weight:700;color:var(--red-t)">Unassigned Away Events (${ua.length})</div><div style="font-size:12px;color:var(--t3)">These need a van assigned</div></div></div>`;
+    h+=`<table class="sched-table"><thead><tr><th>Date</th><th>Sport</th><th>Opponent</th><th>Leave Time</th><th>Quick Assign</th></tr></thead><tbody>`;
+    ua.forEach(e=>{h+=`<tr><td style="font-size:12px">${e.date}</td><td style="font-size:12px">${e.sport}</td><td style="font-weight:500">${e.host}</td><td style="font-weight:700;color:var(--amber-t)">${e.leaveTime||'—'}</td><td><select class="van-sel" style="max-width:100px" onchange="qVan(${e.id},this.value);setTimeout(render,100)"><option value="">— assign —</option>${[1,2,3,4,5].map(v=>`<option value="${v}">Van ${v}</option>`).join('')}</select></td></tr>`;});
+    h+='</tbody></table></div>';
+  }
+  document.getElementById('view-area').innerHTML=h;
+}
+
+function openModal(id){
+  const isNew=!id;
+  document.getElementById('modal-delete-btn').style.display=isNew?'none':'';
+  const e=evts.find(x=>x.id===id);if(!e)return;
+  editId=id;
+  const col=e.color;
+  const opp=e.homeAway==='Away'?e.host:e.visitor;
+  const info=SPORT_INFO[e.sport];
+  document.getElementById('m-title').textContent=e.sport+' — '+opp;
+  document.getElementById('m-meta').innerHTML=`<span style="color:${col};font-weight:700">${e.homeAway}</span> · ${e.date} at ${e.gameTime}${info?` · <span class="van-needed">🚐 ${info.vansNeeded} van${info.vansNeeded>1?'s':''} needed</span>`:''}`;
+
+  // Info grid
+  document.getElementById('m-info').innerHTML=`
+    <div><div class="ilbl">Visitor</div><div class="ival">${e.visitor}</div></div>
+    <div><div class="ilbl">Host</div><div class="ival">${e.host}</div></div>
+    <div><div class="ilbl">Venue</div><div class="ival">${e.venue}</div></div>
+    <div><div class="ilbl">Scheduled Leave</div><div class="ival" style="color:var(--amber-t);font-weight:700">${e.leaveTime||'—'}</div></div>
+    <div><div class="ilbl">Game Time</div><div class="ival">${e.gameTime}</div></div>
+    <div><div class="ilbl">Sub Coverage</div><div class="ival">${e.subCoverage||'—'}</div></div>`;
+
+  // Coach info panel
+  const coachBox=document.getElementById('m-coach-info');
+  const coachDetail=document.getElementById('m-coach-detail');
+  if(info){
+    const coaches=[
+      info.headCoach?{...info.headCoach,role:'Head Coach'}:null,
+      ...(info.assistCoaches||[]).map(c=>({...c,role:'Asst Coach'}))
+    ].filter(Boolean);
+    coachDetail.innerHTML=coaches.map(c=>`<div class="coach-row">
+      <span class="coach-label">${c.role==='Head Coach'?'HC':'Asst'}</span>
+      <span class="coach-name">${c.name}</span>
+      ${c.isTeacher?'<span class="teacher-badge">👩‍🏫 Teacher — may need class sub</span>':''}
+    </div>`).join('');
+    coachBox.style.display='';
+  } else {
+    coachBox.style.display='none';
+  }
+
+  // Class coverage alert
+  const coverageAlert=document.getElementById('m-coverage');
+  if(needsCoverage(e.sport,e.leaveTime)){
+    const teacherCoaches=(info?[info.headCoach,...(info.assistCoaches||[])].filter(c=>c&&c.isTeacher):[]).map(c=>c.name).join(', ');
+    coverageAlert.textContent='⚠ CLASS COVERAGE REQUIRED — Leave time ('+e.leaveTime+') is before 2:30 PM. '+teacherCoaches+' will need a substitute for their classes.';
+    coverageAlert.classList.add('show');
+  } else {
+    coverageAlert.classList.remove('show');
+  }
+
+  document.getElementById('m-van').value=e.van||'';
+  [1,2,3,4,5].forEach(v=>{const cb=document.getElementById('ev-'+v);if(cb)cb.checked=(e.extraVans||[]).includes(v)||(e.extraVans||[]).includes(String(v));});
+  document.getElementById('m-driver').value=e.driver||'';
+  document.getElementById('m-athletes').value=e.athletes||'';
+  updateAthVanSuggestion();
+  document.getElementById('m-sup').value=e.supervisor||info?.headCoach?.name||'';
+  document.getElementById('m-leave').value=t2i(e.leaveTime);
+  document.getElementById('m-return').value=t2i(e.returnTime);
+  document.getElementById('m-address').value=e.address||'';
+  document.getElementById('m-status').value=e.status||'Scheduled';
+  document.getElementById('m-notes').value=e.notes||'';
+  checkConflict();
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');editId=null;}
+function deleteGame(){
+  if(!editId)return;
+  if(!confirm('Delete this game? This cannot be undone.'))return;
+  evts=evts.filter(e=>e.id!==editId);
+  save();closeModal();toast('Game deleted');render();
+}
+
+function checkConflict(){
+  if(!editId)return;
+  const van=document.getElementById('m-van').value;
+  const e=evts.find(x=>x.id===editId);
+  const alert=document.getElementById('m-conflict');
+  if(van&&e){
+    const same=evts.filter(x=>x.id!==editId&&x.van==van&&x.date===e.date);
+    if(same.length){alert.textContent='⚠ Van '+van+' is already assigned to: '+same.map(x=>x.sport).join(', ')+' on '+e.date;alert.classList.add('show');}
+    else alert.classList.remove('show');
+  } else alert.classList.remove('show');
+}
+
+function updateAthVanSuggestion(){
+  const students=parseInt(document.getElementById('m-athletes').value)||0;
+  const el=document.getElementById('ath-van-suggestion');
+  if(!el)return;
+  if(!students){el.textContent='';return;}
+  const vansNeeded=Math.ceil(students/14);
+  if(vansNeeded<=1){
+    el.style.color='var(--green-t)';
+    el.textContent='✓ 1 van fits '+students+' students';
+  } else if(vansNeeded===2){
+    el.style.color='var(--amber-t)';
+    el.textContent='⚠ 2 vans needed for '+students+' students';
+  } else {
+    el.style.color='var(--red-t)';
+    el.textContent='🚌 '+vansNeeded+' vans needed — consider charter bus!';
+  }
+}
+function saveModal(){
+  if(!editId){
+    // New game
+    const newId=Math.max(0,...evts.map(x=>x.id))+1;
+    const sport=document.getElementById('m-sport').value;
+    const ha=document.getElementById('m-ha').value;
+    const newGame={
+      id:newId,
+      sport:sport,
+      date:document.getElementById('m-date').value,
+      gameTime:document.getElementById('m-time').value,
+      visitor:ha==='Home'?document.getElementById('m-visitor').value:'Highland Prep',
+      host:ha==='Home'?'Highland Prep':document.getElementById('m-host').value,
+      venue:document.getElementById('m-venue').value,
+      leaveTime:document.getElementById('m-leave').value,
+      homeAway:ha,
+      van:document.getElementById('m-van').value||null,
+      driver:document.getElementById('m-driver').value,
+      athletes:parseInt(document.getElementById('m-athletes').value)||0,
+      supervisor:document.getElementById('m-supervisor').value,
+      returnTime:document.getElementById('m-return').value,
+      address:'',
+      status:document.getElementById('m-status').value,
+      notes:document.getElementById('m-notes').value,
+      color:'#888',
+      subCoverage:document.getElementById('m-supervisor').value,
+      extraVans:[]
+    };
+    evts.push(newGame);
+    evts.sort((a,b)=>a.date.localeCompare(b.date)||a.gameTime.localeCompare(b.gameTime));
+    save();closeModal();toast('Game added ✓');render();
+    return;
+  }
+  const e=evts.find(x=>x.id===editId);if(!e)return;
+  e.van=document.getElementById('m-van').value||null;
+  e.extraVans=[1,2,3,4,5].filter(v=>{const cb=document.getElementById('ev-'+v);return cb&&cb.checked;}).filter(v=>String(v)!==String(e.van));
+  e.driver=document.getElementById('m-driver').value;
+  e.athletes=parseInt(document.getElementById('m-athletes').value)||0;
+  e.supervisor=document.getElementById('m-sup').value;
+  e.leaveTime=i2t(document.getElementById('m-leave').value)||e.leaveTime;
+  e.returnTime=i2t(document.getElementById('m-return').value);
+  e.address=document.getElementById('m-address').value;
+  e.status=document.getElementById('m-status').value;
+  e.notes=document.getElementById('m-notes').value;
+  save();closeModal();toast('Saved ✓');render();
+}
+
+function qVan(id,val){const e=evts.find(x=>x.id===id);if(e){e.van=val||null;save();renderStats();renderVans();}}
+function qDriver(id,val){const e=evts.find(x=>x.id===id);if(e){e.driver=val;save();}}
+
+function exportCSV(){
+  const rows=[['Sport','Date','Game Time','Home/Away','Visitor','Host','Venue','Leave Time','Return Time','Vans Needed','Head Coach','Coach Is Teacher','Asst Coach(s)','Class Coverage Needed','Van Assigned','Driver','Athletes','Sub Coverage','Status','Address','Notes']];
+  filtered().sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+    const info=SPORT_INFO[e.sport]||{};
+    const hc=info.headCoach?info.headCoach.name:'';
+    const hcTeacher=info.headCoach&&info.headCoach.isTeacher?'Yes':'No';
+    const asst=(info.assistCoaches||[]).map(c=>c.name).join('; ');
+    const coverage=needsCoverage(e.sport,e.leaveTime)?'YES - Sub Required':'No';
+    rows.push([e.sport,e.date,e.gameTime,e.homeAway,e.visitor,e.host,e.venue,e.leaveTime,e.returnTime,info.vansNeeded||'',hc,hcTeacher,asst,coverage,e.van?'Van '+e.van:'',e.driver,e.athletes,e.subCoverage,e.status,e.address,e.notes]);
+  });
+  const csv=rows.map(r=>r.map(c=>'"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='athletics-transport.csv';a.click();toast('CSV exported ✓');
+}
+
+function renderSportInfoBar(){
+  const bar = document.getElementById('sport-info-bar');
+  if (!bar) return;
+  // Tennis Boy's and Girl's share 1 van - combine them in the card
+  const sportOrder = ['Baseball','Softball','Tennis','Track & Field',"Volleyball - Boy's"];
+  bar.innerHTML = sportOrder.map(sport => {
+    // Handle combined Tennis card
+    let info, col, sportEvtsAll;
+    if(sport==='Tennis'){
+      info = {...SPORT_INFO["Tennis - Boy's"], vansNeeded:1, icon:'🎾', combinedLabel:"Tennis (Boys & Girls)"};
+      col = '#534AB7';
+      sportEvtsAll = filtered().filter(e=>e.sport==="Tennis - Boy's"||e.sport==="Tennis - Girl's");
+    } else {
+      info = SPORT_INFO[sport];
+      if (!info) return '';
+      col = (getSeasonBase(currentSeason).find(e=>e.sport===sport)||{color:'#888'}).color;
+      sportEvtsAll = null;
+    }
+    const coaches = [
+      info.headCoach ? { ...info.headCoach, role: 'HC' } : null,
+      ...(info.assistCoaches || []).map(c => ({ ...c, role: 'Asst' }))
+    ].filter(Boolean);
+    // Count events for this sport
+    const sportEvts = sportEvtsAll || filtered().filter(e => e.sport === sport);
+    const awayEvts = sportEvts.filter(e => e.homeAway === 'Away');
+    const coverageEvts = awayEvts.filter(e => needsCoverage(sport, e.leaveTime));
+    const displayName = info.combinedLabel || sport;
+    return `<div class="sport-card">
+      <div class="sport-card-hdr">
+        <div class="sport-icon" style="background:${col}22">${info.icon}</div>
+        <div style="flex:1">
+          <div class="sport-title" style="color:${col}">${displayName}</div>
+          <div class="sport-subtitle">${sportEvts.length} events · ${awayEvts.length} away</div>
+        </div>
+        <span class="van-needed">🚐 ${info.vansNeeded} van${info.vansNeeded>1?'s':''}</span>
+      </div>
+      <div>
+        ${coaches.map(c => `<div class="coach-row">
+          <span class="coach-label">${c.role}</span>
+          <span class="coach-name">${c.name}</span>
+          ${c.isTeacher ? '<span class="teacher-badge">👩‍🏫 Teacher</span>' : ''}
+        </div>`).join('')}
+      </div>
+      ${coverageEvts.length ? `<div class="coverage-row">⚠ ${coverageEvts.length} event${coverageEvts.length>1?'s':''} need class coverage (early departure)</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function buildSportFilters(){
+  const base = getSeasonBase(currentSeason);
+  const sf = document.getElementById('sport-filters');
+  if(!sf) return;
+  const sports = [...new Set(evts.map(e=>e.sport))].sort();
+  const seasonSports = SEASON_SPORTS[currentSeason]||[];
+  sf.innerHTML = `<button class="vt-btn ${sportF.has('all')?'active':''}" onclick="setSport('all',this)">All</button>`
+    + sports.map(s=>`<button class="vt-btn ${sportF.has(s)?'active':''}" onclick="setSport('${s}',this)">${s}</button>`).join('');
+}
+function render(){
+  // Empty state for seasons without schedules
+  const base=getSeasonBase(currentSeason);
+  const mc=document.getElementById('view-area');
+  if(!base.length&&mc){
+    mc.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🏈</div>
+      <div style="font-size:20px;font-weight:700;color:var(--t1);margin-bottom:8px">${SEASON_LABELS[currentSeason]||currentSeason} Schedule</div>
+      <div style="font-size:14px;color:var(--t2);margin-bottom:6px">No schedule loaded yet.</div>
+      <div style="font-size:13px;color:var(--t3);max-width:400px;margin-bottom:20px">The schedule will be available in June 2026. Check back then to add games, assign vans, and manage transportation.</div>
+      <div style="padding:16px 24px;background:var(--blue-bg);border-radius:var(--rl);max-width:400px">
+        <div style="font-size:12px;font-weight:700;color:var(--blue-t);margin-bottom:8px">Expected Sports</div>
+        <div style="font-size:13px;color:var(--blue-t)">${(SEASON_SPORTS[currentSeason]||[]).join(' &nbsp;·&nbsp; ')||'To be determined'}</div>
+      </div>
+    </div>`;
+    renderStats();renderVans();
+    return;
+  }
+  if(mc&&mc.querySelector('.sched-grid')===null)mc.innerHTML='';
+  renderStats();renderVans();renderSportInfoBar();if(view==='list')renderList();else if(view==='calendar')renderCalendar();else renderByVans();}
+
+buildFilters();render();
+</script>
+</body>
+</html>
