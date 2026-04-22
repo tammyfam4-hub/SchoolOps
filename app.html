@@ -995,7 +995,7 @@ async function scheduleSave(){
   saveTimer=setTimeout(async()=>{
     try{
       // Strip large data before saving to keep Supabase payload small
-      // These are always reloaded from DEFAULT/HISTORICAL_TX on every load
+      // These are always reloaded from DEFAULT/window.HISTORICAL_TX on every load
       const sportsToSave=(S.sports||[]).map(g=>({...g,transactions:[]}));
       const clubsToSave=(S.clubs||[]).map(g=>({...g,transactions:[]}));
       const stateToSave={...S,
@@ -1237,10 +1237,10 @@ async function initData(){
   // Ensure all sports and clubs have IDs (fix for Supabase-loaded state without IDs)
   S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
   S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
-  // Sync group names to HISTORICAL_TX keys for exact matching
-  const _htxAllKeys=Object.keys(HISTORICAL_TX);
+  // Sync group names to window.HISTORICAL_TX keys for exact matching
+  const _htxAllKeys=Object.keys(window.HISTORICAL_TX);
   [...S.sports,...S.clubs].forEach(g=>{
-    if(!HISTORICAL_TX[g.name]){
+    if(!window.HISTORICAL_TX[g.name]){
       const match=_htxAllKeys.find(k=>
         k.toLowerCase()===g.name.toLowerCase()||
         g.name.toLowerCase().includes(k.toLowerCase().split(' ')[0])||
@@ -1313,7 +1313,7 @@ async function initData(){
   // Always restore historical transactions from spreadsheet
   // Keep any user-added transactions (those with id starting 'tx-' from user entry)
   ;[...(S.sports||[]),...(S.clubs||[])].forEach(g=>{
-    const hist=HISTORICAL_TX[g.name];
+    const hist=window.HISTORICAL_TX[g.name];
     if(hist&&hist.length){
       // Get user-added transactions (not from historical spreadsheet)
       const userTx=(g.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
@@ -2827,7 +2827,7 @@ function closeGroupDetail(){
 }
 
 function renderGroupDetail(groupId){
-  if(!HISTORICAL_TX||Object.keys(HISTORICAL_TX).length===0){setTimeout(()=>renderGroupDetail(groupId),300);return;}
+  if(!window.HISTORICAL_TX||Object.keys(window.HISTORICAL_TX).length===0){setTimeout(()=>renderGroupDetail(groupId),300);return;}
   // Find by ID first, fall back to index position if IDs are missing
   let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
   if(!grp){
@@ -2840,8 +2840,8 @@ function renderGroupDetail(groupId){
   if(!grp){closeGroupDetail();return;}
   
   // Always inject historical transactions before rendering
-  const _htxKeys2=Object.keys(HISTORICAL_TX);
-  const _hist=HISTORICAL_TX[grp.name]||(_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))?HISTORICAL_TX[_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))]:null);
+  const _htxKeys2=Object.keys(window.HISTORICAL_TX);
+  const _hist=window.HISTORICAL_TX[grp.name]||(_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))?window.HISTORICAL_TX[_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))]:null);
   if(_hist&&_hist.length){
     const userTx=(grp.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
     grp.transactions=[..._hist,...userTx];
@@ -3397,21 +3397,21 @@ function exportCalExcel(){
 
 function renderBudget(){
   const bc=document.getElementById('budget-content');if(!bc)return;
-  // Wait for HISTORICAL_TX to be populated
-  if(!HISTORICAL_TX||Object.keys(HISTORICAL_TX).length===0){setTimeout(renderBudget,300);return;}
+  // Wait for window.HISTORICAL_TX to be populated
+  if(!window.HISTORICAL_TX||Object.keys(window.HISTORICAL_TX).length===0){setTimeout(renderBudget,300);return;}
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
   // Always inject historical transactions for all groups
   try{
-    // Build a fuzzy lookup for HISTORICAL_TX
-    const _htxKeys=Object.keys(HISTORICAL_TX);
+    // Build a fuzzy lookup for window.HISTORICAL_TX
+    const _htxKeys=Object.keys(window.HISTORICAL_TX);
     function _findHist(name){
-      if(HISTORICAL_TX[name])return HISTORICAL_TX[name];
+      if(window.HISTORICAL_TX[name])return window.HISTORICAL_TX[name];
       // Try case-insensitive match
       const nl=name.toLowerCase();
       const k=_htxKeys.find(k=>k.toLowerCase()===nl||nl.includes(k.toLowerCase())||k.toLowerCase().includes(nl.split(' ')[0].toLowerCase()));
-      return k?HISTORICAL_TX[k]:null;
+      return k?window.HISTORICAL_TX[k]:null;
     }
     [...S.sports,...S.clubs].forEach(g=>{
       const hist=_findHist(g.name);
