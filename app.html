@@ -2827,6 +2827,7 @@ function closeGroupDetail(){
 }
 
 function renderGroupDetail(groupId){
+  if(!HISTORICAL_TX||Object.keys(HISTORICAL_TX).length===0){setTimeout(()=>renderGroupDetail(groupId),300);return;}
   // Find by ID first, fall back to index position if IDs are missing
   let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
   if(!grp){
