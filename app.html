@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SchoolOps</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>const SUPABASE_URL='https://idjratpppoubqehqvjpx.supabase.co';const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);</script><script>var HISTORICAL_TX={};</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>const SUPABASE_URL='https://idjratpppoubqehqvjpx.supabase.co';const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--nav-w:224px;--hdr:52px;--bg1:#fff;--bg2:#f5f6f7;--bg3:#eef0f2;--t1:#111;--t2:#555;--t3:#999;--border:rgba(0,0,0,0.09);--border-md:rgba(0,0,0,0.16);--blue:#185FA5;--blue-bg:#E6F1FB;--blue-t:#185FA5;--green:#1D9E75;--green-bg:#EAF3DE;--green-t:#3B6D11;--amber:#BA7517;--amber-bg:#FAEEDA;--amber-t:#854F0B;--red:#E24B4A;--red-bg:#FCEBEB;--red-t:#A32D2D;--purple:#534AB7;--purple-bg:#EEEDFE;--purple-t:#3C3489;--gray-bg:#efefef;--gray-t:#555;--r:8px;--rl:12px;--shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -635,6 +635,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
       <option value="EA-partial">EA — Excused Absence (partial day / periods)</option>
       <option value="early-departure">Early Departure (leaves before contract end)</option>
       <option value="T">T — Tardy</option>
+      <option value="SD">SD — School Duty</option>
       <option value="UA">UA — Unexcused Absence</option>
       <option value="P">P — Present (reset)</option>
     </select>
@@ -691,6 +692,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   </div>
 
   <div class="frow"><label class="flabel">Reason / Notes</label><input id="a-reason" placeholder="e.g. Sick leave, Personal day, Doctor appointment..."></div>
+  <div class="frow" id="a-arrival-row" style="display:none"><label class="flabel">Arrival Time</label><input type="time" id="a-arrival" style="padding:7px 10px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit"></div>
+  <div class="frow" id="a-tardy-sub-row" style="display:none"><label class="flabel">Is a substitute needed?</label><select id="a-tardy-sub-needed" onchange="toggleTardySub()" style="padding:7px 10px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit"><option value="no">No — teacher will arrive late</option><option value="yes">Yes — sub needed for missed periods</option></select></div>
 
   <!-- FULL DAY SUB — shown for full-day absences only -->
   <div id="att-fullday-sub" class="frow">
@@ -995,7 +998,7 @@ async function scheduleSave(){
   saveTimer=setTimeout(async()=>{
     try{
       // Strip large data before saving to keep Supabase payload small
-      // These are always reloaded from DEFAULT/window.HISTORICAL_TX on every load
+      // These are always reloaded from DEFAULT/HISTORICAL_TX on every load
       const sportsToSave=(S.sports||[]).map(g=>({...g,transactions:[]}));
       const clubsToSave=(S.clubs||[]).map(g=>({...g,transactions:[]}));
       const stateToSave={...S,
@@ -1158,6 +1161,21 @@ function renderPlannedUpcoming(){
   const el=document.getElementById('planned-upcoming');
   if(!el)return;
   const today=new Date().toISOString().slice(0,10);
+  // Show today's planned absences with sub info prominently
+  const todayOff=S.plannedDays.filter(p=>{const s=p.start,e=p.end||p.start;return today>=s&&today<=e;});
+  if(todayOff.length){
+    const todayHtml=todayOff.map(p=>{
+      const att=S.attendance[p.person]||{};
+      const subInfo=att.sub?` · Sub: <strong>${att.sub}</strong>`:'<span style="color:#E24B4A"> · No sub assigned</span>';
+      return `<div style="background:var(--blue-bg);border:1px solid var(--blue);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px">
+        <div style="font-weight:700;color:var(--blue)">📋 Out Today: ${p.person}</div>
+        <div style="color:var(--t2);margin-top:2px">${p.type}${p.notes?' · '+p.notes:''}${subInfo}</div>
+      </div>`;
+    }).join('');
+    el.insertAdjacentHTML('beforebegin',`<div id="today-planned-banner" style="margin-bottom:12px">${todayHtml}</div>`);
+    const old=document.getElementById('today-planned-banner');
+    if(old&&old.previousElementSibling&&old.previousElementSibling.id==='today-planned-banner')old.remove();
+  }
   const upcoming=S.plannedDays.filter(p=>(p.end||p.start)>=today).sort((a,b)=>a.start.localeCompare(b.start)).slice(0,8);
   const typeC={EA:'poff-EA',PD:'poff-PD',Personal:'poff-Personal',FMLA:'poff-FMLA',Bereavement:'poff-Bereavement'};
   if(!upcoming.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">No upcoming planned days off</div>';return;}
@@ -1237,10 +1255,10 @@ async function initData(){
   // Ensure all sports and clubs have IDs (fix for Supabase-loaded state without IDs)
   S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
   S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
-  // Sync group names to window.HISTORICAL_TX keys for exact matching
-  const _htxAllKeys=Object.keys(window.HISTORICAL_TX);
+  // Sync group names to HISTORICAL_TX keys for exact matching
+  const _htxAllKeys=Object.keys(HISTORICAL_TX);
   [...S.sports,...S.clubs].forEach(g=>{
-    if(!window.HISTORICAL_TX[g.name]){
+    if(!HISTORICAL_TX[g.name]){
       const match=_htxAllKeys.find(k=>
         k.toLowerCase()===g.name.toLowerCase()||
         g.name.toLowerCase().includes(k.toLowerCase().split(' ')[0])||
@@ -1313,7 +1331,7 @@ async function initData(){
   // Always restore historical transactions from spreadsheet
   // Keep any user-added transactions (those with id starting 'tx-' from user entry)
   ;[...(S.sports||[]),...(S.clubs||[])].forEach(g=>{
-    const hist=window.HISTORICAL_TX[g.name];
+    const hist=HISTORICAL_TX[g.name];
     if(hist&&hist.length){
       // Get user-added transactions (not from historical spreadsheet)
       const userTx=(g.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
@@ -1641,6 +1659,13 @@ function addSub(){const f=document.getElementById('s-first').value.trim(),l=docu
 
 function toggleAttFields(){
   const status=document.getElementById('a-status').value;
+  const arrivalRow=document.getElementById('a-arrival-row');
+  if(arrivalRow)arrivalRow.style.display=status==='T'?'':'none';
+  const tardySubRow=document.getElementById('a-tardy-sub-row');
+  if(tardySubRow)tardySubRow.style.display=status==='T'?'':'none';
+  // For Tardy, hide the main sub row unless sub needed
+  const subRow=document.getElementById('a-sub-row');
+  if(subRow)subRow.style.display=(status==='T')?'none':((status==='EA'||status==='UA'||status==='SD')?'':'none');
   const periodsSection=document.getElementById('att-periods-section');
   const departSection=document.getElementById('att-departure-section');
   const fulldaySub=document.getElementById('att-fullday-sub');
@@ -1669,6 +1694,7 @@ function logAttendance(){
   const name=document.getElementById('a-person').value;
   const rawStatus=document.getElementById('a-status').value;
   const reason=document.getElementById('a-reason').value;
+  const arrivalTime=document.getElementById('a-arrival')?document.getElementById('a-arrival').value:'';
   // Get selected date — default to today AZ time
   const dateEl=document.getElementById('a-date');
   const azNow=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000));
@@ -1725,6 +1751,7 @@ function logAttendance(){
     const subVal=document.getElementById('a-sub').value;
     S.attendance[name].status=rawStatus;
     S.attendance[name].reason=reason;
+    S.attendance[name].arrivalTime=rawStatus==='T'?arrivalTime:'';
     S.attendance[name].periods=[];
     S.attendance[name].periodSubs={};
     S.attendance[name].departTime='';
@@ -1927,6 +1954,8 @@ function openAttDetailModal(name){
   if(statusSel&&att.status)statusSel.value=att.status;
   const reasonEl=document.getElementById('a-reason');
   if(reasonEl)reasonEl.value=att.reason||'';
+  const arrivalEl=document.getElementById('a-arrival');
+  if(arrivalEl)arrivalEl.value=att.arrivalTime||'';
   toggleAttFields();
   openModal('att-modal');
 }
@@ -2220,7 +2249,7 @@ function render(){
       const statusBadge=isAbsent?
         att.status==='EA'||att.status==='EA-partial'?`<span class="badge b-amber" style="margin-left:6px">EA${att.periods&&att.periods.length?' · '+(att.periods.length===4?'Full Day':att.periods.join(', ')):''}</span>`:
         att.status==='ED'||att.status==='early-departure'?`<span class="badge b-blue" style="margin-left:6px">ED${att.departTime?' · leaves '+att.departTime:''}</span>`:
-        att.status==='T'?`<span class="badge b-blue" style="margin-left:6px">Tardy</span>`:
+        att.status==='T'?`<span class="badge b-blue" style="margin-left:6px">Tardy${att.arrivalTime?' · '+att.arrivalTime:''}</span>`:
         `<span class="badge b-red" style="margin-left:6px">Unexcused</span>`:'';
 
       const subBadge=isTeacher&&isAbsent&&(att.sub||att.swingName)?
@@ -2827,7 +2856,6 @@ function closeGroupDetail(){
 }
 
 function renderGroupDetail(groupId){
-  if(!window.HISTORICAL_TX||Object.keys(window.HISTORICAL_TX).length===0){setTimeout(()=>renderGroupDetail(groupId),300);return;}
   // Find by ID first, fall back to index position if IDs are missing
   let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
   if(!grp){
@@ -2840,8 +2868,8 @@ function renderGroupDetail(groupId){
   if(!grp){closeGroupDetail();return;}
   
   // Always inject historical transactions before rendering
-  const _htxKeys2=Object.keys(window.HISTORICAL_TX);
-  const _hist=window.HISTORICAL_TX[grp.name]||(_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))?window.HISTORICAL_TX[_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))]:null);
+  const _htxKeys2=Object.keys(HISTORICAL_TX);
+  const _hist=HISTORICAL_TX[grp.name]||(_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))?HISTORICAL_TX[_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))]:null);
   if(_hist&&_hist.length){
     const userTx=(grp.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
     grp.transactions=[..._hist,...userTx];
@@ -3397,21 +3425,19 @@ function exportCalExcel(){
 
 function renderBudget(){
   const bc=document.getElementById('budget-content');if(!bc)return;
-  // Wait for window.HISTORICAL_TX to be populated
-  if(!window.HISTORICAL_TX||Object.keys(window.HISTORICAL_TX).length===0){setTimeout(renderBudget,300);return;}
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
   // Always inject historical transactions for all groups
   try{
-    // Build a fuzzy lookup for window.HISTORICAL_TX
-    const _htxKeys=Object.keys(window.HISTORICAL_TX);
+    // Build a fuzzy lookup for HISTORICAL_TX
+    const _htxKeys=Object.keys(HISTORICAL_TX);
     function _findHist(name){
-      if(window.HISTORICAL_TX[name])return window.HISTORICAL_TX[name];
+      if(HISTORICAL_TX[name])return HISTORICAL_TX[name];
       // Try case-insensitive match
       const nl=name.toLowerCase();
       const k=_htxKeys.find(k=>k.toLowerCase()===nl||nl.includes(k.toLowerCase())||k.toLowerCase().includes(nl.split(' ')[0].toLowerCase()));
-      return k?window.HISTORICAL_TX[k]:null;
+      return k?HISTORICAL_TX[k]:null;
     }
     [...S.sports,...S.clubs].forEach(g=>{
       const hist=_findHist(g.name);
