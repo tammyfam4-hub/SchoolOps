@@ -358,7 +358,7 @@ function updateSeasonUI(){
   buildSportFilters();
 }
 
-let evts=load(currentSeason);
+let evts=load(currentSeason||'spring2026');
 let view='list',sportF=new Set(['all']),haF='all',q='',editId=null,showCompleted=false;
 // Initialize season UI after DOM ready
 document.addEventListener('DOMContentLoaded',()=>{ updateSeasonUI(); });
