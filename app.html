@@ -634,7 +634,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
       <option value="EA">EA — Excused Absence (full day)</option>
       <option value="EA-partial">EA — Excused Absence (partial day / periods)</option>
       <option value="early-departure">Early Departure (leaves before contract end)</option>
-      <option value="SE">SE — School Event</option><option value="T">T — Tardy</option>
+      <option value="SE">SE — School Event (full day)</option>
+      <option value="SE-partial">SE — School Event (partial day / periods)</option>
+      <option value="T">T — Tardy</option>
       <option value="SD">SD — School Duty</option>
       <option value="UA">UA — Unexcused Absence</option>
       <option value="P">P — Present (reset)</option>
@@ -1669,7 +1671,7 @@ function toggleAttFields(){
   const periodsSection=document.getElementById('att-periods-section');
   const departSection=document.getElementById('att-departure-section');
   const fulldaySub=document.getElementById('att-fullday-sub');
-  periodsSection.style.display=status==='EA-partial'?'':'none';
+  periodsSection.style.display=(status==='EA-partial'||status==='SE-partial')?'':'none';
   departSection.style.display=status==='early-departure'?'':'none';
   fulldaySub.style.display=(status==='EA'||status==='UA'||status==='T')?'':'none';
   // Build per-period sub fields if partial
@@ -1706,7 +1708,7 @@ function logAttendance(){
   if(oldSub){const os=S.subs.find(s=>s.name===oldSub);if(os){os.placed=null;os.avail=true;}}
   const isTeacher=TEACHERS.find(t=>t.name===name);
 
-  if(rawStatus==='EA-partial'){
+  if(rawStatus==='EA-partial'||rawStatus==='SE-partial'){
     // Partial day — collect which periods are missing
     const missedPeriods=[];
     const periodSubs={};
@@ -2250,6 +2252,9 @@ function render(){
         att.status==='EA'||att.status==='EA-partial'?`<span class="badge b-amber" style="margin-left:6px">EA${att.periods&&att.periods.length?' · '+(att.periods.length===4?'Full Day':att.periods.join(', ')):''}</span>`:
         att.status==='ED'||att.status==='early-departure'?`<span class="badge b-blue" style="margin-left:6px">ED${att.departTime?' · leaves '+att.departTime:''}</span>`:
         att.status==='T'?`<span class="badge b-blue" style="margin-left:6px">Tardy${att.arrivalTime?' · '+att.arrivalTime:''}</span>`:
+        att.status==='SE'?`<span class="badge" style="margin-left:6px;background:#0891B2;color:#fff">School Event</span>`:
+        att.status==='SE-partial'?`<span class="badge" style="margin-left:6px;background:#0891B2;color:#fff">SE · ${att.periods&&att.periods.length?att.periods.join(', '):'partial'}</span>`:
+        att.status==='SD'?`<span class="badge" style="margin-left:6px;background:#7C3AED;color:#fff">School Duty</span>`:
         `<span class="badge b-red" style="margin-left:6px">Unexcused</span>`:'';
 
       const subBadge=isTeacher&&isAbsent&&(att.sub||att.swingName)?
