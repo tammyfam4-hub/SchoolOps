@@ -3537,7 +3537,7 @@ function exportCalExcel(){
   }
   const events=getCalEvents(from,to);
   const TYPE_LABELS={trip:'Field Trip',booking:'Facility Booking',planned:'Planned Day Off',absent:'Absence',athletics:'Athletics'};
-  let csv='Date,Type,Event,Details\n';
+  let csv=`Date,Type,Event,Details\n';
   events.forEach(e=>{
     const row=[e.date,TYPE_LABELS[e.type]||e.type,'"'+e.label.replace(/"/g,"''")+'"','"'+(e.sub||'').replace(/"/g,"''")+'"'];
     csv+=row.join(',')+'\n';
