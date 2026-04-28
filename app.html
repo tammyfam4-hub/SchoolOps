@@ -330,8 +330,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <div class="tab" onclick="switchTab(this,'tasks','inprogress')">In Progress</div>
         <div class="tab" onclick="switchTab(this,'tasks','done')">&#10003; Completed</div>
         <div class="tab" onclick="switchTab(this,'tasks','team')">&#128101; By Teammate</div>
+        <div class="tab" onclick="switchTab(this,'tasks','contacts')">&#128222; Contacts</div>
       </div>
       <div id="task-team-view" style="display:none"><div id="team-workload"></div></div>
+      <div id="task-contacts-view" style="display:none"><div id="contacts-list"></div></div>
       <div id="task-list-view">
         <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
           <div style="flex:1;min-width:160px"><input id="task-search" style="padding:6px 12px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);outline:none;width:100%;font-family:inherit" placeholder="Search tasks..." oninput="renderTasks()"></div>
@@ -884,6 +886,7 @@ const DEFAULT={
   ],
   classroomSupplies:[{"id":500,"name":"Anderson","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":501,"name":"Cajthaml","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":502,"name":"Cline, A","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":503,"name":"Chandler","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":504,"name":"Duenas","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":505,"name":"Gulian","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":506,"name":"Hancock","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":507,"name":"Harb","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":508,"name":"Heath","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":509,"name":"Heinz","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":510,"name":"Humiston","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":511,"name":"Holland","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":512,"name":"Kooklani","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":513,"name":"Laguit","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":514,"name":"Merrill","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":515,"name":"Moeller","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":516,"name":"Moreno","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":517,"name":"Renckly","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":518,"name":"Taghikhani","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]},{"id":519,"name":"Vanden Brande","type":"classroom","allocated":300.0,"spent":0.0,"balance":300.0,"transactions":[]}],
   ptoData:{"Anderson, Derek":{"available":8.0,"used":13.0,"remaining":-5.0,"absences":[{"date":"2025-12-11","days":1.0},{"date":"2025-11-24","days":1.0},{"date":"2025-10-30","days":1.0},{"date":"2025-10-29","days":1.0},{"date":"2025-10-24","days":1.0,"type":"wellness"},{"date":"2025-09-24","days":1.0},{"date":"2025-09-23","days":1.0},{"date":"2025-09-22","days":1.0},{"date":"2025-08-15","days":1.0},{"date":"2025-08-13","days":1.0}]},"Brazinsky, Shantelle":{"available":8.0,"used":6.0,"remaining":2.0,"absences":[{"date":"2026-03-25","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-09-16","days":1.0},{"date":"2025-09-15","days":1.0},{"date":"2025-09-05","days":1.0}]},"Cajthaml, Caleb":{"available":8.0,"used":7.0,"remaining":1.0,"absences":[{"date":"2026-03-02","days":1.0},{"date":"2026-01-21","days":1.0},{"date":"2026-01-20","days":1.0},{"date":"2026-01-16","days":1.0},{"date":"2026-01-15","days":1.0},{"date":"2025-12-12","days":1.0}]},"Chandler, Karen":{"available":10.0,"used":1.0,"remaining":9.0,"absences":[{"date":"2025-09-17","days":1.0}]},"Cline, Tammy":{"available":9.0,"used":5.0,"remaining":4.0,"absences":[{"date":"2026-04-16","days":1.0},{"date":"2026-03-25","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2025-11-25","days":1.0},{"date":"2025-10-22","days":1.0,"type":"wellness"},{"date":"2025-09-26","days":1.0}]},"Duenas, Silvia":{"available":7.0,"used":4.5,"remaining":2.5,"absences":[{"date":"2026-04-30","days":1.0,"type":"wellness"},{"date":"2026-04-14","days":0.5},{"date":"2026-04-10","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2025-11-10","days":1.0},{"date":"2025-11-03","days":1.0}]},"Gulian, Maximillian":{"available":8.0,"used":4.0,"remaining":4.0,"absences":[{"date":"2026-01-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-12-08","days":1.0,"type":"wellness"},{"date":"2025-09-16","days":1.0},{"date":"2025-08-21","days":1.0}]},"Hancock, Tabatha":{"available":8.0,"used":5.0,"remaining":3.0,"absences":[{"date":"2026-01-21","days":1.0},{"date":"2025-11-18","days":1.0},{"date":"2025-11-04","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-08-22","days":1.0}]},"Harb, Andre":{"available":10.0,"used":5.0,"remaining":5.0,"absences":[{"date":"2026-04-14","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-12","days":1.0,"type":"wellness"},{"date":"2025-10-08","days":1.0},{"date":"2025-10-07","days":1.0},{"date":"2025-08-08","days":1.0}]},"Heath, Tiffany":{"available":8,"used":0.0,"remaining":0.0,"absences":[]},"Heinz, Jeffrey":{"available":7.0,"used":7.0,"remaining":0.0,"absences":[{"date":"2026-02-25","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2025-10-03","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-08-22","days":1.0,"type":"wellness"},{"date":"2025-08-08","days":1.0},{"date":"2025-01-26","days":1.0}]},"Holland, Larissa":{"available":8,"used":0.0,"remaining":0.0,"absences":[]},"Jones, Shane":{"available":10.0,"used":5.0,"remaining":5.0,"absences":[{"date":"2026-04-02","days":1.0},{"date":"2026-02-24","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2025-08-15","days":1.0}]},"King, Jamie":{"available":7.0,"used":2.5,"remaining":4.5,"absences":[{"date":"2025-12-09","days":1.0},{"date":"2025-09-16","days":0.5},{"date":"2025-09-15","days":0.5},{"date":"2025-08-21","days":0.5}]},"Kooklani, Neda":{"available":6.0,"used":12.0,"remaining":-6.0,"absences":[{"date":"2026-09-03","days":0.25},{"date":"2025-11-10","days":1.0},{"date":"2025-11-05","days":1.0},{"date":"2025-11-05","days":1.0,"type":"wellness"},{"date":"2025-10-29","days":0.5},{"date":"2025-10-01","days":0.25},{"date":"2025-09-19","days":0.5},{"date":"2025-09-16","days":0.5},{"date":"2025-08-22","days":1.0},{"date":"2025-08-18","days":0.5}]},"Laguit, Joshua":{"available":9.0,"used":1.0,"remaining":8.0,"absences":[{"date":"2026-01-23","days":1.0},{"date":"2025-12-05","days":1.0,"type":"wellness"}]},"Magana, Mary":{"available":7.0,"used":4.0,"remaining":3.0,"absences":[{"date":"2026-02-19","days":1.0},{"date":"2026-02-18","days":1.0},{"date":"2026-02-17","days":1.0},{"date":"2026-02-13","days":1.0},{"date":"2025-08-14","days":1.0,"type":"wellness"}]},"Merrill, Daniel":{"available":6.0,"used":16.0,"remaining":-10.0,"absences":[{"date":"2025-10-01","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-23","days":1.0},{"date":"2025-09-22","days":0.5},{"date":"2025-08-28","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-26","days":1.0},{"date":"2025-08-25","days":1.0}]},"Moeller, Scott":{"available":9.0,"used":31.0,"remaining":-22.0,"absences":[{"date":"2025-10-07","days":1.0,"type":"wellness"},{"date":"2025-09-09","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-05","days":1.0},{"date":"2025-09-04","days":1.0},{"date":"2025-09-03","days":1.0},{"date":"2025-09-02","days":1.0},{"date":"2025-08-07","days":1.0}]},"Moreno, Sarah":{"available":6.0,"used":6.5,"remaining":-0.5,"absences":[{"date":"2026-03-12","days":0.5},{"date":"2026-02-25","days":1.0},{"date":"2026-01-28","days":1.0},{"date":"2025-11-21","days":1.0},{"date":"2025-11-12","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-09-22","days":1.0}]},"Renckly, Kayla":{"available":6.0,"used":3.0,"remaining":3.0,"absences":[{"date":"2025-11-04","days":1.0},{"date":"2025-09-30","days":1.0},{"date":"2025-08-21","days":1.0}]},"Steele, Andrea":{"available":8.0,"used":3.0,"remaining":5.0,"absences":[{"date":"2026-02-19","days":1.0},{"date":"2026-01-29","days":1.0},{"date":"2025-10-09","days":1.0}]},"Taghikhani, Rahim":{"available":6.0,"used":7.5,"remaining":-1.5,"absences":[{"date":"2026-02-23","days":1.0},{"date":"2026-02-19","days":1.0},{"date":"2026-02-04","days":1.0},{"date":"2026-01-13","days":1.0},{"date":"2026-01-05","days":1.0},{"date":"2025-11-06","days":1.0},{"date":"2025-10-29","days":0.5},{"date":"2025-08-13","days":1.0}]},"VandenBrande, Daniel":{"available":8.0,"used":13.5,"remaining":-5.5,"absences":[{"date":"2025-12-16","days":1.0},{"date":"2025-12-08","days":1.0},{"date":"2025-11-19","days":1.0},{"date":"2025-09-29","days":1.0},{"date":"2025-09-08","days":1.0},{"date":"2025-09-04","days":0.5},{"date":"2025-08-21","days":1.0},{"date":"2025-08-20","days":1.0},{"date":"2025-08-18","days":1.0}]},"Walker, Kenny":{"available":7.0,"used":3.0,"remaining":4.0,"absences":[{"date":"2025-08-29","days":1.0},{"date":"2025-08-27","days":1.0},{"date":"2025-08-14","days":1.0}]}},
+  contacts:[],
   adminEmailGroup:['kwalker@highlandprepaz.org','sjones@highlandprepaz.org','asteele@highlandprepaz.org','sbrazinsky@highlandprepaz.org','mmagana@highlandprepaz.org','tcline@highlandprepaz.org'],
   plannedDays:[],
   tasks:[
@@ -1444,6 +1447,11 @@ document.addEventListener('keydown',e=>{
 });
 
 // ── TASK SYSTEM ──────────────────────────────────────────────────
+function getAllAssignees(){
+  const base=['Anderson', 'Cajthaml', 'Cline, A', 'Chandler', 'Duenas', 'Gulian', 'Hancock', 'Harb', 'Heath', 'Heinz', 'Humiston', 'Holland', 'Kooklani', 'Laguit', 'Merrill', 'Moeller', 'Moreno', 'Renckly', 'Taghikhani', 'Vanden Brande', 'Brazinsky, Shantelle', 'Walker, Kenny', 'Jones, Shane', 'Steele, Andrea', 'Magana, Mary', 'King, Jamie', 'Cline, Tammy'];
+  const contacts=(S&&S.contacts||[]).map(c=>c.name);
+  return [...base,...contacts.filter(n=>!base.includes(n))];
+}
 const TEAM_MEMBERS=['Anderson', 'Cajthaml', 'Cline, A', 'Chandler', 'Duenas', 'Gulian', 'Hancock', 'Harb', 'Heath', 'Heinz', 'Humiston', 'Holland', 'Kooklani', 'Laguit', 'Merrill', 'Moeller', 'Moreno', 'Renckly', 'Taghikhani', 'Vanden Brande', 'Brazinsky, Shantelle', 'Walker, Kenny', 'Jones, Shane', 'Steele, Andrea', 'Magana, Mary', 'King, Jamie', 'Cline, Tammy'];
 const TEAM_EMAILS={'Anderson':'anderson@highlandprep.org','Cajthaml':'cajthamal@highlandprep.org','Cline, A':'acline@highlandprep.org','Chandler':'chandler@highlandprep.org','Duenas':'duenas@highlandprep.org','Gulian':'gulian@highlandprep.org','Hancock':'hancock@highlandprep.org','Harb':'harb@highlandprep.org','Heath':'heath@highlandprep.org','Heinz':'heinz@highlandprep.org','Humiston':'humiston@highlandprep.org','Holland':'holland@highlandprep.org','Kooklani':'kooklani@highlandprep.org','Laguit':'laguit@highlandprep.org','Merrill':'merrill@highlandprep.org','Moeller':'moeller@highlandprep.org','Moreno':'moreno@highlandprep.org','Renckly':'renckly@highlandprep.org','Taghikhani':'taghikhani@highlandprep.org','Vanden Brande':'vbrande@highlandprep.org','Brazinsky, Shantelle':'sbrazinsky@highlandprep.org','Walker, Kenny':'kwalker@highlandprep.org','Jones, Shane':'sjones@highlandprep.org','Steele, Andrea':'asteele@highlandprep.org','Magana, Mary':'mmagana@highlandprep.org','King, Jamie':'jking@highlandprep.org','Cline, Tammy':'tcline@highlandprep.org'};
 let editingTaskId=null,stCounter=1000;
@@ -1452,10 +1460,11 @@ function populateTaskAssignSelect(){
   const sel=document.getElementById('t-assign');
   if(!sel)return;
   const cur=sel.value;
-  sel.innerHTML='<option value="">-- Select teammate --</option>'+TEAM_MEMBERS.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m}</option>`).join('');
+  const _allAssignees=getAllAssignees();
+  sel.innerHTML='<option value="">-- Select teammate --</option>'+_allAssignees.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m}</option>`).join('');
   sel.onchange=function(){const em=document.getElementById('t-email');if(em&&TEAM_EMAILS[this.value])em.value=TEAM_EMAILS[this.value];};
   const af=document.getElementById('task-filter-assign');
-  if(af){const cv=af.value;af.innerHTML='<option value="">All Assignees</option>'+TEAM_MEMBERS.map(m=>`<option value="${m}"${m===cv?' selected':''}>${m}</option>`).join('');}
+  if(af){const cv=af.value;af.innerHTML='<option value="">All Assignees</option>'+getAllAssignees().map(m=>`<option value="${m}"${m===cv?' selected':''}>${m}</option>`).join('');}
 }
 
 function openTaskModal(taskId){
@@ -1621,6 +1630,22 @@ function updateVanSuggestion(){
     el.textContent='🚌 '+students+' students — '+vansNeeded+' vans needed. Consider a charter bus!';
     el.style.color='var(--red-t)';
   }
+}
+function assignTripVanSlot(tripId,slotIdx,value,field){
+  const t=S.trips.find(x=>x.id===tripId);
+  if(!t)return;
+  if(!t.extraVans)t.extraVans=[];
+  if(!t.extraDrivers)t.extraDrivers=[];
+  if(slotIdx===0){
+    if(field==='van'){t.charter=value==='charter';t.van=value==='charter'?null:value?parseInt(value):null;}
+    else{t.driver=value;}
+  } else {
+    if(field==='van'){t.extraVans[slotIdx-1]=value?parseInt(value):null;}
+    else{t.extraDrivers[slotIdx-1]=value;}
+  }
+  const vans=[t.van,...(t.extraVans||[])].filter(Boolean);
+  t.vehicle=t.charter?'🚌 Charter Bus':vans.length?vans.map(v=>'Van '+v).join(' + '):'Pending';
+  scheduleSave();
 }
 function assignTripVan(id,vanVal){
   const t=S.trips.find(x=>x.id===id);
@@ -2142,11 +2167,7 @@ function render(){
         ${t.students>28&&!t.charter?'<span style="font-size:10px;color:var(--red-t);font-weight:700;margin-left:4px">🚌 Charter?</span>':''}
       </td>
       <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)">
-        <select style="padding:3px 6px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1)" onchange="assignTripVan(${t.id},this.value)">
-          <option value="" ${!t.van?'selected':''}>— None —</option>
-          ${[1,2,3,4,5].map(v=>'<option value="'+v+'" '+(t.van==v?'selected':'')+'>Van '+v+'</option>').join('')}
-          <option value="charter" ${t.charter?'selected':''}>🚌 Charter Bus</option>
-        </select>
+        ${renderTripVanSlots(t)}
       </td>
       <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)"><span class="badge ${SC[t.status]||'b-gray'}">${t.status}</span></td>
       <td style="padding:8px 6px;border-bottom:0.5px solid var(--border);white-space:nowrap">
@@ -2380,6 +2401,13 @@ function renderTasks(){
   const teamView=document.getElementById('task-team-view');
   const listView=document.getElementById('task-list-view');
   if(!teamView||!listView)return; // not on tasks panel, skip silently
+  if(S.taskTab==='contacts'){
+    if(teamView)teamView.style.display='none';
+    listView.style.display='none';
+    const cv=document.getElementById('task-contacts-view');
+    if(cv)cv.style.display='';
+    renderContacts();return;
+  }
   if(S.taskTab==='team'){
     teamView.style.display='';
     listView.style.display='none';
@@ -2445,6 +2473,99 @@ function renderTasks(){
 
 function toggleTaskCard(id){
   document.getElementById('tc-'+id).classList.toggle('expanded');
+}
+
+function renderContacts(){
+  const el=document.getElementById('contacts-list');
+  if(!el)return;
+  if(!S.contacts)S.contacts=[];
+  
+  // Group contacts
+  const groups={
+    'Teachers':TEACHERS.map(t=>({name:t.name,email:TEAM_EMAILS[t.name]||'',phone:t.phone||'—',group:'Teachers',builtin:true})),
+    'Staff':STAFF.map(s=>({name:s.name,email:'',phone:s.phone||'—',group:'Staff',builtin:true})),
+    'District Admin & Others':S.contacts
+  };
+
+  el.innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" onclick="openContactModal()">+ Add Contact</button>
+    </div>
+    ${Object.entries(groups).map(([group,members])=>`
+      <div class="card" style="margin-bottom:12px">
+        <div class="shdr">
+          <div class="stitle">${group} <span style="font-size:11px;font-weight:500;color:var(--t3)">(${members.length})</span></div>
+        </div>
+        ${members.length?`
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr>
+            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Name</th>
+            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Email</th>
+            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Phone</th>
+            <th style="padding:8px 10px;border-bottom:0.5px solid var(--border)"></th>
+          </tr></thead>
+          <tbody>
+            ${members.map((m,i)=>`<tr>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-weight:600">${m.name}</td>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--blue-t)">${m.email?`<a href="mailto:${m.email}" style="color:var(--blue-t);text-decoration:none">✉ ${m.email}</a>`:'—'}</td>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--t2)">${m.phone||'—'}</td>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
+                ${!m.builtin?`<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteContact(${i})">✕ Remove</button>`:''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`:'<div class="empty" style="padding:12px">No contacts in this group yet.</div>'}
+      </div>`).join('')}
+  `;
+}
+
+function openContactModal(idx){
+  const c=idx!=null?S.contacts[idx]:null;
+  // Create a simple inline modal
+  const ov=document.createElement('div');
+  ov.className='overlay open';
+  ov.innerHTML=`<div class="modal" style="width:420px">
+    <div class="modal-title">${c?'✏️ Edit Contact':'➕ Add Contact'}</div>
+    <div class="frow"><label class="flabel">Name *</label><input id="nc-name" value="${c?c.name:''}" placeholder="Full name..."></div>
+    <div class="frow"><label class="flabel">Email</label><input type="email" id="nc-email" value="${c?c.email:''}" placeholder="email@district.org"></div>
+    <div class="frow"><label class="flabel">Phone</label><input id="nc-phone" value="${c?c.phone:''}" placeholder="555-0100"></div>
+    <div class="frow"><label class="flabel">Role / Title (optional)</label><input id="nc-role" value="${c?c.role||'':''}" placeholder="e.g. District Superintendent"></div>
+    <div class="modal-actions">
+      <button class="btn btn-sm" onclick="this.closest('.overlay').remove()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveContact(${idx!=null?idx:'null'},this)">Save</button>
+    </div>
+  </div>`;
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  document.body.appendChild(ov);
+  setTimeout(()=>document.getElementById('nc-name').focus(),100);
+}
+
+function saveContact(idx,btn){
+  const name=document.getElementById('nc-name').value.trim();
+  if(!name){toast('Name is required');return;}
+  if(!S.contacts)S.contacts=[];
+  const entry={
+    name,
+    email:document.getElementById('nc-email').value.trim(),
+    phone:document.getElementById('nc-phone').value.trim()||'—',
+    role:document.getElementById('nc-role').value.trim(),
+    group:'District Admin & Others'
+  };
+  if(idx!=null)S.contacts[idx]=entry;
+  else S.contacts.push(entry);
+  btn.closest('.overlay').remove();
+  toast(name+(idx!=null?' updated':' added')+' ✓');
+  scheduleSave();
+  renderContacts();
+  populateTaskAssignSelect();
+}
+
+function deleteContact(idx){
+  if(!confirm('Remove this contact?'))return;
+  S.contacts.splice(idx,1);
+  toast('Contact removed');
+  scheduleSave();
+  renderContacts();
 }
 
 function renderTeamWorkload(){
@@ -2916,6 +3037,7 @@ function renderGroupDetail(groupId){
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn btn-primary btn-sm" onclick="openGroupTransaction(${grp.id},'${listType}')">+ Transaction</button>
         <button class="btn btn-sm" onclick="printGroupLedger(${grp.id})">&#128196; PDF</button>
+      <button class="btn btn-sm" onclick="exportGroupCSV(${grp.id})">&#128202; CSV</button>
       </div>
     </div>
 
@@ -3860,6 +3982,32 @@ function deleteTrip(id){
 }
 
 // ─── BUDGET: print PDF ledger for a group ────────────────────────
+function exportGroupCSV(groupId){
+  const g=[...S.sports,...S.clubs].find(x=>x.id===groupId);
+  if(!g)return;
+  const trans=g.transactions||[];
+  let csv='Date,Reference,Description,Credit,Debit,Balance
+';
+  let running=0;
+  const sorted=[...trans].sort((a,b)=>a.date.localeCompare(b.date));
+  sorted.forEach(t=>{
+    running=Math.round((running+t.amount)*100)/100;
+    const credit=t.amount>0?t.amount.toFixed(2):'';
+    const debit=t.amount<0?Math.abs(t.amount).toFixed(2):'';
+    csv+=`${t.date},"${t.ref||''}","${(t.desc||'').replace(/"/g,"''")}",${credit},${debit},${running.toFixed(2)}
+`;
+  });
+  // Add totals row
+  csv+=`,,TOTALS,${g.credits.toFixed(2)},${g.debits.toFixed(2)},${g.balance.toFixed(2)}
+`;
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=g.name.replace(/[^a-z0-9]/gi,'_')+'_Ledger.csv';
+  a.click();
+  toast('CSV exported: '+g.name+' ✓');
+}
+
 function printGroupLedger(groupId){
   const g=[...S.sports,...S.clubs].find(x=>x.id===groupId);
   if(!g){toast('Group not found');return;}
