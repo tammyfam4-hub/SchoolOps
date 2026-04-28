@@ -3986,7 +3986,7 @@ function exportGroupCSV(groupId){
   const g=[...S.sports,...S.clubs].find(x=>x.id===groupId);
   if(!g)return;
   const trans=g.transactions||[];
-  let csv='Date,Reference,Description,Credit,Debit,Balance
+  let csv=`Date,Reference,Description,Credit,Debit,Balance
 ';
   let running=0;
   const sorted=[...trans].sort((a,b)=>a.date.localeCompare(b.date));
