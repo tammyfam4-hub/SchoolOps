@@ -1840,6 +1840,16 @@ function quickStatus(name,status){
     if(!S.attendance[name].periods)S.attendance[name].periods=[];
     if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
     S.attendance[name].departTime='';
+  } else if(status==='SE'){
+    populateAttModal();
+    const sel=document.getElementById('a-person');if(sel)sel.value=name;
+    const statusSel=document.getElementById('a-status');if(statusSel)statusSel.value='SE-partial';
+    toggleAttFields();openModal('att-modal');return;
+  } else if(status==='ED'){
+    populateAttModal();
+    const sel=document.getElementById('a-person');if(sel)sel.value=name;
+    const statusSel=document.getElementById('a-status');if(statusSel)statusSel.value='early-departure';
+    toggleAttFields();openModal('att-modal');return;
   } else {
     S.attendance[name].status=status;
     if(!S.attendance[name].periods)S.attendance[name].periods=[];
