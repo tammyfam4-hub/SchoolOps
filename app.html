@@ -2178,6 +2178,7 @@ function render(){
   }
 
   // attendance list
+  try{
   const al=document.getElementById('att-list');
   if(al){
     const roster=S.attTab==='staff'?STAFF:TEACHERS;
@@ -2304,6 +2305,7 @@ function render(){
     }).join('');
   }
 
+  }catch(e){console.error('att-list render error:',e);}
   // sub coverage panel
   const scl=document.getElementById('sub-coverage-list');
   if(scl){
@@ -2405,7 +2407,7 @@ function renderTasks(){
     listView.style.display='none';
     const cv=document.getElementById('task-contacts-view');
     if(cv)cv.style.display='';
-    renderContacts();return;
+    try{renderContacts();}catch(e){console.warn('renderContacts:',e);}return;
   }
   if(S.taskTab==='team'){
     teamView.style.display='';
