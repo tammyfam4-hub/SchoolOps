@@ -1832,9 +1832,15 @@ function quickStatus(name,status){
     Object.values(ps2).forEach(sn=>{const sub=S.subs.find(s=>s.name===sn);if(sub)sub.placed=null;});
     S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
   } else if(status==='ED'){
-    S.attendance[name].status='ED';
-    if(!S.attendance[name].periods)S.attendance[name].periods=[];
-    if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
+    populateAttModal();
+    const _selED=document.getElementById('a-person');if(_selED)_selED.value=name;
+    const _statED=document.getElementById('a-status');if(_statED)_statED.value='early-departure';
+    toggleAttFields();openModal('att-modal');return;
+  } else if(status==='T'){
+    populateAttModal();
+    const _selT=document.getElementById('a-person');if(_selT)_selT.value=name;
+    const _statT=document.getElementById('a-status');if(_statT)_statT.value='T';
+    toggleAttFields();openModal('att-modal');return;
   } else if(status==='EA'){
     S.attendance[name].status='EA';
     if(!S.attendance[name].periods)S.attendance[name].periods=[];
