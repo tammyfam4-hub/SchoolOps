@@ -3986,8 +3986,7 @@ function exportGroupCSV(groupId){
   const g=[...S.sports,...S.clubs].find(x=>x.id===groupId);
   if(!g)return;
   const trans=g.transactions||[];
-  let csv='Date,Reference,Description,Credit,Debit,Balance
-';
+  let csv='Date,Reference,Description,Credit,Debit,Balance\n';
   let running=0;
   const sorted=[...trans].sort((a,b)=>a.date.localeCompare(b.date));
   sorted.forEach(t=>{
@@ -3998,8 +3997,7 @@ function exportGroupCSV(groupId){
 `;
   });
   // Add totals row
-  csv+=`,,TOTALS,${g.credits.toFixed(2)},${g.debits.toFixed(2)},${g.balance.toFixed(2)}
-`;
+  csv+=',,TOTALS,'+g.credits.toFixed(2)+','+g.debits.toFixed(2)+','+g.balance.toFixed(2)+'\n';
   const blob=new Blob([csv],{type:'text/csv'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
