@@ -1404,7 +1404,18 @@ function showPanel(id,el){
 function switchTab(el,mod,tab){
   el.closest('.tab-bar').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  if(mod==='tasks')S.taskTab=tab;
+  if(mod==='tasks'){
+    S.taskTab=tab;
+    const _cv=document.getElementById('task-contacts-view');
+    const _tv=document.getElementById('task-team-view');
+    const _lv=document.getElementById('task-list-view');
+    if(_cv)_cv.style.display='none';
+    if(_tv)_tv.style.display='none';
+    if(_lv)_lv.style.display='none';
+    if(tab==='contacts'){if(_cv)_cv.style.display='';renderContacts();render();return;}
+    else if(tab==='team'){if(_tv)_tv.style.display='';renderTeamWorkload();render();return;}
+    else{if(_lv)_lv.style.display='';}
+  }
   if(mod==='budget')S.budgetTab=tab;
   if(mod==='att'){
     S.attTab=tab;
