@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SchoolOps</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>const SUPABASE_URL='https://idjratpppoubqehqvjpx.supabase.co';const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);</script><script>var HISTORICAL_TX={};</script><script>var HISTORICAL_TX={};</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>const SUPABASE_URL='https://idjratpppoubqehqvjpx.supabase.co';const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);</script><script>var HISTORICAL_TX={};</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--nav-w:224px;--hdr:52px;--bg1:#fff;--bg2:#f5f6f7;--bg3:#eef0f2;--t1:#111;--t2:#555;--t3:#999;--border:rgba(0,0,0,0.09);--border-md:rgba(0,0,0,0.16);--blue:#185FA5;--blue-bg:#E6F1FB;--blue-t:#185FA5;--green:#1D9E75;--green-bg:#EAF3DE;--green-t:#3B6D11;--amber:#BA7517;--amber-bg:#FAEEDA;--amber-t:#854F0B;--red:#E24B4A;--red-bg:#FCEBEB;--red-t:#A32D2D;--purple:#534AB7;--purple-bg:#EEEDFE;--purple-t:#3C3489;--gray-bg:#efefef;--gray-t:#555;--r:8px;--rl:12px;--shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -1449,8 +1449,7 @@ document.addEventListener('keydown',e=>{
 // ── TASK SYSTEM ──────────────────────────────────────────────────
 function getAllAssignees(){
   const base=['Anderson', 'Cajthaml', 'Cline, A', 'Chandler', 'Duenas', 'Gulian', 'Hancock', 'Harb', 'Heath', 'Heinz', 'Humiston', 'Holland', 'Kooklani', 'Laguit', 'Merrill', 'Moeller', 'Moreno', 'Renckly', 'Taghikhani', 'Vanden Brande', 'Brazinsky, Shantelle', 'Walker, Kenny', 'Jones, Shane', 'Steele, Andrea', 'Magana, Mary', 'King, Jamie', 'Cline, Tammy'];
-  const contacts=(S&&S.contacts||[]).map(c=>c.name);
-  return [...base,...contacts.filter(n=>!base.includes(n))];
+  try{const contacts=(typeof S!=='undefined'&&S&&S.contacts||[]).map(c=>c.name);return [...base,...contacts.filter(n=>!base.includes(n))];}catch(e){return base;}
 }
 const TEAM_MEMBERS=['Anderson', 'Cajthaml', 'Cline, A', 'Chandler', 'Duenas', 'Gulian', 'Hancock', 'Harb', 'Heath', 'Heinz', 'Humiston', 'Holland', 'Kooklani', 'Laguit', 'Merrill', 'Moeller', 'Moreno', 'Renckly', 'Taghikhani', 'Vanden Brande', 'Brazinsky, Shantelle', 'Walker, Kenny', 'Jones, Shane', 'Steele, Andrea', 'Magana, Mary', 'King, Jamie', 'Cline, Tammy'];
 const TEAM_EMAILS={'Anderson':'anderson@highlandprep.org','Cajthaml':'cajthamal@highlandprep.org','Cline, A':'acline@highlandprep.org','Chandler':'chandler@highlandprep.org','Duenas':'duenas@highlandprep.org','Gulian':'gulian@highlandprep.org','Hancock':'hancock@highlandprep.org','Harb':'harb@highlandprep.org','Heath':'heath@highlandprep.org','Heinz':'heinz@highlandprep.org','Humiston':'humiston@highlandprep.org','Holland':'holland@highlandprep.org','Kooklani':'kooklani@highlandprep.org','Laguit':'laguit@highlandprep.org','Merrill':'merrill@highlandprep.org','Moeller':'moeller@highlandprep.org','Moreno':'moreno@highlandprep.org','Renckly':'renckly@highlandprep.org','Taghikhani':'taghikhani@highlandprep.org','Vanden Brande':'vbrande@highlandprep.org','Brazinsky, Shantelle':'sbrazinsky@highlandprep.org','Walker, Kenny':'kwalker@highlandprep.org','Jones, Shane':'sjones@highlandprep.org','Steele, Andrea':'asteele@highlandprep.org','Magana, Mary':'mmagana@highlandprep.org','King, Jamie':'jking@highlandprep.org','Cline, Tammy':'tcline@highlandprep.org'};
@@ -2510,7 +2509,7 @@ function renderContacts(){
               <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--blue-t)">${m.email?`<a href="mailto:${m.email}" style="color:var(--blue-t);text-decoration:none">✉ ${m.email}</a>`:'—'}</td>
               <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--t2)">${m.phone||'—'}</td>
               <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
-                ${!m.builtin?`<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteContact(${i})">✕ Remove</button>`:''}
+                ${!m.builtin?`<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteContact(${S.contacts.indexOf(m)})">✕ Remove</button>`:''}
               </td>
             </tr>`).join('')}
           </tbody>
