@@ -2166,7 +2166,26 @@ function render(){
         ${t.students>28&&!t.charter?'<span style="font-size:10px;color:var(--red-t);font-weight:700;margin-left:4px">🚌 Charter?</span>':''}
       </td>
       <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)">
-        ${renderTripVanSlots(t)}
+        ${(()=>{
+          const vansNeeded=t.charter?1:Math.max(1,Math.ceil((t.students||0)/14));
+          let slots='';
+          for(let si=0;si<Math.min(vansNeeded,5);si++){
+            const sv=si===0?t.van:(t.extraVans&&t.extraVans[si-1])||null;
+            const sd=si===0?t.driver||'':(t.extraDrivers&&t.extraDrivers[si-1])||'';
+            slots+=`<div style="display:flex;gap:3px;align-items:center;margin-bottom:3px">
+              <select style="padding:2px 4px;font-size:11px;border:0.5px solid var(--border-md);border-radius:4px;background:var(--bg2);color:var(--t1);width:68px"
+                onchange="assignTripVanSlot(${t.id},${si},this.value,'van')">
+                <option value="">—</option>
+                ${[1,2,3,4,5].map(v=>'<option value="'+v+'" '+(sv==v?'selected':'')+'>Van '+v+'</option>').join('')}
+                <option value="charter" ${t.charter&&si===0?'selected':''}>🚌 Bus</option>
+              </select>
+              <input placeholder="Driver" value="${sd}"
+                style="padding:2px 4px;font-size:11px;border:0.5px solid var(--border-md);border-radius:4px;background:var(--bg2);color:var(--t1);width:75px"
+                onchange="assignTripVanSlot(${t.id},${si},this.value,'driver')">
+            </div>`;
+          }
+          return slots;
+        })()}
       </td>
       <td style="padding:8px 6px;border-bottom:0.5px solid var(--border)"><span class="badge ${SC[t.status]||'b-gray'}">${t.status}</span></td>
       <td style="padding:8px 6px;border-bottom:0.5px solid var(--border);white-space:nowrap">
