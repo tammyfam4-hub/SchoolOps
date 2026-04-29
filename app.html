@@ -2313,9 +2313,10 @@ function render(){
           ${[
             {s:'P',  label:'P',  cls:'sp-P',  active:att.status==='P'},
             {s:'EA', label:'EA', cls:'sp-EA', active:att.status==='EA'||att.status==='EA-partial'},
+            {s:'SE', label:'SE', cls:'sp-T',  active:att.status==='SE'||att.status==='SE-partial'},
             {s:'T',  label:'T',  cls:'sp-T',  active:att.status==='T'},
             {s:'ED', label:'ED', cls:'sp-T',  active:att.status==='ED'||att.status==='early-departure'},
-          ].map(btn=>`<button class="sp ${btn.cls}" style="${btn.active?'':'opacity:.3;'}border:none;cursor:pointer;font-size:11px;padding:3px 8px" onclick="quickStatus('${p.name}','${btn.s}')">${btn.label}</button>`).join('')}
+          ].map(btn=>`<button class="sp ${btn.cls}" style="${btn.active?'background:#0891B2;color:#fff;':'opacity:.3;'}border:none;cursor:pointer;font-size:11px;padding:3px 8px" onclick="quickStatus('${p.name}','${btn.s}')">${btn.label}</button>`).join('')}
         </div>
         ${periodCheckboxes}
         ${edFields}
