@@ -409,7 +409,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <div class="metric"><div class="metric-lbl">Present</div><div class="metric-val" style="color:var(--green)" id="att-P">—</div></div>
         <div class="metric"><div class="metric-lbl">Excused (EA)</div><div class="metric-val" style="color:var(--amber)" id="att-EA">—</div></div>
         <div class="metric"><div class="metric-lbl">Tardy (T)</div><div class="metric-val" style="color:var(--blue)" id="att-T">—</div></div>
-        <div class="metric"><div class="metric-lbl">Unexcused (UA)</div><div class="metric-val" style="color:var(--red)" id="att-UA">—</div></div>
+        <div class="metric"><div class="metric-lbl">School Events</div><div class="metric-val" style="color:#0891B2" id="att-SE">—</div></div>
         <div class="metric"><div class="metric-lbl">Subs Needed</div><div class="metric-val" style="color:var(--purple)" id="att-need">—</div></div>
       </div>
       <div class="tab-bar">
@@ -1349,6 +1349,29 @@ async function initData(){
     }
   });
   initAtt();
+  // Auto-populate attendance from planned days for today
+  (function applyPlannedDays(){
+    const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+    (S.plannedDays||[]).forEach(p=>{
+      const s=p.start,e=p.end||p.start;
+      if(today<s||today>e)return; // not today
+      const name=p.person;
+      if(!S.attendance[name])S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
+      const att=S.attendance[name];
+      // Only auto-apply if still showing Present (don't override manual entry)
+      if(att.status==='P'){
+        att.status='EA';
+        att.reason=p.type+(p.notes?' — '+p.notes:'');
+        // Auto-assign sub if one was planned
+        if(p.subAssign){
+          att.sub=p.subAssign;
+          const sub=S.subs.find(s=>s.name===p.subAssign);
+          if(sub){sub.placed=name;}
+        }
+        console.log('Auto-applied planned day for '+name);
+      }
+    });
+  })();
   document.getElementById('footer-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
   render();
   planCalYear=new Date().getFullYear();planCalMonth=new Date().getMonth();
@@ -2043,7 +2066,8 @@ function render(){
   // Attendance panel stats
   _set('m-present',presentT);_set('m-absent',absentT);_set('m-subs',needSub);
   _set('m-tasks',S.tasks.filter(t=>!t.done).length);_set('m-fac',S.bookings.length);
-  _set('att-P',pAll);_set('att-EA',eaAll);_set('att-T',tAll);_set('att-UA',uaAll);_set('att-need',needSub);
+  const seAll=all.filter(p=>(S.attendance[p.name]||{}).status==='SE'||(S.attendance[p.name]||{}).status==='SE-partial').length;
+  _set('att-P',pAll);_set('att-EA',eaAll);_set('att-T',tAll);_set('att-SE',seAll);_set('att-need',needSub);
 
   // Dashboard module card stat badges
   _set('dm-tasks', S.tasks.filter(t=>!t.done).length || '');
