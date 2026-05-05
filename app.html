@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SchoolOps</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>const SUPABASE_URL='https://idjratpppoubqehqvjpx.supabase.co';const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);</script><script>var HISTORICAL_TX={};</script><script>var HISTORICAL_TX={};</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>const SUPABASE_URL='https://idjratpppoubqehqvjpx.supabase.co';const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);</script><script>var HISTORICAL_TX={};</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--nav-w:224px;--hdr:52px;--bg1:#fff;--bg2:#f5f6f7;--bg3:#eef0f2;--t1:#111;--t2:#555;--t3:#999;--border:rgba(0,0,0,0.09);--border-md:rgba(0,0,0,0.16);--blue:#185FA5;--blue-bg:#E6F1FB;--blue-t:#185FA5;--green:#1D9E75;--green-bg:#EAF3DE;--green-t:#3B6D11;--amber:#BA7517;--amber-bg:#FAEEDA;--amber-t:#854F0B;--red:#E24B4A;--red-bg:#FCEBEB;--red-t:#A32D2D;--purple:#534AB7;--purple-bg:#EEEDFE;--purple-t:#3C3489;--gray-bg:#efefef;--gray-t:#555;--r:8px;--rl:12px;--shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -452,10 +452,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <div id="att-pto-content"></div>
       </div>
       <div id="att-history-view" style="display:none">
-        <div class="card">
+        <div class="card" style="margin-bottom:14px">
           <div class="shdr">
-            <div class="stitle">Attendance History</div>
+            <div class="stitle">&#128336; Attendance History</div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div><label class="flabel">From</label><input type="date" id="ah-from" style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit" onchange="renderAttHistory()"></div>
+              <div><label class="flabel">To</label><input type="date" id="ah-to" style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit" onchange="renderAttHistory()"></div>
+              <button class="btn btn-sm" onclick="setAttHistoryRange('week')">This Week</button>
+              <button class="btn btn-sm" onclick="setAttHistoryRange('month')">This Month</button>
+              <button class="btn btn-sm" onclick="setAttHistoryRange('all')">All</button>
+              <button class="btn btn-sm" onclick="setAttHistoryRange('person')">By Person</button>
+              <select id="ah-person" style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit" onchange="renderAttHistory()">
+                <option value="">All Staff</option>
+              </select>
+            </div>
           </div>
+          <!-- Mini calendar for history -->
+          <div id="att-history-cal" style="margin-bottom:14px"></div>
           <div id="att-history-content"></div>
         </div>
       </div>
@@ -812,6 +825,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <div class="frow"><label class="flabel">Check / Invoice # (optional)</label><input id="gt-ref" placeholder="e.g. 1042, INV-001..."></div>
   </div>
   <div class="frow"><label class="flabel">Description *</label><input id="gt-desc" placeholder="What was purchased / received?"></div>
+  <div class="frow"><label class="flabel">Event / Reason (optional)</label><input id="gt-event" placeholder="e.g. Homecoming Dance, Spring Fundraiser, BSN Order..."></div>
   <div class="g2" style="gap:10px">
     <div class="frow"><label class="flabel">Type</label><select id="gt-type"><option value="credit">Income / Credit</option><option value="debit">Expense / Debit</option></select></div>
     <div class="frow"><label class="flabel">Amount ($)</label><input type="number" id="gt-amount" min="0" step="0.01" placeholder="0.00"></div>
@@ -971,6 +985,7 @@ const DEFAULT={
 
 const ATHLETICS_BASE = [{"id":1,"sport":"Baseball","date":"2026-02-25","gameTime":"6:00 PM","visitor":"Highland Prep","host":"Payson","venue":"Payson High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":2,"sport":"Softball","date":"2026-02-25","gameTime":"6:00 PM","visitor":"Highland Prep","host":"Payson","venue":"Payson High School","leaveTime":"","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":3,"sport":"Baseball","date":"2026-02-26","gameTime":"3:00 PM","visitor":"Madison Highland","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":4,"sport":"Softball","date":"2026-02-26","gameTime":"3:00 PM","visitor":"Madison Highland","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":5,"sport":"Tennis - Boy's","date":"2026-02-27","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Antelope Union","venue":"Antelope Union High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":6,"sport":"Tennis - Girl's","date":"2026-02-27","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Antelope Union","venue":"Antelope Union High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":7,"sport":"Track & Field","date":"2026-02-28","gameTime":"9:30 AM","visitor":"Highland Prep","host":"Shadow Ridge Showcase","venue":"Shadow Ridge High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":8,"sport":"Baseball","date":"2026-03-03","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"1:00 PM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":9,"sport":"Softball","date":"2026-03-03","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"1:00 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":10,"sport":"Track & Field","date":"2026-03-04","gameTime":"2:00 PM","visitor":"Highland Prep","host":"Jaguar Kick Back Invitations","venue":"Canyon View High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":11,"sport":"Tennis - Boy's","date":"2026-03-05","gameTime":"3:30 PM","visitor":"BASIS Flagstaff","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":12,"sport":"Tennis - Girl's","date":"2026-03-05","gameTime":"3:30 PM","visitor":"BASIS Flagstaff","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":13,"sport":"Volleyball - Boy's","date":"2026-03-05","gameTime":"5:30 PM","visitor":"St. John Paul II","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":14,"sport":"Baseball","date":"2026-03-06","gameTime":"3:45 PM","visitor":"Tonopah Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"1:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":15,"sport":"Softball","date":"2026-03-06","gameTime":"3:45 PM","visitor":"Tonopah Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"1:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":16,"sport":"Baseball","date":"2026-03-09","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Somerton","venue":"Somerton High School","leaveTime":"11:00 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":17,"sport":"Softball","date":"2026-03-09","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Somerton","venue":"Somerton High School","leaveTime":"11:00 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":18,"sport":"Tennis - Boy's","date":"2026-03-10","gameTime":"3:30 PM","visitor":"Odyssey Institute","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":19,"sport":"Tennis - Girl's","date":"2026-03-10","gameTime":"3:30 PM","visitor":"Odyssey Institute","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":20,"sport":"Volleyball - Boy's","date":"2026-03-10","gameTime":"5:30 PM","visitor":"Odyssey Institute","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":21,"sport":"Baseball","date":"2026-03-17","gameTime":"3:45 PM","visitor":"River Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":22,"sport":"Softball","date":"2026-03-17","gameTime":"3:45 PM","visitor":"River Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":23,"sport":"Baseball","date":"2026-03-18","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Chino Valley","venue":"Chino Valley High School","leaveTime":"11:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":24,"sport":"Softball","date":"2026-03-18","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Chino Valley","venue":"Chino Valley High School","leaveTime":"11:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":25,"sport":"Tennis - Boy's","date":"2026-03-19","gameTime":"3:30 PM","visitor":"Highland Prep","host":"Valley Lutheran","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":26,"sport":"Tennis - Girl's","date":"2026-03-19","gameTime":"3:30 PM","visitor":"Highland Prep","host":"Valley Lutheran","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":27,"sport":"Baseball","date":"2026-03-20","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Kingman","venue":"Kingman High School","leaveTime":"11:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":28,"sport":"Softball","date":"2026-03-20","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Kingman","venue":"Kingman High School","leaveTime":"11:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":29,"sport":"Track & Field","date":"2026-03-21","gameTime":"9:00 AM","visitor":"Highland Prep","host":"Knight Matador Small School Classic","venue":"Desert Edge High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":30,"sport":"Tennis - Boy's","date":"2026-03-23","gameTime":"3:30 PM","visitor":"Veritas Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":31,"sport":"Tennis - Girl's","date":"2026-03-23","gameTime":"3:30 PM","visitor":"Veritas Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":32,"sport":"Softball","date":"2026-03-23","gameTime":"4:00 PM","visitor":"Highland Prep","host":"Arizona Lutheran","venue":"Arizona Lutheran Academy","leaveTime":"1:30 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":33,"sport":"Baseball","date":"2026-03-24","gameTime":"3:45 PM","visitor":"ALA - West Foothills","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":34,"sport":"Softball","date":"2026-03-24","gameTime":"3:45 PM","visitor":"ALA - West Foothills","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":35,"sport":"Volleyball - Boy's","date":"2026-03-26","gameTime":"5:30 PM","visitor":"North Valley Christian","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":36,"sport":"Track & Field","date":"2026-03-27","gameTime":"11:00 AM","visitor":"Highland Prep","host":"Valley Invitational","venue":"Alhambra High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":37,"sport":"Tennis - Girl's","date":"2026-04-01","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Cicero Prep","venue":"Indian School Park","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":38,"sport":"Tennis - Boy's","date":"2026-04-01","gameTime":"2:30 PM","visitor":"Cicero Prep","host":"Highland Prep","venue":"Indian School Park","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":39,"sport":"Baseball","date":"2026-04-01","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Yuma Catholic","venue":"Yuma Catholic","leaveTime":"11:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":40,"sport":"Softball","date":"2026-04-01","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Yuma Catholic","venue":"Yuma Catholic","leaveTime":"11:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":41,"sport":"Track & Field","date":"2026-04-03","gameTime":"10:00 AM","visitor":"Highland Prep","host":"Ben McIvor Memorial","venue":"Glendale High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":42,"sport":"Tennis - Boy's","date":"2026-04-08","gameTime":"1:30 PM","visitor":"Highland Prep","host":"Lincoln Prep","venue":"Tumbleweed Park","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":43,"sport":"Tennis - Girl's","date":"2026-04-08","gameTime":"1:30 PM","visitor":"Highland Prep","host":"Lincoln Prep","venue":"Tumbleweed Park","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":44,"sport":"Tennis - Boy's","date":"2026-04-10","gameTime":"3:30 PM","visitor":"Glendale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":45,"sport":"Tennis - Girl's","date":"2026-04-10","gameTime":"3:30 PM","visitor":"Glendale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":46,"sport":"Baseball","date":"2026-04-10","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":47,"sport":"Softball","date":"2026-04-10","gameTime":"3:45 PM","visitor":"Highland Prep","host":"Odyssey Institute","venue":"The Odyssey for Advanced and International Studies","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":48,"sport":"Track & Field","date":"2026-04-11","gameTime":"8:30 AM","visitor":"Highland Prep","host":"Al Nelson Invitational","venue":"Valley Christian School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":49,"sport":"Baseball","date":"2026-04-13","gameTime":"3:45 PM","visitor":"Highland Prep","host":"River Valley","venue":"River Valley High School","leaveTime":"10:30 AM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":50,"sport":"Softball","date":"2026-04-13","gameTime":"3:45 PM","visitor":"Highland Prep","host":"River Valley","venue":"River Valley High School","leaveTime":"10:30 AM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":51,"sport":"Track & Field","date":"2026-04-14","gameTime":"2:30 PM","visitor":"Highland Prep","host":"Top of the Mountain Meet","venue":"Red Mountain High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":52,"sport":"Tennis - Boy's","date":"2026-04-14","gameTime":"3:00 PM","visitor":"Highland Prep","host":"Scottsdale Christian","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":53,"sport":"Tennis - Girl's","date":"2026-04-14","gameTime":"3:00 PM","visitor":"Highland Prep","host":"Scottsdale Christian","venue":"Phoenix Tennis Center","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":54,"sport":"Baseball","date":"2026-04-14","gameTime":"3:45 PM","visitor":"Highland Prep West","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":55,"sport":"Softball","date":"2026-04-14","gameTime":"3:45 PM","visitor":"Highland Prep West","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":56,"sport":"Volleyball - Boy's","date":"2026-04-15","gameTime":"5:30 PM","visitor":"Highland Prep","host":"Parker","venue":"Parker High School","leaveTime":"1:00 PM","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":57,"sport":"Tennis - Boy's","date":"2026-04-16","gameTime":"3:30 PM","visitor":"Scottsdale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":58,"sport":"Tennis - Girl's","date":"2026-04-16","gameTime":"3:30 PM","visitor":"Scottsdale Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":59,"sport":"Baseball","date":"2026-04-16","gameTime":"3:45 PM","visitor":"Highland Prep","host":"ALA - West Foothills","venue":"American Leadership Academy - West Foothills","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":60,"sport":"Softball","date":"2026-04-16","gameTime":"3:45 PM","visitor":"Highland Prep","host":"ALA - West Foothills","venue":"American Leadership Academy - West Foothills","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":61,"sport":"Track & Field","date":"2026-04-17","gameTime":"12:00 PM","visitor":"Highland Prep","host":"Mingus Invitational","venue":"Mingus Union High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":62,"sport":"Baseball","date":"2026-04-20","gameTime":"3:45 PM","visitor":"Chino Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":63,"sport":"Softball","date":"2026-04-20","gameTime":"3:45 PM","visitor":"Chino Valley","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":64,"sport":"Tennis - Boy's","date":"2026-04-21","gameTime":"3:30 PM","visitor":"Rancho Solano Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#534AB7"},{"id":65,"sport":"Tennis - Girl's","date":"2026-04-21","gameTime":"3:30 PM","visitor":"Rancho Solano Prep","host":"Highland Prep","venue":"Surprise Tennis & Racquet Complex","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#993556"},{"id":66,"sport":"Volleyball - Boy's","date":"2026-04-21","gameTime":"5:30 PM","visitor":"Madison Highland","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":67,"sport":"Baseball","date":"2026-04-22","gameTime":"3:45 PM","visitor":"Kingman","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":68,"sport":"Softball","date":"2026-04-22","gameTime":"3:45 PM","visitor":"Kingman","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":69,"sport":"Track & Field","date":"2026-04-24","gameTime":"8:00 AM","visitor":"Highland Prep","host":"Shaun Hardt True Grit Invitational","venue":"Queen Creek High School","leaveTime":"","subCoverage":"","homeAway":"Away","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#1D9E75"},{"id":70,"sport":"Baseball","date":"2026-04-24","gameTime":"3:00 PM","visitor":"Somerton","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":71,"sport":"Softball","date":"2026-04-24","gameTime":"3:00 PM","visitor":"Somerton","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"},{"id":72,"sport":"Volleyball - Boy's","date":"2026-04-24","gameTime":"5:30 PM","visitor":"Parker","host":"Highland Prep","venue":"Highland Prep","leaveTime":"","subCoverage":"","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#BA7517"},{"id":73,"sport":"Baseball","date":"2026-04-27","gameTime":"3:45 PM","visitor":"Parker","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"ALI","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"ALI","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#185FA5"},{"id":74,"sport":"Softball","date":"2026-04-27","gameTime":"3:45 PM","visitor":"Parker","host":"Highland Prep","venue":"Victory Lane Complex","leaveTime":"12:30 PM","subCoverage":"Heath","homeAway":"Home","van":null,"driver":"","athletes":0,"supervisor":"Heath","returnTime":"","address":"","status":"Scheduled","notes":"","color":"#D85A30"}];
 
+const HP_CALENDAR=[{"date": "2026-08-03", "label": "Teachers Start Date", "type": "teacher"}, {"date": "2026-08-10", "label": "First Day of School \u2014 Q1 Begins", "type": "school"}, {"date": "2026-09-07", "label": "Labor Day \u2014 No School", "type": "holiday"}, {"date": "2026-10-05", "label": "40th Student Day", "type": "milestone"}, {"date": "2026-10-09", "label": "Last Day Q1 / Finals", "type": "quarter"}, {"date": "2026-10-12", "label": "Fall Break \u2014 No School", "type": "break"}, {"date": "2026-10-13", "label": "Fall Break \u2014 No School", "type": "break"}, {"date": "2026-10-14", "label": "Fall Break \u2014 No School", "type": "break"}, {"date": "2026-10-15", "label": "Fall Break \u2014 No School", "type": "break"}, {"date": "2026-10-16", "label": "Fall Break \u2014 No School", "type": "break"}, {"date": "2026-10-19", "label": "First Day Q2", "type": "quarter"}, {"date": "2026-11-11", "label": "Veterans Day \u2014 No School", "type": "holiday"}, {"date": "2026-11-25", "label": "Thanksgiving Break \u2014 No School", "type": "holiday"}, {"date": "2026-11-26", "label": "Thanksgiving Break \u2014 No School", "type": "holiday"}, {"date": "2026-11-27", "label": "Thanksgiving Break \u2014 No School", "type": "holiday"}, {"date": "2026-12-18", "label": "Last Day Q2 / Finals", "type": "quarter"}, {"date": "2026-12-21", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-22", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-23", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-24", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-25", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-28", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-29", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-30", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2026-12-31", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2027-01-01", "label": "Winter Break \u2014 No School", "type": "break"}, {"date": "2027-01-04", "label": "First Day Q3", "type": "quarter"}, {"date": "2027-01-18", "label": "MLK Day \u2014 No School", "type": "holiday"}, {"date": "2027-01-25", "label": "100th Student Day", "type": "milestone"}, {"date": "2027-02-15", "label": "Presidents Day \u2014 No School", "type": "holiday"}, {"date": "2027-03-08", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-09", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-10", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-11", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-12", "label": "Last Day Q3 / Finals / Spring Break", "type": "quarter"}, {"date": "2027-03-15", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-16", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-17", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-18", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-19", "label": "Spring Break \u2014 No School", "type": "break"}, {"date": "2027-03-22", "label": "First Day Q4", "type": "quarter"}, {"date": "2027-03-26", "label": "Spring Holiday \u2014 No School", "type": "holiday"}, {"date": "2027-05-24", "label": "Finals Begin", "type": "quarter"}, {"date": "2027-05-26", "label": "Graduation", "type": "milestone"}, {"date": "2027-05-28", "label": "Last Day of School \u2014 Q4 Ends", "type": "quarter"}, {"date": "2027-06-04", "label": "Teachers End Date", "type": "teacher"}];
 let S=JSON.parse(JSON.stringify(DEFAULT));
 
 function initAtt(){
@@ -1349,6 +1364,23 @@ async function initData(){
     }
   });
   initAtt();
+  // Show no-school banner if today is a holiday/break
+  (function checkNoSchool(){
+    const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+    const todayCal=(HP_CALENDAR||[]).find(h=>h.date===today&&(h.type==='holiday'||h.type==='break'));
+    const banner=document.getElementById('no-school-banner');
+    if(banner)banner.remove();
+    if(todayCal){
+      const attPanel=document.getElementById('panel-attendance');
+      if(attPanel){
+        const b=document.createElement('div');
+        b.id='no-school-banner';
+        b.style.cssText='background:var(--red-bg);border:1px solid var(--red-t);border-radius:var(--rl);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:12px;font-weight:700;color:var(--red-t);font-size:14px';
+        b.innerHTML='🏖 '+todayCal.label+' — Attendance tracking paused';
+        attPanel.querySelector('.g5')?.insertAdjacentElement('beforebegin',b);
+      }
+    }
+  })();
   // Auto-populate attendance from planned days for today
   (function applyPlannedDays(){
     const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
@@ -1569,7 +1601,27 @@ function saveTask(){
 function addTask(){openTaskModal();}
 function toggleTask(id){const t=S.tasks.find(x=>x.id===id);if(t){t.done=!t.done;t.status=t.done?'done':'todo';scheduleSave();render();}}
 function deleteTask(id){if(!confirm('Delete this task and all subtasks?'))return;S.tasks=S.tasks.filter(x=>x.id!==id);toast('Deleted');scheduleSave();render();}
-function toggleSubtask(taskId,stId){const t=S.tasks.find(x=>x.id===taskId);if(!t)return;const st=(t.subtasks||[]).find(x=>x.id===stId);if(st){st.done=!st.done;scheduleSave();renderTasks();}}
+function toggleSubtask(taskId,stId){
+  const t=S.tasks.find(x=>x.id===taskId);if(!t)return;
+  const st=(t.subtasks||[]).find(x=>x.id===stId);if(!st)return;
+  st.done=!st.done;
+  scheduleSave();
+  // Update DOM directly — don't re-render (keeps card expanded)
+  const chk=document.querySelector(`[onclick*="toggleSubtask(${taskId},${stId})"]`);
+  if(chk){
+    chk.classList.toggle('done',st.done);
+    chk.textContent=st.done?'✓':'';
+    const titleEl=chk.closest('.subtask-row')?.querySelector('.sub-title');
+    if(titleEl)titleEl.classList.toggle('done',st.done);
+  }
+  // Update progress bar
+  const sub=t.subtasks||[];
+  const done=sub.filter(s=>s.done).length;
+  const pct=sub.length?Math.round(done/sub.length*100):0;
+  const progEl=document.querySelector(`#tc-${taskId} .progress-mini-fill`);
+  if(progEl)progEl.style.width=pct+'%';
+  const countEl=document.querySelector(`#tc-${taskId} .task-meta span:last-child`);
+}
 
 function openEmailModal(task){
   if(!task)return;
@@ -2733,11 +2785,12 @@ function saveGroupTransaction(){
   if(!amt){toast('Please enter an amount');return;}
   const type=document.getElementById('gt-type').value;
   const desc=document.getElementById('gt-desc').value.trim()||'Transaction';
+  const event=(document.getElementById('gt-event')||{}).value||'';
   const ref=document.getElementById('gt-ref').value.trim()||'';
   const date=document.getElementById('gt-date').value||new Date().toISOString().slice(0,10);
   const txId='tx-user-'+Date.now();
   if(!grp.transactions)grp.transactions=[];
-  grp.transactions.unshift({id:txId,date,ref,desc,amount:type==='credit'?amt:-amt});
+  grp.transactions.unshift({id:txId,date,ref,desc,event,amount:type==='credit'?amt:-amt});
   if(grp.type==='classroom'){
     // Classroom is allocated budget — expenses reduce the balance
     grp.spent=round2((grp.spent||0)+amt);
@@ -2747,6 +2800,7 @@ function saveGroupTransaction(){
     else{grp.debits=round2(grp.debits+amt);}
     grp.balance=round2(grp.credits-grp.debits);
   }
+  const evEl=document.getElementById('gt-event');if(evEl)evEl.value='';
   closeModal('grp-trans-modal');
   toast('Transaction saved ✓');scheduleSave();
   // Refresh detail view if open, otherwise refresh list
@@ -3174,6 +3228,7 @@ function renderGroupDetail(groupId){
           <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Date</th>
           <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Check / Inv #</th>
           <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Description</th>
+          <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Event / Reason</th>
           <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Credit</th>
           <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Debit</th>
           <th style="padding:8px 10px;border-bottom:0.5px solid var(--border)"></th>
@@ -3183,6 +3238,7 @@ function renderGroupDetail(groupId){
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap">${fmt(t.date)}</td>
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--t2);font-size:12px">${t.ref||'—'}</td>
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-weight:500">${t.desc}</td>
+            <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-size:12px;color:var(--t2)">${t.event||'—'}</td>
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-weight:700;color:var(--green-t)">
               ${t.amount>0?'$'+t.amount.toLocaleString('en-US',{minimumFractionDigits:2}):''}
             </td>
@@ -3278,6 +3334,14 @@ function getCalEvents(fromDate,toDate){
   const events=[];
   const from=fromDate||'2000-01-01';
   const to=toDate||'2099-12-31';
+
+  // School Calendar — holidays, breaks, quarter dates
+  (HP_CALENDAR||[]).forEach(h=>{
+    if(h.date<from||h.date>to)return;
+    const typeColors={holiday:'#E24B4A',break:'#E24B4A',quarter:'#185FA5',school:'#1D9E75',teacher:'#1D9E75',milestone:'#BA7517'};
+    const typeIcons={holiday:'🏖',break:'🏖',quarter:'📅',school:'🏫',teacher:'👩‍🏫',milestone:'⭐'};
+    events.push({date:h.date,type:'calendar',label:h.label,sub:'',color:typeColors[h.type]||'#888',icon:typeIcons[h.type]||'📅',data:h});
+  });
 
   // Field Trips
   (S.trips||[]).forEach(t=>{
@@ -3815,21 +3879,86 @@ function deleteSub(index){
 }
 
 // ─── ATTENDANCE HISTORY ──────────────────────────────────────────
+function setAttHistoryRange(range){
+  const now=new Date();
+  const today=now.toISOString().slice(0,10);
+  const fromEl=document.getElementById('ah-from');
+  const toEl=document.getElementById('ah-to');
+  if(!fromEl||!toEl)return;
+  if(range==='week'){
+    const weekStart=new Date(now);weekStart.setDate(now.getDate()-now.getDay());
+    fromEl.value=weekStart.toISOString().slice(0,10);
+    toEl.value=today;
+  } else if(range==='month'){
+    fromEl.value=today.slice(0,7)+'-01';
+    toEl.value=today;
+  } else if(range==='all'){
+    fromEl.value='';toEl.value='';
+  }
+  renderAttHistory();
+}
+
 function renderAttHistory(){
   const el=document.getElementById('att-history-content');
   if(!el)return;
+  
+  // Populate person filter
+  const personSel=document.getElementById('ah-person');
+  if(personSel&&personSel.options.length<=1){
+    [...TEACHERS,...STAFF].forEach(p=>{
+      const opt=document.createElement('option');
+      opt.value=p.name;opt.textContent=p.name;
+      personSel.appendChild(opt);
+    });
+  }
+  
   const history=S.attendanceHistory||{};
-  const dates=Object.keys(history).sort((a,b)=>b.localeCompare(a));
-  if(!dates.length){
-    el.innerHTML='<div class="empty">No attendance history yet.<br><small style="color:var(--t3)">History is saved automatically each day when attendance is logged.</small></div>';
+  const fromVal=(document.getElementById('ah-from')||{}).value||'';
+  const toVal=(document.getElementById('ah-to')||{}).value||'';
+  const personFilter=(document.getElementById('ah-person')||{}).value||'';
+  
+  let dates=Object.keys(history).sort((a,b)=>b.localeCompare(a));
+  if(fromVal)dates=dates.filter(d=>d>=fromVal);
+  if(toVal)dates=dates.filter(d=>d<=toVal);
+
+  // Render mini calendar for history
+  const calEl=document.getElementById('att-history-cal');
+  if(calEl&&dates.length){
+    const datesWithAbsences=new Set(dates.filter(d=>{
+      const dayAtt=history[d];
+      return Object.entries(dayAtt).some(([n,a])=>a.status&&a.status!=='P'&&(!personFilter||n===personFilter));
+    }));
+    const today=new Date().toISOString().slice(0,10);
+    const curYear=new Date().getFullYear();
+    const curMonth=new Date().getMonth();
+    const firstDay=new Date(curYear,curMonth,1).getDay();
+    const daysInMonth=new Date(curYear,curMonth+1,0).getDate();
+    const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let cal=`<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:6px">${MONTHS[curMonth]} ${curYear} — click a date to jump to it</div>`;
+    cal+=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;max-width:280px">`;
+    ['S','M','T','W','T','F','S'].forEach(d=>cal+=`<div style="font-size:9px;text-align:center;font-weight:700;color:var(--t3);padding:2px">${d}</div>`);
+    for(let i=0;i<firstDay;i++)cal+=`<div></div>`;
+    for(let d=1;d<=daysInMonth;d++){
+      const iso=curYear+'-'+String(curMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      const hasAbs=datesWithAbsences.has(iso);
+      const isToday=iso===today;
+      cal+=`<div onclick="jumpToHistoryDate('${iso}')" style="aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:${isToday?'700':'500'};cursor:pointer;background:${hasAbs?'var(--amber-bg)':isToday?'var(--blue-bg)':'transparent'};color:${hasAbs?'var(--amber-t)':isToday?'var(--blue-t)':'var(--t2)'};border:0.5px solid ${hasAbs?'rgba(186,117,23,.3)':isToday?'var(--blue)':'transparent'}">${d}</div>`;
+    }
+    cal+=`</div>`;
+    calEl.innerHTML=cal;
+  } else if(calEl){calEl.innerHTML='';}
+
+  const allDates=dates;
+  if(!allDates.length){
+    el.innerHTML='<div class="empty">No attendance history found for this range.</div>';
     return;
   }
-  el.innerHTML=dates.map(date=>{
+  el.innerHTML=allDates.map(date=>{
     const dayAtt=history[date];
-    const absent=Object.entries(dayAtt).filter(([name,a])=>a.status&&a.status!=='P');
+    const absent=Object.entries(dayAtt).filter(([name,a])=>a.status&&a.status!=='P'&&(!personFilter||name===personFilter));
     if(!absent.length)return'';
     const dateLabel=new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-    return`<div style="margin-bottom:18px">
+    return`<div style="margin-bottom:18px" data-date="${date}">
       <div style="font-size:13px;font-weight:700;color:var(--t1);padding:8px 0;border-bottom:1.5px solid var(--border-md);margin-bottom:8px">${dateLabel}
         <span style="font-size:11px;font-weight:500;color:var(--t3);margin-left:8px">${absent.length} absence${absent.length!==1?'s':''}</span>
       </div>
