@@ -3972,6 +3972,7 @@ function renderAttHistory(){
             <div class="att-meta"><span class="badge b-${col}">${statusLabel}</span>${periodsStr?'<span style="margin-left:6px">'+periodsStr+'</span>':''}${a.reason?'<span style="margin-left:6px;color:var(--t2)">'+a.reason+'</span>':''}</div>
           </div>
           ${subStr?`<span class="sub-tag">📋${subStr}</span>`:'<span style="font-size:11px;color:var(--t3)">No sub</span>'}
+          <button class="btn btn-sm" style="font-size:11px;margin-left:8px" onclick="editHistoryEntry('${date}','${name}')">✏ Edit</button>
         </div>`;
       }).join('')}
     </div>`;
