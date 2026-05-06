@@ -1005,7 +1005,7 @@ function initAtt(){
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function fmt(d){if(!d)return'—';const p=d.split('-');return p[1]+'/'+p[2]+'/'+p[0];}
 function openModal(id){populateAttModal();document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='att-modal'){const _ps=document.getElementById('a-person');if(_ps)_ps.disabled=false;window._editingHistory=null;}}}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
 function _set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 function ini(name){return name.split(/[\s,]+/).filter(Boolean).map(x=>x[0].toUpperCase()).slice(0,2).join('');}
 
@@ -2107,7 +2107,7 @@ function updateAttReason(name,reason){
   scheduleSave();
 }
 
-function openAttDetailModal(name){populateAttModal();const _s=document.getElementById('a-person');if(_s){_s.value=name;_s.disabled=true;}const _att=S.attendance[name]||{};const _ss=document.getElementById('a-status');if(_ss&&_att.status)_ss.value=_att.status;const _re=document.getElementById('a-reason');if(_re)_re.value=_att.reason||'';const _ae=document.getElementById('a-arrival');if(_ae)_ae.value=_att.arrivalTime||'';const _se=document.getElementById('a-sub');if(_se)_se.value=_att.sub||'';toggleAttFields();openModal('att-modal');return;}
+function openAttDetailModal(name){
   // Pre-fill the modal with this person's name and open it
   populateAttModal();
   const sel=document.getElementById('a-person');
