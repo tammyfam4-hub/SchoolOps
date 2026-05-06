@@ -1197,8 +1197,9 @@ function renderPlannedUpcoming(){
     if(old&&old.previousElementSibling&&old.previousElementSibling.id==='today-planned-banner')old.remove();
   }
   const upcoming=S.plannedDays.filter(p=>(p.end||p.start)>=today).sort((a,b)=>a.start.localeCompare(b.start)).slice(0,8);
+  const past=S.plannedDays.filter(p=>(p.end||p.start)<today).sort((a,b)=>b.start.localeCompare(a.start)).slice(0,5);
   const typeC={EA:'poff-EA',PD:'poff-PD',Personal:'poff-Personal',FMLA:'poff-FMLA',Bereavement:'poff-Bereavement'};
-  if(!upcoming.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">No upcoming planned days off</div>';return;}
+  if(!upcoming.length&&!past.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">No planned days off recorded</div>';return;}
   el.innerHTML=upcoming.map(p=>{
     const dateStr=p.end&&p.end!==p.start?fmt(p.start)+' – '+fmt(p.end):fmt(p.start);
     const days=p.end?Math.round((new Date(p.end)-new Date(p.start))/86400000)+1:1;
@@ -1214,7 +1215,21 @@ function renderPlannedUpcoming(){
       ${p.subAssign?`<span class="badge b-green" style="font-size:10px">${p.subAssign}</span>`:''}
       <button class="btn btn-sm" onclick="openPlanModal(${p.id})" style="font-size:11px">Edit</button>
     </div>`;
-  }).join('');
+    }).join('');
+  // Append past section
+  if(past.length){
+    const typeC2={EA:'poff-EA',PD:'poff-PD',Personal:'poff-Personal',FMLA:'poff-FMLA',Bereavement:'poff-Bereavement'};
+    el.innerHTML+='<div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Past Planned Days</div>'+
+    past.map(p=>{
+      const dateStr=p.end&&p.end!==p.start?fmt(p.start)+' – '+fmt(p.end):fmt(p.start);
+      return '<div class="upcoming-row" style="opacity:.7">'+
+        '<div style="width:32px;height:32px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--t2)">'+ini(p.person)+'</div>'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+p.person+'</div><div style="font-size:11px;color:var(--t2)">'+dateStr+'</div></div>'+
+        '<span class="poff-badge '+(typeC2[p.type]||'poff-EA')+'">'+p.type+'</span>'+
+        '<button class="btn btn-sm" onclick="openPlanModal('+p.id+')" style="font-size:11px">Edit</button>'+
+      '</div>';
+    }).join('')+'</div>';
+  }
 }
 
 function renderPlannedTable(){
@@ -1803,6 +1818,26 @@ function toggleAttFields(){
 }
 
 function logAttendance(){
+  // Handle history edit mode
+  if(window._editingHistory){
+    const {date,name}=window._editingHistory;
+    window._editingHistory=null;
+    const rawStatus=document.getElementById('a-status').value;
+    const reason=document.getElementById('a-reason').value;
+    const arrivalTime=document.getElementById('a-arrival')?document.getElementById('a-arrival').value:'';
+    const subVal=document.getElementById('a-sub').value;
+    if(!S.attendanceHistory)S.attendanceHistory={};
+    if(!S.attendanceHistory[date])S.attendanceHistory[date]={};
+    const existing=S.attendanceHistory[date][name]||{};
+    // Handle sub placement
+    if(subVal){const sub=S.subs.find(s=>s.name===subVal);if(sub)sub.placed=name;}
+    S.attendanceHistory[date][name]={...existing,status:rawStatus,reason,arrivalTime,sub:subVal||null};
+    closeModal('att-modal');
+    toast(name+' updated for '+date+' ✓');
+    scheduleSave();
+    renderAttHistory();
+    return;
+  }
   const name=document.getElementById('a-person').value;
   const rawStatus=document.getElementById('a-status').value;
   const reason=document.getElementById('a-reason').value;
@@ -2411,6 +2446,7 @@ function render(){
           </div>
           <div class="att-meta">${p.startTime}${att.reason?' · <em>'+att.reason+'</em>':''}</div>
         </div>
+        <button class="btn btn-sm" style="font-size:10px;padding:2px 8px;flex-shrink:0" onclick="openAttDetailModal('${p.name}')" title="Edit this entry">✏</button>
         <!-- Status buttons: P  EA  T  ED -->
         <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
           ${[
@@ -3879,6 +3915,30 @@ function deleteSub(index){
 }
 
 // ─── ATTENDANCE HISTORY ──────────────────────────────────────────
+function editHistoryEntry(date,name){
+  if(!S.attendanceHistory)S.attendanceHistory={};
+  if(!S.attendanceHistory[date])S.attendanceHistory[date]={};
+  const att=S.attendanceHistory[date][name]||{status:'P',reason:'',sub:null,arrivalTime:''};
+  populateAttModal();
+  const personSel=document.getElementById('a-person');
+  if(personSel){
+    if(![...personSel.options].some(o=>o.value===name)){
+      const opt=document.createElement('option');opt.value=name;opt.textContent=name;personSel.appendChild(opt);
+    }
+    personSel.value=name;
+  }
+  const dateSel=document.getElementById('a-date');if(dateSel)dateSel.value=date;
+  const statusSel=document.getElementById('a-status');if(statusSel)statusSel.value=att.status||'P';
+  const reasonEl=document.getElementById('a-reason');if(reasonEl)reasonEl.value=att.reason||'';
+  const arrivalEl=document.getElementById('a-arrival');if(arrivalEl)arrivalEl.value=att.arrivalTime||'';
+  const subEl=document.getElementById('a-sub');if(subEl)subEl.value=att.sub||'';
+  toggleAttFields();
+  window._editingHistory={date,name};
+  const titleEl=document.querySelector('#att-modal .modal-title');
+  if(titleEl)titleEl.textContent='\u270F\uFE0F Edit: '+name+' ('+date+')';
+  openModal('att-modal');
+}
+
 function setAttHistoryRange(range){
   const now=new Date();
   const today=now.toISOString().slice(0,10);
