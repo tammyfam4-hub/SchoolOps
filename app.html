@@ -1865,7 +1865,7 @@ function logAttendance(){
         if(subSel&&subSel.value)periodSubs['Period '+i]=subSel.value;
       }
     });
-    S.attendance[name].status=rawStatus;
+    S.attendance[name].status='EA-partial';
     S.attendance[name].reason=reason;
     S.attendance[name].periods=missedPeriods;
     S.attendance[name].periodSubs=periodSubs;
@@ -2027,7 +2027,7 @@ function renderSubCoverageOnly(){
     const att=S.attendance[t.name]||{};
     const displaySub=att.swingName||(att.sub&&att.sub!=='Swing Sub'?att.sub:null);
     const swingLabel=att.swingName?'Swing: '+att.swingName:att.sub==='Swing Sub'?'⏳ Swing Sub (name pending)':'';
-    const statusLabel={'EA':'Full Day','EA-partial':'Partial Day','SE':'School Event','SE-partial':'Partial School Event','ED':'Early Departure','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[att.status]||att.status;
+    const statusLabel={'EA':'Full Day','EA-partial':'Partial Day','ED':'Early Departure','early-departure':'Early Departure','ED':'Early Departure','T':'Tardy','UA':'Unexcused'}[att.status]||att.status;
     return`<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
       <div style="display:flex;align-items:center;gap:8px">
         <span class="sp sp-${att.status==='EA-partial'||att.status==='early-departure'?'EA':att.status==='UA'?'UA':att.status==='T'?'T':'EA'}">${statusLabel}</span>
@@ -2479,7 +2479,6 @@ function render(){
         const att=S.attendance[t.name]||{};
         const statusLabel={
           'EA':'Full Day Absent','EA-partial':'Partial Day Absent',
-          'SE':'School Event','SE-partial':'Partial School Event',
           'early-departure':'Early Departure','T':'Tardy','UA':'Unexcused Absence'
         }[att.status]||att.status;
         const statusColor={'EA':'amber','EA-partial':'amber','early-departure':'blue','T':'blue','UA':'red'}[att.status]||'amber';
