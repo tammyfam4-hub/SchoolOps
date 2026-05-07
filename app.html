@@ -1865,7 +1865,7 @@ function logAttendance(){
         if(subSel&&subSel.value)periodSubs['Period '+i]=subSel.value;
       }
     });
-    S.attendance[name].status='EA-partial';
+    S.attendance[name].status=rawStatus;
     S.attendance[name].reason=reason;
     S.attendance[name].periods=missedPeriods;
     S.attendance[name].periodSubs=periodSubs;
@@ -2479,6 +2479,7 @@ function render(){
         const att=S.attendance[t.name]||{};
         const statusLabel={
           'EA':'Full Day Absent','EA-partial':'Partial Day Absent',
+          'SE':'School Event','SE-partial':'Partial School Event',
           'early-departure':'Early Departure','T':'Tardy','UA':'Unexcused Absence'
         }[att.status]||att.status;
         const statusColor={'EA':'amber','EA-partial':'amber','early-departure':'blue','T':'blue','UA':'red'}[att.status]||'amber';
