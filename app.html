@@ -425,7 +425,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
       <div id="att-today-view">
         <div class="g2">
           <div class="card">
-            <div class="shdr"><div class="stitle" id="att-list-title">Teacher Attendance</div><button class="btn btn-primary btn-sm" onclick="openModal('att-modal')">+ Log event</button></div>
+            <div class="shdr"><div><div class="stitle" id="att-list-title">Teacher Attendance</div><div id="att-today-date" style="font-size:12px;color:var(--t2);margin-top:2px"></div></div><button class="btn btn-primary btn-sm" onclick="openModal('att-modal')">+ Log event</button></div>
             <div class="legend"><span class="sp sp-P">P</span> Present &nbsp;<span class="sp sp-EA">EA</span> Excused Absence &nbsp;<span class="sp sp-T">T</span> Tardy &nbsp;<span class="sp sp-T">ED</span> Early Departure — click to mark</div>
             <div id="att-list"></div>
           </div>
@@ -738,12 +738,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   <div class="modal-title" id="plan-modal-title">&#128197; Add Planned Day Off</div>
   <div class="frow"><label class="flabel">Person *</label><select id="p-person"></select></div>
   <div class="frow"><label class="flabel">Type of Absence</label>
-    <select id="p-type">
+    <select id="p-type" onchange="togglePlanTypeFields()">
       <option value="EA">EA — Excused Absence</option>
       <option value="PD">PD — Professional Development</option>
       <option value="Personal">Personal Day</option>
       <option value="FMLA">FMLA / Medical Leave</option>
       <option value="Bereavement">Bereavement</option>
+      <option value="SE">SE — School Event</option>
     </select>
   </div>
   <div class="g2" style="gap:10px">
@@ -759,6 +760,25 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
       <option value="tbd">TBD — to be determined</option>
     </select>
   </div>
+  <!-- Full/Partial day toggle -->
+  <div class="frow" id="p-daytype-row">
+    <label class="flabel">Full or Partial Day?</label>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="p-daytype" id="p-fullday" value="full" checked onchange="togglePlanDayType()" style="width:auto;margin:0"> Full Day</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="p-daytype" id="p-partial" value="partial" onchange="togglePlanDayType()" style="width:auto;margin:0"> Partial Day</label>
+    </div>
+  </div>
+  <!-- Period checkboxes — shown for partial day -->
+  <div class="frow" id="p-periods-row" style="display:none">
+    <label class="flabel">Periods Missing</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p1" style="width:auto;margin:0"> Period 1</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p2" style="width:auto;margin:0"> Period 2</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p3" style="width:auto;margin:0"> Period 3</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p4" style="width:auto;margin:0"> Period 4</label>
+    </div>
+  </div>
+  <!-- Sub assignment -->
   <div class="frow"><label class="flabel">Assign Substitute (optional)</label><select id="p-sub-assign"><option value="">-- None assigned yet --</option></select></div>
   <div class="modal-actions">
     <button class="btn btn-sm" onclick="closeModal('plan-modal')">Cancel</button>
@@ -1087,6 +1107,11 @@ function openPlanModal(planId,prefillDate){
     document.getElementById('p-notes').value=p.notes||'';
     document.getElementById('p-sub-req').value=p.subReq||'tbd';
     document.getElementById('p-sub-assign').value=p.subAssign||'';
+    const _isPartial=p.dayType==='partial';
+    const _fdEl=document.getElementById('p-fullday');if(_fdEl)_fdEl.checked=!_isPartial;
+    const _prEl=document.getElementById('p-partial');if(_prEl)_prEl.checked=_isPartial;
+    const _prRow=document.getElementById('p-periods-row');if(_prRow)_prRow.style.display=_isPartial?'':'none';
+    ['p-p1','p-p2','p-p3','p-p4'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.checked=(p.periods||[]).includes('Period '+(i+1));});
   } else {
     document.getElementById('p-person').value='';
     document.getElementById('p-type').value='EA';
@@ -1096,6 +1121,11 @@ function openPlanModal(planId,prefillDate){
     document.getElementById('p-sub-req').value='tbd';
     document.getElementById('p-sub-assign').value='';
   }
+  // Reset full/partial
+  const fdEl=document.getElementById('p-fullday');if(fdEl)fdEl.checked=true;
+  const prEl=document.getElementById('p-partial');if(prEl)prEl.checked=false;
+  ['p-p1','p-p2','p-p3','p-p4'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  const pr=document.getElementById('p-periods-row');if(pr)pr.style.display='none';
   document.getElementById('plan-modal').classList.add('open');
 }
 
@@ -1103,10 +1133,14 @@ function savePlannedDay(){
   const person=document.getElementById('p-person').value;
   const start=document.getElementById('p-start').value;
   if(!person||!start){toast('Person and start date are required');return;}
+  const _planIsPartial=document.getElementById('p-partial')&&document.getElementById('p-partial').checked;
+  const _planPeriods=_planIsPartial?[1,2,3,4].filter(i=>{const el=document.getElementById('p-p'+i);return el&&el.checked;}).map(i=>'Period '+i):[];
   const entry={
     id:editingPlanId||S.nextId++,
     person,
     type:document.getElementById('p-type').value,
+    dayType:_planIsPartial?'partial':'full',
+    periods:_planPeriods,
     start,
     end:document.getElementById('p-end').value||null,
     notes:document.getElementById('p-notes').value,
@@ -1261,6 +1295,15 @@ function renderPlannedTable(){
   }).join('');
 }
 
+function togglePlanTypeFields(){
+  // No extra fields needed per type currently
+}
+
+function togglePlanDayType(){
+  const isPartial=document.getElementById('p-partial')&&document.getElementById('p-partial').checked;
+  const row=document.getElementById('p-periods-row');
+  if(row)row.style.display=isPartial?'':'none';
+}
 async function initData(){
   // ── 1. Check auth ──────────────────────────────────────────────
   const{data:{session}}=await sb.auth.getSession();
@@ -1340,6 +1383,7 @@ async function initData(){
   if(!S.hr||!Array.isArray(S.hr))S.hr=JSON.parse(JSON.stringify(DEFAULT.hr));
   if(!S.transactions||!Array.isArray(S.transactions))S.transactions=[];
   if(!S.tasks||!Array.isArray(S.tasks))S.tasks=JSON.parse(JSON.stringify(DEFAULT.tasks));
+  let _stIdCounter=10000;const _usedStIds=new Set();(S.tasks||[]).forEach(t=>{(t.subtasks||[]).forEach(s=>{if(!s.id||_usedStIds.has(s.id)){s.id=_stIdCounter++;}_usedStIds.add(s.id);});});
   if(!S.bookings||!Array.isArray(S.bookings))S.bookings=JSON.parse(JSON.stringify(DEFAULT.bookings));
   if(!S.subs||!Array.isArray(S.subs))S.subs=[];
   // Always ensure permanent sub roster is present
@@ -1657,6 +1701,7 @@ function openEmailModal(task){
   document.getElementById('email-modal').classList.add('open');
 }
 function sendEmail(){
+  if(!confirm('Send this email?'))return;
   const to=encodeURIComponent(document.getElementById('em-to').value);
   const sub=encodeURIComponent(document.getElementById('em-subject').value);
   const body=encodeURIComponent(document.getElementById('em-body').value);
@@ -1798,7 +1843,7 @@ function toggleAttFields(){
   const fulldaySub=document.getElementById('att-fullday-sub');
   periodsSection.style.display=(status==='EA-partial'||status==='SE-partial')?'':'none';
   departSection.style.display=status==='early-departure'?'':'none';
-  fulldaySub.style.display=(status==='EA'||status==='UA'||status==='T')?'':'none';
+  fulldaySub.style.display=(status==='EA'||status==='UA'||status==='T'||status==='SE'||status==='SD')?'':'none';
   // Build per-period sub fields if partial
   if(status==='EA-partial'){
     const pf=document.getElementById('period-sub-fields');
@@ -1865,7 +1910,7 @@ function logAttendance(){
         if(subSel&&subSel.value)periodSubs['Period '+i]=subSel.value;
       }
     });
-    S.attendance[name].status='EA-partial';
+    S.attendance[name].status=rawStatus;
     S.attendance[name].reason=reason;
     S.attendance[name].periods=missedPeriods;
     S.attendance[name].periodSubs=periodSubs;
@@ -2027,7 +2072,7 @@ function renderSubCoverageOnly(){
     const att=S.attendance[t.name]||{};
     const displaySub=att.swingName||(att.sub&&att.sub!=='Swing Sub'?att.sub:null);
     const swingLabel=att.swingName?'Swing: '+att.swingName:att.sub==='Swing Sub'?'⏳ Swing Sub (name pending)':'';
-    const statusLabel={'EA':'Full Day','EA-partial':'Partial Day','ED':'Early Departure','early-departure':'Early Departure','ED':'Early Departure','T':'Tardy','UA':'Unexcused'}[att.status]||att.status;
+    const statusLabel={'EA':'Full Day','EA-partial':'Partial Day','SE':'School Event','SE-partial':'Partial School Event','ED':'Early Departure','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[att.status]||att.status;
     return`<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
       <div style="display:flex;align-items:center;gap:8px">
         <span class="sp sp-${att.status==='EA-partial'||att.status==='early-departure'?'EA':att.status==='UA'?'UA':att.status==='T'?'T':'EA'}">${statusLabel}</span>
@@ -2155,6 +2200,8 @@ function render(){
   _set('m-tasks',S.tasks.filter(t=>!t.done).length);_set('m-fac',S.bookings.length);
   const seAll=all.filter(p=>(S.attendance[p.name]||{}).status==='SE'||(S.attendance[p.name]||{}).status==='SE-partial').length;
   _set('att-P',pAll);_set('att-EA',eaAll);_set('att-T',tAll);_set('att-SE',seAll);_set('att-need',needSub);
+  const attDateEl=document.getElementById('att-today-date');
+  if(attDateEl){const azD=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000));attDateEl.textContent=azD.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});}
 
   // Dashboard module card stat badges
   _set('dm-tasks', S.tasks.filter(t=>!t.done).length || '');
@@ -2479,6 +2526,7 @@ function render(){
         const att=S.attendance[t.name]||{};
         const statusLabel={
           'EA':'Full Day Absent','EA-partial':'Partial Day Absent',
+          'SE':'School Event','SE-partial':'Partial School Event',
           'early-departure':'Early Departure','T':'Tardy','UA':'Unexcused Absence'
         }[att.status]||att.status;
         const statusColor={'EA':'amber','EA-partial':'amber','early-departure':'blue','T':'blue','UA':'red'}[att.status]||'amber';
@@ -4023,7 +4071,7 @@ function renderAttHistory(){
         <span style="font-size:11px;font-weight:500;color:var(--t3);margin-left:8px">${absent.length} absence${absent.length!==1?'s':''}</span>
       </div>
       ${absent.map(([name,a])=>{
-        const statusLabel={'EA':'Full Day Absent','EA-partial':'Partial Day','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[a.status]||a.status;
+        const statusLabel={'EA':'Full Day Absent','EA-partial':'Partial Day','SE':'School Event','SE-partial':'Partial School Event','early-departure':'Early Departure','T':'Tardy','UA':'Unexcused'}[a.status]||a.status;
         const col={'EA':'amber','EA-partial':'amber','early-departure':'blue','T':'blue','UA':'red'}[a.status]||'amber';
         const periodsStr=a.periods&&a.periods.length?' · '+a.periods.join(', '):'';
         const subStr=a.sub?' · Sub: '+a.sub:a.periodSubs&&Object.keys(a.periodSubs).length?' · Subs: '+Object.values(a.periodSubs).join(', '):'';
