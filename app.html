@@ -1604,7 +1604,7 @@ function openTaskModal(taskId){
   document.getElementById('t-email').value=t&&t.email?t.email:'';
   document.getElementById('t-remind').checked=false;
   populateTaskAssignSelect();
-  if(t)document.getElementById('t-assign').value=t.assign||'';
+  document.getElementById('t-assign').value=t?t.assign||'':'Cline, Tammy';
   const sf=document.getElementById('subtask-fields');
   sf.innerHTML='';
   (t?t.subtasks||[]: []).forEach(st=>addSubtaskField(st));
@@ -1623,7 +1623,7 @@ function addSubtaskField(ex){
   d.innerHTML='<div style="display:flex;align-items:center;gap:7px;width:100%">'
     +'<div class="sub-chk'+(isDone?' done':'')+'" onclick="toggleStCheck(this)">'+(isDone?'&#x2713;':'')+'</div>'
     +'<input class="st-title" id="si-'+uid+'" value="'+(ex?ex.title.replace(/&/g,'&amp;').replace(/"/g,'&quot;'):'')+'" placeholder="Subtask description..." style="flex:1;min-width:0;padding:5px 9px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'
-    +'<select id="sa-'+uid+'" style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'+memberOpts+'</select>'
+    +'<select id="sa-'+uid+'" style="width:130px;flex-shrink:0;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'+memberOpts+'</select>'
     +'<span onclick="this.closest(\'[data-stid]\').remove()" style="cursor:pointer;color:var(--t3);padding:3px 6px;font-size:12px">&#x2715;</span>'
     +'</div>'
     +'<input class="st-notes" placeholder="Notes / contact info..." value="'+notesVal+'" style="width:100%;padding:4px 9px;font-size:11px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t2);font-family:inherit;outline:none;box-sizing:border-box">';
