@@ -1620,11 +1620,11 @@ function addSubtaskField(ex){
   const isDone=ex?ex.done:false;
   const memberOpts=TEAM_MEMBERS.map(function(m){return '<option value="'+m+'"'+(ex&&ex.assign===m?' selected':'')+'>'+m+'</option>';}).join('');
   const notesVal=ex&&ex.notes?ex.notes.replace(/&/g,'&amp;').replace(/"/g,'&quot;'):'';
-  d.innerHTML='<div style="display:flex;align-items:center;gap:7px">'
+  d.innerHTML='<div style="display:flex;align-items:center;gap:7px;width:100%">'
     +'<div class="sub-chk'+(isDone?' done':'')+'" onclick="toggleStCheck(this)">'+(isDone?'&#x2713;':'')+'</div>'
-    +'<input id="si-'+uid+'" value="'+(ex?ex.title.replace(/&/g,'&amp;').replace(/"/g,'&quot;'):'')+'" placeholder="Subtask description..." style="flex:1;padding:5px 9px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'
+    +'<input class="st-title" id="si-'+uid+'" value="'+(ex?ex.title.replace(/&/g,'&amp;').replace(/"/g,'&quot;'):'')+'" placeholder="Subtask description..." style="flex:1;min-width:0;padding:5px 9px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'
     +'<select id="sa-'+uid+'" style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'+memberOpts+'</select>'
-    +'<span onclick="this.closest(''[data-stid]'').remove()" style="cursor:pointer;color:var(--t3);padding:3px 6px;font-size:12px">&#x2715;</span>'
+    +'<span onclick="this.closest(\'[data-stid]\').remove()" style="cursor:pointer;color:var(--t3);padding:3px 6px;font-size:12px">&#x2715;</span>'
     +'</div>'
     +'<input class="st-notes" placeholder="Notes / contact info..." value="'+notesVal+'" style="width:100%;padding:4px 9px;font-size:11px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t2);font-family:inherit;outline:none;box-sizing:border-box">';
   d.dataset.stid=ex?String(ex.id):'new';
@@ -1637,7 +1637,7 @@ function collectSubtasks(){
   const rows=document.querySelectorAll('#subtask-fields>div');
   const out=[];
   rows.forEach(r=>{
-    const inp=r.querySelector('input');
+    const inp=r.querySelector('.st-title');
     const sel=r.querySelector('select');
     const title=inp?inp.value.trim():'';
     if(!title)return;
