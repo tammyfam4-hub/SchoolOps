@@ -1648,7 +1648,11 @@ function addSubtaskField(ex){
     +'<select id="sa-'+uid+'" style="width:130px;flex-shrink:0;width:130px;flex-shrink:0;width:130px;flex-shrink:0;width:130px;flex-shrink:0;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'+memberOpts+'</select>'
     +'<span onclick="this.closest(\'[data-stid]\').remove()" style="cursor:pointer;color:var(--t3);padding:3px 6px;font-size:12px">&#x2715;</span>'
     +'</div>'
-    +'<input class="st-notes" placeholder="Notes / contact info..." value="'+notesVal+'" style="width:100%;padding:4px 9px;font-size:11px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t2);font-family:inherit;outline:none;box-sizing:border-box">';
+    +'<input class="st-notes" placeholder="Notes / contact info..." value="'+notesVal+'" style="width:100%;padding:4px 9px;font-size:11px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t2);font-family:inherit;outline:none;box-sizing:border-box">'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-top:4px">'
+    +'<span style="font-size:11px;color:var(--t2);white-space:nowrap">Due:</span>'
+    +'<input class="st-due" type="date" value="'+( ex&&ex.due?ex.due:'')+'" style="flex:1;padding:4px 8px;font-size:11px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'
+    +'</div>';
   d.dataset.stid=ex?String(ex.id):'new';
   d.dataset.done=isDone?'true':'false';
   sf.appendChild(d);
@@ -1665,7 +1669,9 @@ function collectSubtasks(){
     if(!title)return;
     const assign=sel?sel.value:'';
     const notes=(r.querySelector('.st-notes')||{value:''}).value.trim();
-    out.push({id:r.dataset.stid==='new'?++stCounter:parseInt(r.dataset.stid)||++stCounter,title,assign,notes,email:TEAM_EMAILS[assign]||'',done:r.dataset.done==='true'});
+    const dueInp=r.querySelector('.st-due');
+    const due=dueInp?dueInp.value:'';
+    out.push({id:r.dataset.stid==='new'?++stCounter:parseInt(r.dataset.stid)||++stCounter,title,assign,notes,due,email:TEAM_EMAILS[assign]||'',done:r.dataset.done==='true'});
   });
   return out;
 }
@@ -2842,7 +2848,7 @@ function renderTeamWorkload(){
       <button class="btn btn-sm" onclick="openEmailToTeammate('${name}')" title="Send email">✉</button>
     </div>
     ${data.tasks.length?data.tasks.map(t=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border)"><div class="sub-chk ${t.done?'done':''}" onclick="toggleTask(${t.id})" style="flex-shrink:0">${t.done?'\u2713':''}</div><div style="flex:1;font-size:12px;font-weight:${t.done?400:500};${t.done?'text-decoration:line-through;color:var(--t3)':''}">${t.title}</div><span class="badge ${{High:'b-red',Medium:'b-amber',Low:'b-gray'}[t.pri]}" style="font-size:10px">${t.pri}</span>${t.due?`<span style="font-size:10px;color:${t.due<new Date().toISOString().slice(0,10)&&!t.done?'var(--red-t)':'var(--t3)'}">${fmt(t.due)}</span>`:''}<button class="btn btn-sm" style="font-size:10px;padding:2px 6px" onclick="openTaskModal(${t.id})">Edit</button></div>`).join(''):'<div style="font-size:12px;color:var(--t3);padding:6px 0">No tasks assigned</div>'}
-    ${data.subtasks.length?`<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:4px">Assigned Subtasks</div>`+data.subtasks.map(s=>`<div style="font-size:11px;color:var(--t2);padding:3px 0;display:flex;align-items:center;gap:6px"><span style="color:${s.done?'var(--green-t)':'var(--t3)'};">${s.done?'\u2713':'○'}</span><span style="${s.done?'text-decoration:line-through':''}">${s.title}</span>${s.notes?'<div style="font-size:10px;color:var(--t3);padding-left:18px">Notes: '+s.notes+'</div>':''}<span style="color:var(--t3);font-size:10px">(${s.parentTask})</span></div>`).join('')+'</div>'  :''}
+    ${data.subtasks.length?`<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:4px">Assigned Subtasks</div>`+data.subtasks.map(s=>`<div style="font-size:11px;color:var(--t2);padding:3px 0;display:flex;align-items:center;gap:6px"><span style="color:${s.done?'var(--green-t)':'var(--t3)'};">${s.done?'\u2713':'○'}</span><span style="${s.done?'text-decoration:line-through':''}">${s.title}</span>${s.notes?'<div style="font-size:10px;color:var(--t3);padding-left:18px">Notes: '+s.notes+'</div>':''}${s.due?'<div style="font-size:10px;color:var(--t3);padding-left:18px">Due: '+new Date(s.due+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</div>':''}<span style="color:var(--t3);font-size:10px">(${s.parentTask})</span></div>`).join('')+'</div>'  :''}
     </div>`;
   }).join('')+'</div>';
 }
