@@ -3075,7 +3075,7 @@ function renderPTORows(list,color){
     return`<div style="padding:10px 0;border-bottom:0.5px solid var(--border)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;cursor:pointer;color:var(--blue-t,#185FA5);text-decoration:underline" onclick="showStaffProfile(''+p.name+'')'>${p.name}</div>
+          <div style="font-size:13px;font-weight:700;cursor:pointer;color:var(--blue-t,#185FA5);text-decoration:underline" onclick="showStaffProfile(this.dataset.name)" data-name="${p.name}">${p.name}</div>
           <div style="font-size:11px;color:var(--t2)">${p.used} of ${p.available} days used · ${p.remaining>=0?p.remaining+' remaining':Math.abs(p.remaining)+' over limit'}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
@@ -4652,136 +4652,125 @@ function generatePDF(){
   toast('PDF exported: '+fname+' ✓');
 }
 
-
-// ── Staff Attendance Profile ──────────────────────────────────────
+</script>
+<script>
 function showStaffProfile(name){
-  const pto=S.ptoData[name]||{available:0,used:0,remaining:0,absences:[]};
-  const hist=S.attendanceHistory||{};
-
-  // Gather all dated entries for this person
-  const entries=[];
+  var pto=S.ptoData[name]||{available:0,used:0,remaining:0,absences:[]};
+  var hist=S.attendanceHistory||{};
+  var entries=[];
   Object.keys(hist).sort().forEach(function(date){
-    const day=hist[date];
-    if(!day) return;
-    // person key may be last name only or full name — try both
-    let rec=day[name];
-    if(!rec){
-      // try matching by last name
-      const lastName=name.split(',')[0].trim();
-      const key=Object.keys(day).find(function(k){return k===lastName||k.startsWith(lastName+',');});
-      if(key) rec=day[key];
-    }
-    if(!rec) return;
-    if(rec.status==='P') return; // skip present days
+    var day=hist[date]; if(!day)return;
+    var rec=day[name];
+    if(!rec){var ln=name.split(',')[0].trim();var k=Object.keys(day).find(function(x){return x===ln||x.startsWith(ln+',');});if(k)rec=day[k];}
+    if(!rec||rec.status==='P')return;
     entries.push({date:date,status:rec.status,reason:rec.reason||'',sub:rec.sub||'',periods:(rec.periods||[]).join(', ')});
   });
-
-  // Also include PTO absences not in history
   (pto.absences||[]).forEach(function(ab){
-    if(!entries.find(function(e){return e.date===ab.date;})){
+    if(!entries.find(function(e){return e.date===ab.date;}))
       entries.push({date:ab.date,status:ab.type||'PTO',reason:'',sub:'',periods:''});
-    }
   });
   entries.sort(function(a,b){return a.date<b.date?1:-1;});
-
-  const statusLabel={
-    'EA':'Excused Absence','UA':'Unexcused Absence','PTO':'PTO','SE':'School Event',
-    'PD':'Professional Development','T':'Tardy','ET':'Early Tardy','wellness':'Wellness Day',
-    'PH':'Personal/Holiday'
-  };
-  const statusColor={
-    'EA':'#e67e22','UA':'#e74c3c','PTO':'#3498db','SE':'#27ae60',
-    'PD':'#8e44ad','T':'#f39c12','ET':'#f39c12','wellness':'#16a085','PH':'#2980b9'
-  };
-
-  const rows=entries.map(function(e){
-    const d=new Date(e.date+'T12:00:00');
-    const dateStr=d.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-    const label=statusLabel[e.status]||e.status||'Absent';
-    const color=statusColor[e.status]||'#7f8c8d';
-    return '<tr><td style="padding:8px 12px;border-bottom:0.5px solid #eee;font-size:12px;white-space:nowrap">'+dateStr+'</td>'
-      +'<td style="padding:8px 12px;border-bottom:0.5px solid #eee"><span style="background:'+color+'1a;color:'+color+';border:1px solid '+color+'40;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">'+label+'</span></td>'
-      +'<td style="padding:8px 12px;border-bottom:0.5px solid #eee;font-size:12px;color:#555">'+e.reason+'</td>'
-      +'<td style="padding:8px 12px;border-bottom:0.5px solid #eee;font-size:12px;color:#555">'+e.sub+'</td>'
-      +'<td style="padding:8px 12px;border-bottom:0.5px solid #eee;font-size:12px;color:#555">'+e.periods+'</td>'
+  var labels={EA:'Excused Absence',UA:'Unexcused Absence',PTO:'PTO',SE:'School Event',PD:'Professional Development',T:'Tardy',ET:'Early Tardy',wellness:'Wellness Day',PH:'Personal/Holiday'};
+  var colors={EA:'#e67e22',UA:'#e74c3c',PTO:'#3498db',SE:'#27ae60',PD:'#8e44ad',T:'#f39c12',ET:'#f39c12',wellness:'#16a085',PH:'#2980b9'};
+  var rows=entries.map(function(e){
+    var d=new Date(e.date+'T12:00:00');
+    var ds=d.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+    var label=labels[e.status]||e.status||'Absent';
+    var color=colors[e.status]||'#7f8c8d';
+    var td='padding:8px 12px;border-bottom:0.5px solid #eee;font-size:12px';
+    return '<tr>'
+      +'<td style="'+td+'">'+ds+'</td>'
+      +'<td style="'+td+'"><span style="background:'+color+'22;color:'+color+';border:1px solid '+color+'44;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">'+label+'</span></td>'
+      +'<td style="'+td+'">'+e.reason+'</td>'
+      +'<td style="'+td+'">'+e.sub+'</td>'
+      +'<td style="'+td+'">'+e.periods+'</td>'
       +'</tr>';
   }).join('');
-
-  const html='<div id="staff-profile-overlay" style="position:fixed;inset:0;background:#0006;z-index:9999;display:flex;align-items:center;justify-content:center" onclick="if(event.target.id==='staff-profile-overlay')closeStaffProfile()">'
-    +'<div style="background:#fff;border-radius:12px;width:90%;max-width:820px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px #0003">'
+  var remColor=pto.remaining>=0?'#27ae60':'#e74c3c';
+  var remText=Math.abs(pto.remaining)+' '+(pto.remaining>=0?'remaining':'over limit');
+  var tbl=entries.length===0
+    ?'<div style="padding:40px;text-align:center;color:#999;font-size:13px">No absence records found.</div>'
+    :'<div style="overflow-y:auto;flex:1">'
+      +'<table style="width:100%;border-collapse:collapse">'
+      +'<thead><tr style="background:#f8f9fa;position:sticky;top:0">'
+      +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase">Date</th>'
+      +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase">Type</th>'
+      +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase">Reason</th>'
+      +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase">Sub</th>'
+      +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase">Periods</th>'
+      +'</tr></thead>'
+      +'<tbody>'+rows+'</tbody>'
+      +'</table></div>';
+  var el=document.createElement('div');
+  el.id='spo';
+  el.style.cssText='position:fixed;inset:0;background:#0006;z-index:9999;display:flex;align-items:center;justify-content:center';
+  el.onclick=function(ev){if(ev.target===el)closeStaffProfile();};
+  el.innerHTML='<div style="background:#fff;border-radius:12px;width:90%;max-width:820px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px #0003">'
     +'<div style="padding:20px 24px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
     +'<div>'
     +'<div style="font-size:17px;font-weight:700;color:#1a1a2e">'+name+'</div>'
-    +'<div style="font-size:12px;color:#666;margin-top:3px">PTO: <b>'+pto.used+'</b> used of <b>'+pto.available+'</b> days · <b style="color:'+(pto.remaining>=0?'#27ae60':'#e74c3c')+'">'+Math.abs(pto.remaining)+' '+(pto.remaining>=0?'remaining':'over limit')+'</b></div>'
+    +'<div style="font-size:12px;color:#666;margin-top:3px">PTO: <b>'+pto.used+'</b> used of <b>'+pto.available+'</b> days &nbsp;&middot;&nbsp; <b style="color:'+remColor+'">'+remText+'</b></div>'
     +'</div>'
     +'<div style="display:flex;gap:10px;align-items:center">'
-    +'<button onclick="downloadAttendancePDF(''+name+'')" style="background:#185FA5;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">⬇ Download PDF</button>'
-    +'<button onclick="closeStaffProfile()" style="background:#f0f0f0;border:none;padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>'
+    +'<button id="spo-pdf-btn" style="background:#185FA5;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Download PDF</button>'
+    +'<button onclick="closeStaffProfile()" style="background:#f0f0f0;border:none;padding:7px 12px;border-radius:6px;font-size:12px;cursor:pointer">Close</button>'
     +'</div></div>'
-    +(entries.length===0?'<div style="padding:40px;text-align:center;color:#999;font-size:13px">No absence records found for '+name+'</div>'
-    :'<div style="overflow-y:auto;flex:1"><table style="width:100%;border-collapse:collapse">'
-    +'<thead><tr style="background:#f8f9fa;position:sticky;top:0">'
-    +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.05em">Date</th>'
-    +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.05em">Type</th>'
-    +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.05em">Reason</th>'
-    +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.05em">Sub</th>'
-    +'<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.05em">Periods</th>'
-    +'</tr></thead><tbody>'+rows+'</tbody></table></div>')
-    +'<div style="padding:12px 24px;border-top:1px solid #eee;font-size:11px;color:#999;flex-shrink:0">Total non-present entries: '+entries.length+'</div>'
-    +'</div></div>';
-
-  document.body.insertAdjacentHTML('beforeend',html);
+    +tbl
+    +'<div style="padding:10px 24px;border-top:1px solid #eee;font-size:11px;color:#999;flex-shrink:0">'+entries.length+' total entries</div>'
+    +'</div>';
+  document.body.appendChild(el);
+  document.getElementById('spo-pdf-btn').onclick=function(){downloadAttPDF(name);};
 }
 
 function closeStaffProfile(){
-  const el=document.getElementById('staff-profile-overlay');
-  if(el) el.remove();
+  var el=document.getElementById('spo');
+  if(el)el.remove();
 }
 
-function downloadAttendancePDF(name){
-  const pto=S.ptoData[name]||{available:0,used:0,remaining:0,absences:[]};
-  const hist=S.attendanceHistory||{};
-  const entries=[];
+function downloadAttPDF(name){
+  var pto=S.ptoData[name]||{available:0,used:0,remaining:0,absences:[]};
+  var hist=S.attendanceHistory||{};
+  var entries=[];
   Object.keys(hist).sort().forEach(function(date){
-    const day=hist[date];
-    if(!day) return;
-    let rec=day[name];
-    if(!rec){const ln=name.split(',')[0].trim();const k=Object.keys(day).find(function(x){return x===ln||x.startsWith(ln+',');});if(k)rec=day[k];}
-    if(!rec||rec.status==='P') return;
+    var day=hist[date]; if(!day)return;
+    var rec=day[name];
+    if(!rec){var ln=name.split(',')[0].trim();var k=Object.keys(day).find(function(x){return x===ln;});if(k)rec=day[k];}
+    if(!rec||rec.status==='P')return;
     entries.push({date:date,status:rec.status,reason:rec.reason||'',sub:rec.sub||'',periods:(rec.periods||[]).join(', ')});
   });
-  (pto.absences||[]).forEach(function(ab){if(!entries.find(function(e){return e.date===ab.date;}))entries.push({date:ab.date,status:ab.type||'PTO',reason:'',sub:'',periods:''}); });
+  (pto.absences||[]).forEach(function(ab){
+    if(!entries.find(function(e){return e.date===ab.date;}))
+      entries.push({date:ab.date,status:ab.type||'PTO',reason:'',sub:'',periods:''});
+  });
   entries.sort(function(a,b){return a.date<b.date?1:-1;});
-
-  const statusLabel={'EA':'Excused Absence','UA':'Unexcused Absence','PTO':'PTO','SE':'School Event','PD':'Professional Development','T':'Tardy','ET':'Early Tardy','wellness':'Wellness Day','PH':'Personal/Holiday'};
-  const rows=entries.map(function(e){
-    const d=new Date(e.date+'T12:00:00');
-    const ds=d.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-    const label=statusLabel[e.status]||e.status||'Absent';
-    return '<tr><td>'+ds+'</td><td>'+label+'</td><td>'+(e.reason||'—')+'</td><td>'+(e.sub||'—')+'</td><td>'+(e.periods||'—')+'</td></tr>';
+  var labels={EA:'Excused Absence',UA:'Unexcused Absence',PTO:'PTO',SE:'School Event',PD:'Professional Development',T:'Tardy',ET:'Early Tardy',wellness:'Wellness Day',PH:'Personal/Holiday'};
+  var rows=entries.map(function(e){
+    var d=new Date(e.date+'T12:00:00');
+    var ds=d.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+    return '<tr><td>'+ds+'</td><td>'+(labels[e.status]||e.status)+'</td><td>'+(e.reason||'&mdash;')+'</td><td>'+(e.sub||'&mdash;')+'</td><td>'+(e.periods||'&mdash;')+'</td></tr>';
   }).join('');
-
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Attendance — '+name+'</title>'
-    +'<style>body{font-family:Arial,sans-serif;margin:32px;color:#1a1a2e}h1{font-size:18px;margin-bottom:4px}p{font-size:13px;color:#555;margin:0 0 20px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#185FA5;color:#fff;padding:8px 12px;text-align:left}td{padding:8px 12px;border-bottom:1px solid #ddd}tr:nth-child(even){background:#f9f9f9}.summary{display:flex;gap:24px;margin-bottom:20px;padding:12px 16px;background:#f4f8ff;border-radius:8px;font-size:13px}.stat span{font-size:20px;font-weight:700;display:block}@media print{button{display:none}}</style>'
+  var remColor=pto.remaining>=0?'#27ae60':'#e74c3c';
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Attendance - '+name+'</title>'
+    +'<style>body{font-family:Arial,sans-serif;margin:32px;color:#1a1a2e}h1{font-size:18px;margin-bottom:4px}.meta{font-size:12px;color:#666;margin-bottom:20px}.summary{display:flex;gap:24px;margin-bottom:20px;padding:14px 18px;background:#f4f8ff;border-radius:8px}.stat .n{font-size:22px;font-weight:700;display:block}.stat .l{font-size:11px;color:#666}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:16px}th{background:#185FA5;color:#fff;padding:8px 12px;text-align:left}td{padding:8px 12px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9f9f9}</style>'
     +'</head><body>'
-    +'<h1>Attendance Report — '+name+'</h1>'
-    +'<p>Highland Prep AZ · Generated '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</p>'
+    +'<h1>Attendance Report &mdash; '+name+'</h1>'
+    +'<div class="meta">Highland Prep AZ &nbsp;&middot;&nbsp; Generated '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</div>'
     +'<div class="summary">'
-    +'<div class="stat"><span>'+pto.available+'</span>Days Allowed</div>'
-    +'<div class="stat"><span>'+pto.used+'</span>Days Used</div>'
-    +'<div class="stat"><span style="color:'+(pto.remaining>=0?'#27ae60':'#e74c3c')+'">'+Math.abs(pto.remaining)+'</span>'+(pto.remaining>=0?'Remaining':'Over Limit')+'</div>'
-    +'<div class="stat"><span>'+entries.length+'</span>Total Entries</div>'
+    +'<div class="stat"><span class="n">'+pto.available+'</span><span class="l">Days Allowed</span></div>'
+    +'<div class="stat"><span class="n">'+pto.used+'</span><span class="l">Days Used</span></div>'
+    +'<div class="stat"><span class="n" style="color:'+remColor+'">'+Math.abs(pto.remaining)+'</span><span class="l">'+(pto.remaining>=0?'Remaining':'Over Limit')+'</span></div>'
+    +'<div class="stat"><span class="n">'+entries.length+'</span><span class="l">Total Entries</span></div>'
     +'</div>'
     +'<table><thead><tr><th>Date</th><th>Type</th><th>Reason</th><th>Sub Coverage</th><th>Periods</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table>'
     +'</body></html>';
-
-  const blob=new Blob([html],{type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  const w=window.open(url,'_blank');
+  var blob=new Blob([html],{type:'text/html'});
+  var url=URL.createObjectURL(blob);
+  var w=window.open(url,'_blank');
   setTimeout(function(){if(w)w.print();},600);
   setTimeout(function(){URL.revokeObjectURL(url);},5000);
 }
+
 </script>
 </body>
 </html>
