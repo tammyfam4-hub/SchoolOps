@@ -1616,10 +1616,18 @@ function addSubtaskField(ex){
   const sf=document.getElementById('subtask-fields');
   const uid='st'+Date.now()+Math.floor(Math.random()*999);
   const d=document.createElement('div');
-  d.style.cssText='display:flex;align-items:center;gap:7px;margin-bottom:7px';
-  const isDone=ex&&ex.done;
-  d.innerHTML=`<div class="sub-chk${isDone?' done':''}" onclick="toggleStCheck(this)">${isDone?'\u2713':''}</div><input id="si-${uid}" value="${ex?ex.title:''}" placeholder="Subtask description..." style="flex:1;padding:5px 9px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none"><select id="sa-${uid}" style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;max-width:170px"><option value="">Assignee...</option>${TEAM_MEMBERS.map(m=>`<option value="${m}"${ex&&ex.assign===m?' selected':''}>${m}</option>`).join('')}</select><span onclick="this.parentElement.remove()" style="cursor:pointer;color:var(--t3);padding:3px 6px;font-size:12px">✕</span>`;
-  d.dataset.stid=ex?ex.id:'new';
+  d.style.cssText='display:flex;flex-direction:column;gap:4px;margin-bottom:10px;padding:7px 9px;background:var(--bg2);border:0.5px solid var(--border-md);border-radius:var(--r)';
+  const isDone=ex?ex.done:false;
+  const memberOpts=TEAM_MEMBERS.map(function(m){return '<option value="'+m+'"'+(ex&&ex.assign===m?' selected':'')+'>'+m+'</option>';}).join('');
+  const notesVal=ex&&ex.notes?ex.notes.replace(/&/g,'&amp;').replace(/"/g,'&quot;'):'';
+  d.innerHTML='<div style="display:flex;align-items:center;gap:7px">'
+    +'<div class="sub-chk'+(isDone?' done':'')+'" onclick="toggleStCheck(this)">'+(isDone?'&#x2713;':'')+'</div>'
+    +'<input id="si-'+uid+'" value="'+(ex?ex.title.replace(/&/g,'&amp;').replace(/"/g,'&quot;'):'')+'" placeholder="Subtask description..." style="flex:1;padding:5px 9px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'
+    +'<select id="sa-'+uid+'" style="padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'+memberOpts+'</select>'
+    +'<span onclick="this.closest(''[data-stid]'').remove()" style="cursor:pointer;color:var(--t3);padding:3px 6px;font-size:12px">&#x2715;</span>'
+    +'</div>'
+    +'<input class="st-notes" placeholder="Notes / contact info..." value="'+notesVal+'" style="width:100%;padding:4px 9px;font-size:11px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t2);font-family:inherit;outline:none;box-sizing:border-box">';
+  d.dataset.stid=ex?String(ex.id):'new';
   d.dataset.done=isDone?'true':'false';
   sf.appendChild(d);
 }
@@ -1634,7 +1642,8 @@ function collectSubtasks(){
     const title=inp?inp.value.trim():'';
     if(!title)return;
     const assign=sel?sel.value:'';
-    out.push({id:r.dataset.stid==='new'?++stCounter:parseInt(r.dataset.stid)||++stCounter,title,assign,email:TEAM_EMAILS[assign]||'',done:r.dataset.done==='true'});
+    const notes=(r.querySelector('.st-notes')||{value:''}).value.trim();
+    out.push({id:r.dataset.stid==='new'?++stCounter:parseInt(r.dataset.stid)||++stCounter,title,assign,notes,email:TEAM_EMAILS[assign]||'',done:r.dataset.done==='true'});
   });
   return out;
 }
@@ -2807,7 +2816,7 @@ function renderTeamWorkload(){
       <button class="btn btn-sm" onclick="openEmailToTeammate('${name}')" title="Send email">✉</button>
     </div>
     ${data.tasks.length?data.tasks.map(t=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border)"><div class="sub-chk ${t.done?'done':''}" onclick="toggleTask(${t.id})" style="flex-shrink:0">${t.done?'\u2713':''}</div><div style="flex:1;font-size:12px;font-weight:${t.done?400:500};${t.done?'text-decoration:line-through;color:var(--t3)':''}">${t.title}</div><span class="badge ${{High:'b-red',Medium:'b-amber',Low:'b-gray'}[t.pri]}" style="font-size:10px">${t.pri}</span>${t.due?`<span style="font-size:10px;color:${t.due<new Date().toISOString().slice(0,10)&&!t.done?'var(--red-t)':'var(--t3)'}">${fmt(t.due)}</span>`:''}<button class="btn btn-sm" style="font-size:10px;padding:2px 6px" onclick="openTaskModal(${t.id})">Edit</button></div>`).join(''):'<div style="font-size:12px;color:var(--t3);padding:6px 0">No tasks assigned</div>'}
-    ${data.subtasks.length?`<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:4px">Assigned Subtasks</div>`+data.subtasks.map(s=>`<div style="font-size:11px;color:var(--t2);padding:3px 0;display:flex;align-items:center;gap:6px"><span style="color:${s.done?'var(--green-t)':'var(--t3)'};">${s.done?'\u2713':'○'}</span><span style="${s.done?'text-decoration:line-through':''}">${s.title}</span><span style="color:var(--t3);font-size:10px">(${s.parentTask})</span></div>`).join('')+'</div>'  :''}
+    ${data.subtasks.length?`<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)"><div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:4px">Assigned Subtasks</div>`+data.subtasks.map(s=>`<div style="font-size:11px;color:var(--t2);padding:3px 0;display:flex;align-items:center;gap:6px"><span style="color:${s.done?'var(--green-t)':'var(--t3)'};">${s.done?'\u2713':'○'}</span><span style="${s.done?'text-decoration:line-through':''}">${s.title}</span>${s.notes?'<div style="font-size:10px;color:var(--t3);padding-left:18px">Notes: '+s.notes+'</div>':''}<span style="color:var(--t3);font-size:10px">(${s.parentTask})</span></div>`).join('')+'</div>'  :''}
     </div>`;
   }).join('')+'</div>';
 }
