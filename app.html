@@ -584,6 +584,21 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <div class="frow"><label class="flabel">Assignee Email</label><input type="email" id="t-email" placeholder="email@highlandprep.org"></div>
   </div>
   <div class="frow"><label class="flabel">Notes / Description</label><textarea id="t-notes" rows="2" placeholder="Additional details..."></textarea></div>
+  <div style="margin-top:10px;padding:10px 12px;background:var(--bg2);border:0.5px solid var(--border-md);border-radius:var(--r);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap">
+      <input type="checkbox" id="t-recurring" style="width:15px;height:15px;accent-color:var(--blue-t,#185FA5);cursor:pointer" onchange="document.getElementById('t-freq-row').style.display=this.checked?'flex':'none'">
+      Recurring Task
+    </label>
+    <div id="t-freq-row" style="display:none;align-items:center;gap:8px;flex:1">
+      <span style="font-size:11px;color:var(--t2)">Frequency:</span>
+      <select id="t-freq" style="padding:4px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg);color:var(--t1);font-family:inherit;outline:none;cursor:pointer">
+        <option value="weekly">Weekly</option>
+        <option value="biweekly">Bi-Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="annual" selected>Annual</option>
+      </select>
+    </div>
+  </div>
   <div style="margin-top:4px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <div style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em">Subtasks</div>
@@ -1605,6 +1620,12 @@ function openTaskModal(taskId){
   document.getElementById('t-remind').checked=false;
   populateTaskAssignSelect();
   document.getElementById('t-assign').value=t?t.assign||'':'Cline, Tammy';
+  var recurChk=document.getElementById('t-recurring');
+  var freqRow=document.getElementById('t-freq-row');
+  var freqSel=document.getElementById('t-freq');
+  if(recurChk){recurChk.checked=!!(t&&t.recurring);}
+  if(freqRow){freqRow.style.display=(t&&t.recurring)?'flex':'none';}
+  if(freqSel&&t&&t.freq){freqSel.value=t.freq;}else if(freqSel){freqSel.value='annual';}
   const sf=document.getElementById('subtask-fields');
   sf.innerHTML='';
   (t?t.subtasks||[]: []).forEach(st=>addSubtaskField(st));
@@ -1624,7 +1645,7 @@ function addSubtaskField(ex){
   d.innerHTML='<div style="display:flex;align-items:center;gap:7px;width:100%">'
     +'<div class="sub-chk'+(isDone?' done':'')+'" onclick="toggleStCheck(this)">'+(isDone?'&#x2713;':'')+'</div>'
     +'<input class="st-title" id="si-'+uid+'" value="'+(ex?ex.title.replace(/&/g,'&amp;').replace(/"/g,'&quot;'):'')+'" placeholder="Subtask description..." style="flex:1;min-width:0;padding:5px 9px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'
-    +'<select id="sa-'+uid+'" style="width:130px;flex-shrink:0;width:130px;flex-shrink:0;width:130px;flex-shrink:0;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'+memberOpts+'</select>'
+    +'<select id="sa-'+uid+'" style="width:130px;flex-shrink:0;width:130px;flex-shrink:0;width:130px;flex-shrink:0;width:130px;flex-shrink:0;padding:5px 8px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;outline:none">'+memberOpts+'</select>'
     +'<span onclick="this.closest(\'[data-stid]\').remove()" style="cursor:pointer;color:var(--t3);padding:3px 6px;font-size:12px">&#x2715;</span>'
     +'</div>'
     +'<input class="st-notes" placeholder="Notes / contact info..." value="'+notesVal+'" style="width:100%;padding:4px 9px;font-size:11px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t2);font-family:inherit;outline:none;box-sizing:border-box">';
@@ -1656,8 +1677,12 @@ function saveTask(){
   const assign=document.getElementById('t-assign').value;
   const email=document.getElementById('t-email').value||(assign?TEAM_EMAILS[assign]||'':'');
   const subtasks=collectSubtasks();
+  const recurringChk=document.getElementById('t-recurring');
+  const isRecurring=recurringChk?recurringChk.checked:false;
+  const freqEl=document.getElementById('t-freq');
+  const taskFreq=isRecurring&&freqEl?freqEl.value:'';
   const remind=document.getElementById('t-remind').checked;
-  const taskData={title,cat:document.getElementById('t-cat').value,pri:document.getElementById('t-pri').value,status:st,due:document.getElementById('t-due').value,assign:assign||'Unassigned',email,notes:document.getElementById('t-notes').value,done:st==='done',subtasks};
+  const taskData={title,cat:document.getElementById('t-cat').value,pri:document.getElementById('t-pri').value,status:st,due:document.getElementById('t-due').value,assign:assign||'Unassigned',email,notes:document.getElementById('t-notes').value,done:st==='done',subtasks,recurring:isRecurring,freq:taskFreq};
   if(editingTaskId){const t=S.tasks.find(x=>x.id===editingTaskId);if(t)Object.assign(t,taskData);}
   else S.tasks.unshift({id:S.nextId++,...taskData});
   closeTaskModal();
@@ -4652,6 +4677,7 @@ function generatePDF(){
   toast('PDF exported: '+fname+' ✓');
 }
 
+</script>
 </script>
 <script>
 function showStaffProfile(name){
