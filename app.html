@@ -215,6 +215,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <div class="nav-item" onclick="showPanel('calendar',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="13" rx="1.5"/><path d="M1 6h14M5 1v3M11 1v3M4 9h2M7 9h2M10 9h2M4 12h2M7 12h2M10 12h2"/></svg>Master Calendar
     </div>
+      <div class="nav-item" onclick="showPanel('contacts',this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/><circle cx="12" cy="5" r="2"/><path d="M15 13c0-2-1.5-3.5-3-4"/></svg>Contacts
+      </div>
   </nav>
   <div class="sidebar-footer">
     <div class="footer-date" id="footer-date"></div>
@@ -1311,6 +1314,9 @@ function togglePlanDayType(){
   if(row)row.style.display=isPartial?'':'none';
 }
 function togglePlanDayType(){const isP=document.getElementById('p-partial')&&document.getElementById('p-partial').checked;const row=document.getElementById('p-periods-row');if(row)row.style.display=isP?'':'none';}
+
+const _origShowPanel=showPanel;
+function showPanel(id,el){_origShowPanel(id,el);if(id==='contacts')renderContacts();}
 async function initData(){
   // ── 1. Check auth ──────────────────────────────────────────────
   const{data:{session}}=await sb.auth.getSession();
@@ -2772,36 +2778,44 @@ function renderContacts(){
   const el=document.getElementById('contacts-list');
   if(!el)return;
   if(!S.contacts)S.contacts=[];
-  // Use S.roster if available, else fall back to hardcoded arrays
-  const roster = (S.roster&&S.roster.length>0) ? S.roster : [...TEACHERS,...STAFF].map(function(m,i){return {id:1000+i,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''};});
-  const teachers = roster.filter(function(m){return m.type==='teacher';}).sort(function(a,b){return a.name.localeCompare(b.name);});
-  const staff = roster.filter(function(m){return m.type!=='teacher';}).sort(function(a,b){return a.name.localeCompare(b.name);});
-  const emDash = '—';
-  function memberRow(m){
-    return '<tr><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;color:var(--t1)">'+m.name+'<div style="font-size:11px;color:var(--t3);margin-top:2px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+'</div></td>'
-      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.phone||emDash)+'</td>'
-      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.birthday||emDash)+'</td>'
-      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.email||emDash)+'</td>'
-      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border)">'
-      +'<button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+JSON.stringify(m)+')">Edit</button> '
-      +'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+m.id+')">Remove</button>'
-      +'</td></tr>';
-  }
-  const thead = '<thead><tr>'
-    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Name</th>'
-    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Phone</th>'
-    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Birthday</th>'
-    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Email</th>'
-    +'<th></th></tr></thead>';
-  el.innerHTML = '<div class="card" style="margin-bottom:16px">'
-    +'<div class="shdr"><div class="stitle">Teachers ('+teachers.length+')</div>'
-    +'<button class="btn btn-primary btn-sm" onclick="openRosterModal(null)">+ Add Employee</button></div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+teachers.map(memberRow).join('')+'</tbody></table>'
-    +'</div>'
-    +'<div class="card">'
-    +'<div class="shdr"><div class="stitle">Staff ('+staff.length+')</div></div>'
-    +'<table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+staff.map(memberRow).join('')+'</tbody></table>'
-    +'</div>';
+  
+  // Group contacts
+  const groups={
+    'Teachers':TEACHERS.map(t=>({name:t.name,email:TEAM_EMAILS[t.name]||'',phone:t.phone||'—',group:'Teachers',builtin:true})),
+    'Staff':STAFF.map(s=>({name:s.name,email:'',phone:s.phone||'—',group:'Staff',builtin:true})),
+    'District Admin & Others':S.contacts
+  };
+
+  el.innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" onclick="openContactModal()">+ Add Contact</button>
+    </div>
+    ${Object.entries(groups).map(([group,members])=>`
+      <div class="card" style="margin-bottom:12px">
+        <div class="shdr">
+          <div class="stitle">${group} <span style="font-size:11px;font-weight:500;color:var(--t3)">(${members.length})</span></div>
+        </div>
+        ${members.length?`
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr>
+            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Name</th>
+            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Email</th>
+            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Phone</th>
+            <th style="padding:8px 10px;border-bottom:0.5px solid var(--border)"></th>
+          </tr></thead>
+          <tbody>
+            ${members.map((m,i)=>`<tr>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-weight:600">${m.name}</td>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--blue-t)">${m.email?`<a href="mailto:${m.email}" style="color:var(--blue-t);text-decoration:none">✉ ${m.email}</a>`:'—'}</td>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--t2)">${m.phone||'—'}</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">${m.birthday||'—'}</td>
+              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
+                ${!m.builtin?`<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteContact(${S.contacts.indexOf(m)})">✕ Remove</button>`:''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`:'<div class="empty" style="padding:12px">No contacts in this group yet.</div>'}
+      </div>`).join('')}
+  `;
 }
 
 function openContactModal(idx){
@@ -4722,3 +4736,12 @@ function generatePDF(){
 </script>
 </body>
 </html>
+  <div class="panel" id="panel-contacts">
+    <div class="panel-header">
+      <div class="panel-title">👥 Staff Directory</div>
+    </div>
+    <div class="panel-body">
+      <div id="contacts-list"></div>
+    </div>
+  </div>
+
