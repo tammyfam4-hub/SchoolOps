@@ -1347,6 +1347,7 @@ async function initData(){
   // Sync group names to HISTORICAL_TX keys for exact matching
   const _htxAllKeys=Object.keys(HISTORICAL_TX);
   [...S.sports,...S.clubs].forEach(g=>{
+    if((g.transactions||[]).length>0)return;
     if(!HISTORICAL_TX[g.name]){
       const match=_htxAllKeys.find(k=>
         k.toLowerCase()===g.name.toLowerCase()||
