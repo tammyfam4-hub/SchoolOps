@@ -2785,45 +2785,17 @@ function toggleTaskCard(id){
 function renderContacts(){
   const el=document.getElementById('contacts-list');
   if(!el)return;
-  if(!S.contacts)S.contacts=[];
-  
-  // Group contacts
-  const groups={
-    'Teachers':TEACHERS.map(t=>({name:t.name,email:TEAM_EMAILS[t.name]||'',phone:t.phone||'—',group:'Teachers',builtin:true})),
-    'Staff':STAFF.map(s=>({name:s.name,email:'',phone:s.phone||'—',group:'Staff',builtin:true})),
-    'District Admin & Others':S.contacts
-  };
-
-  el.innerHTML=`
-    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-      <button class="btn btn-primary btn-sm" onclick="openContactModal()">+ Add Contact</button>
-    </div>
-    ${Object.entries(groups).map(([group,members])=>`
-      <div class="card" style="margin-bottom:12px">
-        <div class="shdr">
-          <div class="stitle">${group} <span style="font-size:11px;font-weight:500;color:var(--t3)">(${members.length})</span></div>
-        </div>
-        ${members.length?`
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead><tr>
-            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Name</th>
-            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Email</th>
-            <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);border-bottom:0.5px solid var(--border);text-transform:uppercase">Phone</th>
-            <th style="padding:8px 10px;border-bottom:0.5px solid var(--border)"></th>
-          </tr></thead>
-          <tbody>
-            ${members.map((m,i)=>`<tr>
-              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);font-weight:600">${m.name}</td>
-              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--blue-t)">${m.email?`<a href="mailto:${m.email}" style="color:var(--blue-t);text-decoration:none">✉ ${m.email}</a>`:'—'}</td>
-              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--t2)">${m.phone||'—'}</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">${m.birthday||'—'}</td>
-              <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
-                ${!m.builtin?`<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteContact(${S.contacts.indexOf(m)})">✕ Remove</button>`:''}
-              </td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`:'<div class="empty" style="padding:12px">No contacts in this group yet.</div>'}
-      </div>`).join('')}
-  `;
+  const fallback=[...TEACHERS,...STAFF].map(function(m,i){return {id:1000+i,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''};});
+  const roster=(S.roster&&S.roster.length>0)?S.roster.slice().sort(function(a,b){return a.name.localeCompare(b.name);}):fallback;
+  const teachers=roster.filter(function(m){return m.type==='teacher';});
+  const staff=roster.filter(function(m){return m.type!=='teacher';});
+  const em='—';
+  function row(m){
+    var safeM=JSON.stringify({id:m.id,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''});
+    return '<tr><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600">'+m.name+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+'</div></td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.phone||em)+'</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.birthday||em)+'</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.email||em)+'</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);white-space:nowrap"><button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+safeM+')">Edit</button> <button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+m.id+')">Remove</button></td></tr>';
+  }
+  const thead='<thead><tr><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Name</th><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Phone</th><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Birthday</th><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Email</th><th></th></tr></thead>';
+  el.innerHTML='<div class="card" style="margin-bottom:16px"><div class="shdr"><div class="stitle">Teachers ('+teachers.length+')</div><button class="btn btn-primary btn-sm" onclick="openRosterModal(null)">+ Add Employee</button></div><table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+teachers.map(row).join('')+'</tbody></table></div><div class="card"><div class="shdr"><div class="stitle">Staff ('+staff.length+')</div></div><table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+staff.map(row).join('')+'</tbody></table></div>';
 }
 
 function openContactModal(idx){
