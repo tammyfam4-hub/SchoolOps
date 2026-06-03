@@ -2651,7 +2651,7 @@ function openMiscDetail(id){var g=(S.miscBudgets||[]).find(function(x){return x.
 function renderMiscDetailView(id){var grp=(S.miscBudgets||[]).find(function(g){return g.id===id;});if(!grp){closeGroupDetail();return;}var det=document.getElementById('budget-detail');if(!det)return;var txs=(grp.transactions||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date);});var rows=txs.map(function(t,i){var isPos=t.amount>=0;var amt=Math.abs(t.amount).toFixed(2);return '<tr style="'+(i%2===0?'background:var(--bg2)':'')+'"><td style="padding:8px 10px;border-bottom:0.5px solid var(--border)">'+fmt(t.date)+'</td><td style="padding:8px 10px;border-bottom:0.5px solid var(--border)">'+t.desc+'</td><td style="padding:8px 10px;text-align:right;color:var(--green-t)">'+(isPos?'$'+amt:'')+' </td><td style="padding:8px 10px;text-align:right;color:var(--red-t)">'+(isPos?'':'$'+amt)+' </td></tr>';}).join('');det.innerHTML='<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px"><button class="btn btn-sm" onclick="closeGroupDetail()">Back</button><div style="font-size:18px;font-weight:800">'+grp.name+'</div><div style="margin-left:auto"><button class="btn btn-primary btn-sm" onclick="openMiscTransaction('+grp.id+')">+ Transaction</button></div></div><div class="g4" style="margin-bottom:16px"><div class="metric"><div class="metric-lbl">Income</div><div class="metric-val" style="color:var(--green)">$'+(grp.credits||0).toFixed(2)+'</div></div><div class="metric"><div class="metric-lbl">Expenses</div><div class="metric-val" style="color:var(--red)">$'+(grp.debits||0).toFixed(2)+'</div></div><div class="metric"><div class="metric-lbl">Balance</div><div class="metric-val">$'+Math.abs(grp.balance||0).toFixed(2)+'</div></div><div class="metric"><div class="metric-lbl">Transactions</div><div class="metric-val">'+txs.length+'</div></div></div>'+(txs.length===0?'<div class="empty">No transactions yet.</div>':'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="padding:8px">Date</th><th style="padding:8px">Description</th><th style="padding:8px;text-align:right">Income</th><th style="padding:8px;text-align:right">Expense</th></tr></thead><tbody>'+rows+'</tbody></table>');}
 function deleteMiscTx(gid,txId){var grp=(S.miscBudgets||[]).find(function(g){return g.id===gid;});if(!grp||!confirm('Delete?'))return;var idx=grp.transactions.findIndex(function(t){return String(t.id)===String(txId);});if(idx>=0){var tx=grp.transactions[idx];if(tx.amount>=0)grp.credits=(grp.credits||0)-tx.amount;else grp.debits=(grp.debits||0)-Math.abs(tx.amount);grp.balance=(grp.credits||0)-(grp.debits||0);grp.transactions.splice(idx,1);}scheduleSave();renderMiscDetailView(gid);}
 var _rosterEditId=null;
-function openRosterModal(m){
+function openRosterModal(m){if(typeof m==='number'||typeof m==='string'){m=(S.roster||[]).find(function(r){return r.id==m;})||null;}
   _rosterEditId=m?m.id:null;
   var ov=document.createElement('div');
   ov.className='overlay open';
@@ -2791,11 +2791,30 @@ function renderContacts(){
   const staff=roster.filter(function(m){return m.type!=='teacher';});
   const em='—';
   function row(m){
-    var safeM=JSON.stringify({id:m.id,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''});
-    return '<tr><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600">'+m.name+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+'</div></td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.phone||em)+'</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.birthday||em)+'</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2)">'+(m.email||em)+'</td><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);white-space:nowrap"><button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+safeM+')">Edit</button> <button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+m.id+')">Remove</button></td></tr>';
+    return '<tr>'
+      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;width:22%">'+m.name+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+'</div></td>'
+      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:15%">'+(m.phone||em)+'</td>'
+      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:12%">'+(m.birthday||em)+'</td>'
+      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:35%">'+(m.email||em)+'</td>'
+      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);width:16%;white-space:nowrap">'
+      +'<button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+m.id+')">Edit</button> '
+      +'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+m.id+')">Remove</button>'
+      +'</td></tr>';
   }
-  const thead='<thead><tr><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Name</th><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Phone</th><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Birthday</th><th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border)">Email</th><th></th></tr></thead>';
-  el.innerHTML='<div class="card" style="margin-bottom:16px"><div class="shdr"><div class="stitle">Teachers ('+teachers.length+')</div><button class="btn btn-primary btn-sm" onclick="openRosterModal(null)">+ Add Employee</button></div><table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+teachers.map(row).join('')+'</tbody></table></div><div class="card"><div class="shdr"><div class="stitle">Staff ('+staff.length+')</div></div><table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+staff.map(row).join('')+'</tbody></table></div>';
+  const thead='<thead><tr>'
+    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border);width:22%">Name</th>'
+    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border);width:15%">Phone</th>'
+    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border);width:12%">Birthday</th>'
+    +'<th style="padding:10px 12px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;border-bottom:0.5px solid var(--border);width:35%">Email</th>'
+    +'<th style="width:16%"></th></tr></thead>';
+  const ts='width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed';
+  el.innerHTML=''
+    +'<div class="card" style="margin-bottom:16px">'
+    +'<div class="shdr"><div class="stitle">Teachers ('+teachers.length+')</div>'
+    +'<button class="btn btn-primary btn-sm" onclick="openRosterModal(null)">+ Add Employee</button></div>'
+    +'<table style="'+ts+'">'+thead+'<tbody>'+teachers.map(row).join('')+'</tbody></table></div>'
+    +'<div class="card"><div class="shdr"><div class="stitle">Staff ('+staff.length+')</div></div>'
+    +'<table style="'+ts+'">'+thead+'<tbody>'+staff.map(row).join('')+'</tbody></table></div>';
 }
 
 function openContactModal(idx){
