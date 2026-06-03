@@ -1316,7 +1316,15 @@ function togglePlanDayType(){
 function togglePlanDayType(){const isP=document.getElementById('p-partial')&&document.getElementById('p-partial').checked;const row=document.getElementById('p-periods-row');if(row)row.style.display=isP?'':'none';}
 
 const _origShowPanel=showPanel;
-function showPanel(id,el){_origShowPanel(id,el);if(id==='contacts')renderContacts();}
+function showPanel(id,el){_origShowPanel(id,el);if(id==='contacts')renderRoster();}
+function renderRoster(){
+  const el=document.getElementById('roster-list');
+  if(!el)return;
+  renderContacts();
+  // Copy output to roster-list
+  const src=document.getElementById('contacts-list');
+  if(src&&el&&src!==el)el.innerHTML=src.innerHTML;
+}
 async function initData(){
   // ── 1. Check auth ──────────────────────────────────────────────
   const{data:{session}}=await sb.auth.getSession();
@@ -4741,7 +4749,7 @@ function generatePDF(){
       <div class="panel-title">👥 Staff Directory</div>
     </div>
     <div class="panel-body">
-      <div id="contacts-list"></div>
+      <div id="roster-list"></div>
     </div>
   </div>
 
