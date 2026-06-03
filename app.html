@@ -2658,6 +2658,7 @@ function openRosterModal(m){
   var typeOpts=['teacher','staff','admin'].map(function(t){return '<option value="'+t+'"'+(m&&m.type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';}).join('');
   var sportOpts='<option value="">-- Select Sport --</option>'+((S.sports||[]).slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(s){return '<option value="'+s.name+'"'+(m&&m.coachSport===s.name?' selected':'')+'>'+s.name+'</option>';}).join(''));
   var isCoach=m&&m.isCoach?true:false;
+  var isInactive=m&&m.inactive?true:false;
   var html='<div class="modal" style="width:460px"><div class="modal-title">'+(m?'Edit Employee':'Add New Employee')+'</div>';
   html+='<div class="g2" style="gap:10px"><div class="frow"><label class="flabel">Full Name *</label><input id="rm-name" placeholder="Last, First" value="'+(m?m.name||'':'')+'" ></div>';
   html+='<div class="frow"><label class="flabel">Type</label><select id="rm-type">'+typeOpts+'</select></div></div>';
@@ -2667,12 +2668,13 @@ function openRosterModal(m){
   html+='<div class="frow"><label class="flabel">Email</label><input id="rm-email" type="email" placeholder="name@highlandprepaz.org" value="'+(m?m.email||'':'')+'" ></div>';
   html+='<div class="frow"><label class="flabel">Birthday (Month/Day)</label><input id="rm-birthday" placeholder="e.g. June 15" value="'+(m?m.birthday||'':'')+'" ></div>';
   html+='<div class="frow" style="padding:10px 12px;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border)">';
-  html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer">';
-  html+='<input type="checkbox" id="rm-coach" style="width:auto;margin:0"'+(isCoach?' checked':'')+' >';
-  html+='<div><div style="font-size:13px;font-weight:600">Coaches a Sport</div>';
-  html+='<div style="font-size:11px;color:var(--t3);margin-top:1px">Check if this employee coaches a sport</div></div></label>';
+  html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="rm-coach" style="width:auto;margin:0"'+(isCoach?' checked':'')+' >';
+  html+='<div><div style="font-size:13px;font-weight:600">Coaches a Sport</div><div style="font-size:11px;color:var(--t3);margin-top:1px">Check if this employee coaches a sport</div></div></label>';
   html+='<div id="rm-sport-row" style="margin-top:10px;display:'+(isCoach?'block':'none')+'">';
   html+='<label class="flabel">Sport</label><select id="rm-sport">'+sportOpts+'</select></div></div>';
+  html+='<div class="frow" style="padding:10px 12px;background:'+(isInactive?'#fef3c7':'var(--bg2)')+';border-radius:var(--r);border:0.5px solid '+(isInactive?'#f59e0b':'var(--border)+')+'">';
+  html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="rm-inactive" style="width:auto;margin:0"'+(isInactive?' checked':'')+' >';
+  html+='<div><div style="font-size:13px;font-weight:600">Mark as Inactive</div><div style="font-size:11px;color:var(--t3);margin-top:1px">Employee record kept but removed from active lists</div></div></label></div>';
   html+='<div class="modal-actions"><button class="btn btn-sm" onclick="document.getElementById(\'roster-overlay\').remove()">Cancel</button>';
   html+='<button class="btn btn-primary btn-sm" onclick="saveRosterMember()">Save</button></div></div>';
   ov.innerHTML=html;
@@ -2685,11 +2687,13 @@ function openRosterModal(m){
     var el=document.getElementById('rm-name');if(el)el.focus();
   },100);
 }
+
 function saveRosterMember(){
   var name=document.getElementById('rm-name').value.trim();
   if(!name){toast('Name is required');return;}
   var coachCb=document.getElementById('rm-coach');
   var sportEl=document.getElementById('rm-sport');
+  var inactiveCb=document.getElementById('rm-inactive');
   var member={
     id:_rosterEditId!=null?_rosterEditId:Date.now(),
     name:name,
@@ -2701,7 +2705,8 @@ function saveRosterMember(){
     birthday:document.getElementById('rm-birthday').value.trim(),
     isAdmin:document.getElementById('rm-type').value==='admin',
     isCoach:coachCb&&coachCb.checked,
-    coachSport:(coachCb&&coachCb.checked&&sportEl)?sportEl.value:''
+    coachSport:(coachCb&&coachCb.checked&&sportEl)?sportEl.value:'',
+    inactive:inactiveCb&&inactiveCb.checked
   };
   if(!S.roster)S.roster=[];
   if(_rosterEditId!=null){
@@ -2711,6 +2716,7 @@ function saveRosterMember(){
   var ov=document.getElementById('roster-overlay');if(ov)ov.remove();
   toast(name+' saved \u2713');scheduleSave();renderContacts();
 }
+
 function removeRosterMember(id){
   var m=(S.roster||[]).find(function(x){return x.id===id;});
   if(!m||!confirm('Remove '+m.name+' from the roster?'))return;
@@ -2822,19 +2828,12 @@ function renderContacts(){
   const em='\u2014';
   function row(m,isInactive){
     var mid=m.id;
-    var inactiveStyle=isInactive?'opacity:0.55;background:var(--bg2);':'';
-    return '<tr style="'+inactiveStyle+'">'
-      +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;width:22%">'+m.name
-      +(isInactive?'<span class="badge b-gray" style="font-size:10px;margin-left:6px">Inactive</span>':'')
-      +'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+(m.isCoach&&m.coachSport?' \u2022 \uD83C\uDFC6 '+m.coachSport:'')+'</div></td>'
+    return '<tr style="'+(isInactive?'opacity:0.55;':'')+'"><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;width:22%">'+m.name+(isInactive?'<span class="badge b-gray" style="font-size:10px;margin-left:6px">Inactive</span>':'')+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+(m.isCoach&&m.coachSport?' \u2022 \uD83C\uDFC6 '+m.coachSport:'')+'</div></td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:15%">'+(m.phone||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:12%">'+(m.birthday||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:35%">'+(m.email||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);width:16%;white-space:nowrap">'
-      +(isInactive
-        ?'<button class="btn btn-sm" style="font-size:11px;background:var(--green);color:#fff;border:none" onclick="toggleRosterActive('+mid+')">Activate</button> '
-        :'<button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+mid+')">Edit</button> '
-         +'<button class="btn btn-sm" style="font-size:11px;background:#f59e0b;color:#fff;border:none" onclick="toggleRosterActive('+mid+')">Deactivate</button> ')
+      +'<button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+mid+')">Edit</button> '
       +'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+mid+')">Remove</button>'
       +'</td></tr>';
   }
@@ -2853,7 +2852,7 @@ function renderContacts(){
     +'<div class="card" style="margin-bottom:16px"><div class="shdr"><div class="stitle">Staff ('+staff.length+')</div></div>'
     +'<table style="'+ts+'">'+thead+'<tbody>'+staff.map(function(m){return row(m,false);}).join('')+'</tbody></table></div>';
   if(inactive.length>0){
-    html+='<div class="card" style="opacity:0.8"><div class="shdr"><div class="stitle" style="color:var(--t3)">Inactive Employees ('+inactive.length+')</div></div>'
+    html+='<div class="card"><div class="shdr"><div class="stitle" style="color:var(--t3)">Inactive ('+inactive.length+')</div></div>'
     +'<table style="'+ts+'">'+thead+'<tbody>'+inactive.map(function(m){return row(m,true);}).join('')+'</tbody></table></div>';
   }
   el.innerHTML=html;
@@ -4781,7 +4780,7 @@ function generatePDF(){
     <div class="panel-header">
       <div class="panel-title">👥 Staff Directory</div>
     </div>
-    <div class="panel-body">
+    <div class="panel-body" style="overflow-y:auto;height:calc(100vh - 120px);padding-bottom:40px">
       <div id="roster-list"></div>
     </div>
   </div>
