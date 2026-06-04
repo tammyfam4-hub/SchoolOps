@@ -215,7 +215,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <div class="nav-item" onclick="showPanel('calendar',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="13" rx="1.5"/><path d="M1 6h14M5 1v3M11 1v3M4 9h2M7 9h2M10 9h2M4 12h2M7 12h2M10 12h2"/></svg>Master Calendar
     </div>
-      <div class="nav-item" onclick="showPanel('contacts',this);renderRoster()">
+      <div class="nav-item" onclick="document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.getElementById('panel-contacts').classList.add('active');document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});this.classList.add('active');renderRoster();">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="2.5"/><path d="M1 13c0-2.76 2.24-5 5-5s5 2.24 5 5"/><circle cx="12" cy="5" r="2"/><path d="M15 13c0-2-1.5-3.5-3-4"/></svg>Contacts
       </div>
   </nav>
@@ -4773,6 +4773,31 @@ function generatePDF(){
   doc.save(fname);
   toast('PDF exported: '+fname+' ✓');
 }
+
+// Auto-render contacts panel when it becomes active
+(function(){
+  function checkContactsPanel(){
+    var panel = document.getElementById('panel-contacts');
+    if(panel && panel.classList.contains('active')){
+      var el = document.getElementById('roster-list');
+      if(el && el.children.length === 0){
+        if(typeof renderRoster === 'function') renderRoster();
+      }
+    }
+  }
+  // Check on any class change to panels
+  var observer = new MutationObserver(function(mutations){
+    mutations.forEach(function(m){
+      if(m.target && m.target.id === 'panel-contacts'){
+        checkContactsPanel();
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    var panel = document.getElementById('panel-contacts');
+    if(panel) observer.observe(panel, {attributes:true, attributeFilter:['class']});
+  });
+})();
 </script>
 </body>
 </html>
