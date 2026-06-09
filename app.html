@@ -99,6 +99,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .task-card.expanded .task-expand{transform:rotate(90deg)}
 .subtask-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border)}
 .subtask-row:last-child{border-bottom:none}
+.stage-bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding:8px 10px;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border)}
+.stage-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);padding:3px 8px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg1);cursor:pointer;user-select:none;transition:all .12s}
+.stage-item.done{background:var(--green-bg,#d1fae5);border-color:var(--green,#10b981);color:var(--green,#10b981);font-weight:600}
+.stage-item.hidden{opacity:0.35;text-decoration:line-through}
+.stage-dot{width:7px;height:7px;border-radius:50%;background:var(--border-md);flex-shrink:0}
+.stage-dot.done{background:var(--green,#10b981)}
+.stage-toggle{font-size:10px;color:var(--t3);cursor:pointer;padding:2px 5px;border-radius:4px;border:0.5px solid var(--border);margin-left:4px;background:var(--bg2)}
+.stage-toggle:hover{background:var(--bg1)}
 .sub-chk{width:14px;height:14px;border:1.5px solid var(--border-md);border-radius:3px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;transition:all .12s}
 .sub-chk.done{background:var(--blue);border-color:var(--blue)}
 .sub-title{font-size:12px;flex:1}.sub-title.done{text-decoration:line-through;color:var(--t3)}
@@ -2733,6 +2741,74 @@ function toggleRosterActive(id){
   renderContacts();
 }
 
+
+var STAGE_KEYS = ['quoteRequested','poSent','orderConfirmed','received','invoicePaid'];
+var STAGE_LABELS = {quoteRequested:'Quote Requested',poSent:'PO Sent',orderConfirmed:'Order Confirmed',received:'Received',invoicePaid:'Invoice Paid'};
+
+function initSubtaskStages(st){
+  if(!st.stages){
+    st.stages={};
+    STAGE_KEYS.forEach(function(k){st.stages[k]={active:true,done:false,date:''};});
+  }
+}
+
+function toggleStageActive(taskId,stId,key){
+  var t=(S.tasks||[]).find(function(x){return x.id===taskId;});if(!t)return;
+  var st=(t.subtasks||[]).find(function(x){return x.id===stId;});if(!st)return;
+  initSubtaskStages(st);
+  st.stages[key].active=!st.stages[key].active;
+  // If just activated and was done, clear it
+  if(!st.stages[key].active) st.stages[key].done=false;
+  scheduleSave();
+  renderTasks();
+}
+
+function completeStage(taskId,stId,key){
+  var t=(S.tasks||[]).find(function(x){return x.id===taskId;});if(!t)return;
+  var st=(t.subtasks||[]).find(function(x){return x.id===stId;});if(!st)return;
+  initSubtaskStages(st);
+  var today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+  st.stages[key].done=!st.stages[key].done;
+  st.stages[key].date=st.stages[key].done?today:'';
+  // Auto-complete subtask if all active stages done
+  var activeStages=STAGE_KEYS.filter(function(k){return st.stages[k].active;});
+  var allDone=activeStages.length>0&&activeStages.every(function(k){return st.stages[k].done;});
+  if(allDone&&!st.done){st.done=true;toast(st.title+' completed \u2713');}
+  else if(!allDone&&st.done){st.done=false;}
+  scheduleSave();
+  renderTasks();
+}
+
+function toggleSubtaskExpand(taskId,stId){
+  var key='stExpand_'+taskId+'_'+stId;
+  window[key]=!window[key];
+  renderTasks();
+}
+
+function renderStageBar(t,s){
+  initSubtaskStages(s);
+  var activeDone=STAGE_KEYS.filter(function(k){return s.stages[k].active&&s.stages[k].done;}).length;
+  var activeTotal=STAGE_KEYS.filter(function(k){return s.stages[k].active;}).length;
+  var dots=STAGE_KEYS.filter(function(k){return s.stages[k].active;}).map(function(k){
+    return '<span class="stage-dot'+(s.stages[k].done?' done':'')+'"></span>';
+  }).join('');
+  var stageItems=STAGE_KEYS.map(function(k){
+    var sg=s.stages[k];
+    var cls='stage-item'+(sg.done?' done':'')+(sg.active?'':' hidden');
+    var hideLabel=sg.active?'Hide':'Show';
+    return '<span class="'+cls+'" onclick="completeStage('+t.id+','+s.id+',\''+k+'\')" title="'+(sg.done?'Click to undo':'Click to complete')+'">'
+      +(sg.done?'\u2713 ':'\u25cb ')+STAGE_LABELS[k]+(sg.date?' <span style="font-size:9px;opacity:0.7">('+sg.date+')</span>':'')
+      +'</span><button class="stage-toggle" onclick="event.stopPropagation();toggleStageActive('+t.id+','+s.id+',\''+k+'\')" title="'+hideLabel+' this stage">'+hideLabel+'</button>';
+  }).join('');
+  return '<div class="stage-bar"><div style="display:flex;align-items:center;gap:6px;width:100%;margin-bottom:6px">'
+    +'<span style="font-size:11px;font-weight:600;color:var(--t2)">Procurement Stages</span>'
+    +'<div style="display:flex;gap:3px;align-items:center;margin-left:4px">'+dots+'</div>'
+    +'<span style="font-size:10px;color:var(--t3);margin-left:4px">'+activeDone+' / '+activeTotal+' complete</span>'
+    +'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">'+stageItems+'</div>'
+    +'</div>';
+}
+
 function renderTasks(){
   const teamView=document.getElementById('task-team-view');
   const listView=document.getElementById('task-list-view');
@@ -2801,7 +2877,7 @@ function renderTasks(){
       </div>
       <div class="task-card-body">
         ${t.notes?`<div style="font-size:12px;color:var(--t2);margin-bottom:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--r)">${t.notes}</div>`:''}
-        ${sub.length?`<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Subtasks (${done}/${sub.length} complete)</div>`+'<div>'+sub.map(s=>`<div class="subtask-row"><div class="sub-chk ${s.done?'done':''}" onclick="toggleSubtask(${t.id},${s.id})">${s.done?'\u2713':''}</div><div class="sub-title ${s.done?'done':''}">${s.title}${s.notes?'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+s.notes+'</div>':''}</div><div class="sub-assign">${s.assign||''}</div>${s.assign?`<button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="openEmailModal({title:'Subtask: '+${JSON.stringify(s.title)},assign:${JSON.stringify(s.assign)},email:${JSON.stringify(s.email||'')},cat:${JSON.stringify(t.cat)},pri:${JSON.stringify(t.pri)},due:${JSON.stringify(t.due)},notes:'Part of: '+${JSON.stringify(t.title)},subtasks:[]})">✉</button>`:''}
+        ${sub.length?`<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Subtasks (${done}/${sub.length} complete)</div>`+'<div>'+sub.map(s=>`<div class="subtask-row" style="flex-wrap:wrap"><div style="display:flex;align-items:center;gap:8px;width:100%"><div class="sub-chk ${s.done?'done':''}" onclick="toggleSubtask(${t.id},${s.id})">${s.done?'\u2713':''}</div><div class="sub-title ${s.done?'done':''}" style="flex:1">${s.title}${s.notes?'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+s.notes+'</div>':''}</div><div class="sub-assign">${s.assign||''}</div><button class="btn btn-sm" style="font-size:10px;padding:2px 7px;flex-shrink:0" onclick="event.stopPropagation();toggleSubtaskExpand(${t.id},${s.id})" title="Show/hide procurement stages">${window['stExpand_'+t.id+'_'+s.id]?'\u25bc Stages':'\u25b6 Stages'}</button></div>${window['stExpand_'+t.id+'_'+s.id]?renderStageBar(t,s):''}${s.assign?`<button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="openEmailModal({title:'Subtask: '+${JSON.stringify(s.title)},assign:${JSON.stringify(s.assign)},email:${JSON.stringify(s.email||'')},cat:${JSON.stringify(t.cat)},pri:${JSON.stringify(t.pri)},due:${JSON.stringify(t.due)},notes:'Part of: '+${JSON.stringify(t.title)},subtasks:[]})">✉</button>`:''}
         </div>`).join('')+'</div>':`<div style="font-size:12px;color:var(--t3);text-align:center;padding:8px">No subtasks — <button class="btn btn-sm" onclick="openTaskModal(${t.id})" style="font-size:11px">Add some</button></div>`}
         <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
           <button class="btn btn-sm" onclick="openEmailModal(S.tasks.find(x=>x.id===${t.id}))">✉ Remind ${t.assign.split(',')[0]}</button>
