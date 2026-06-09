@@ -2757,10 +2757,12 @@ function toggleStageActive(taskId,stId,key){
   var st=(t.subtasks||[]).find(function(x){return x.id===stId;});if(!st)return;
   initSubtaskStages(st);
   st.stages[key].active=!st.stages[key].active;
-  // If just activated and was done, clear it
   if(!st.stages[key].active) st.stages[key].done=false;
   scheduleSave();
-  renderTasks();
+  // Update stage bar in-place
+  var barEl=document.getElementById('stage-bar-'+taskId+'-'+stId);
+  if(barEl){barEl.outerHTML=renderStageBar(t,st,true);}
+  else{renderTasks();}
 }
 
 function completeStage(taskId,stId,key){
@@ -2776,7 +2778,10 @@ function completeStage(taskId,stId,key){
   if(allDone&&!st.done){st.done=true;toast(st.title+' completed \u2713');}
   else if(!allDone&&st.done){st.done=false;}
   scheduleSave();
-  renderTasks();
+  // Update stage bar in-place without full re-render
+  var barEl=document.getElementById('stage-bar-'+taskId+'-'+stId);
+  if(barEl){barEl.outerHTML=renderStageBar(t,st,true);}
+  else{renderTasks();}
 }
 
 function toggleSubtaskExpand(taskId,stId){
@@ -2800,7 +2805,7 @@ function renderStageBar(t,s){
       +(sg.done?'\u2713 ':'\u25cb ')+STAGE_LABELS[k]+(sg.date?' <span style="font-size:9px;opacity:0.7">('+sg.date+')</span>':'')
       +'</span><button class="stage-toggle" onclick="event.stopPropagation();toggleStageActive('+t.id+','+s.id+',\''+k+'\')" title="'+hideLabel+' this stage">'+hideLabel+'</button>';
   }).join('');
-  return '<div class="stage-bar"><div style="display:flex;align-items:center;gap:6px;width:100%;margin-bottom:6px">'
+  return '<div class="stage-bar" id="stage-bar-'+t.id+'-'+s.id+'"><div style="display:flex;align-items:center;gap:6px;width:100%;margin-bottom:6px">'
     +'<span style="font-size:11px;font-weight:600;color:var(--t2)">Procurement Stages</span>'
     +'<div style="display:flex;gap:3px;align-items:center;margin-left:4px">'+dots+'</div>'
     +'<span style="font-size:10px;color:var(--t3);margin-left:4px">'+activeDone+' / '+activeTotal+' complete</span>'
