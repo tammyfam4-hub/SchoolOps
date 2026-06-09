@@ -2787,24 +2787,17 @@ function completeStage(taskId,stId,key){
 function toggleSubtaskExpand(taskId,stId){
   var key='stExpand_'+taskId+'_'+stId;
   window[key]=!window[key];
+  // Update just the stage area in-place
   var t=(S.tasks||[]).find(function(x){return x.id===taskId;});
   var st=t?(t.subtasks||[]).find(function(x){return x.id===stId;}):null;
   if(!t||!st)return;
-  // Find the stage container div and toggle it in-place
-  var containerId='stage-container-'+taskId+'-'+stId;
-  var existing=document.getElementById(containerId);
-  if(existing){
-    if(window[key]){
-      existing.innerHTML=renderStageBar(t,st,true);
-      existing.style.display='block';
-    } else {
-      existing.style.display='none';
-    }
+  var btn=document.getElementById('stage-btn-'+taskId+'-'+stId);
+  if(btn) btn.textContent=window[key]?'\u25bc Stages':'\u25b6 Stages';
+  var container=document.getElementById('stage-container-'+taskId+'-'+stId);
+  if(container){
+    container.style.display=window[key]?'block':'none';
+    if(window[key]) container.innerHTML=renderStageBar(t,st);
   }
-  // Update the toggle button text
-  var btnId='stage-btn-'+taskId+'-'+stId;
-  var btn=document.getElementById(btnId);
-  if(btn) btn.innerHTML=window[key]?'\u25bc Stages':'\u25b6 Stages';
 }
 
 function renderStageBar(t,s){
@@ -2899,7 +2892,7 @@ function renderTasks(){
       </div>
       <div class="task-card-body">
         ${t.notes?`<div style="font-size:12px;color:var(--t2);margin-bottom:10px;padding:8px 10px;background:var(--bg2);border-radius:var(--r)">${t.notes}</div>`:''}
-        ${sub.length?`<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Subtasks (${done}/${sub.length} complete)</div>`+'<div>'+sub.map(s=>`<div class="subtask-row" style="flex-wrap:wrap"><div style="display:flex;align-items:center;gap:8px;width:100%"><div class="sub-chk ${s.done?'done':''}" onclick="toggleSubtask(${t.id},${s.id})">${s.done?'\u2713':''}</div><div class="sub-title ${s.done?'done':''}" style="flex:1">${s.title}${s.notes?'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+s.notes+'</div>':''}</div><div class="sub-assign">${s.assign||''}</div><button id="stage-btn-${t.id}-${s.id}" class="btn btn-sm" style="font-size:10px;padding:2px 7px;flex-shrink:0" onclick="event.stopPropagation();toggleSubtaskExpand(${t.id},${s.id})" title="Show/hide procurement stages">${window['stExpand_'+t.id+'_'+s.id]?'\\u25bc Stages':'\\u25b6 Stages'}</button></div><div id="stage-container-${t.id}-${s.id}" style="width:100%;display:${window['stExpand_'+t.id+'_'+s.id]?'block':'none'}">${window['stExpand_'+t.id+'_'+s.id]?renderStageBar(t,s):''}${s.assign?`<button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="openEmailModal({title:'Subtask: '+${JSON.stringify(s.title)},assign:${JSON.stringify(s.assign)},email:${JSON.stringify(s.email||'')},cat:${JSON.stringify(t.cat)},pri:${JSON.stringify(t.pri)},due:${JSON.stringify(t.due)},notes:'Part of: '+${JSON.stringify(t.title)},subtasks:[]})">✉</button>`:''}
+        ${sub.length?`<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Subtasks (${done}/${sub.length} complete)</div>`+'<div>'+sub.map(s=>`<div class="subtask-row" style="flex-wrap:wrap"><div style="display:flex;align-items:center;gap:8px;width:100%"><div class="sub-chk ${s.done?'done':''}" onclick="toggleSubtask(${t.id},${s.id})">${s.done?'\u2713':''}</div><div class="sub-title ${s.done?'done':''}" style="flex:1">${s.title}${s.notes?'<div style="font-size:10px;color:var(--t3);margin-top:2px">'+s.notes+'</div>':''}</div><div class="sub-assign">${s.assign||''}</div><button id="stage-btn-${t.id}-${s.id}" class="btn btn-sm" style="font-size:10px;padding:2px 7px;flex-shrink:0" onclick="event.stopPropagation();toggleSubtaskExpand(${t.id},${s.id})" title="Show/hide procurement stages"">&#9654; Stages</button></div><div id="stage-container-${t.id}-${s.id}" style="width:100%;display:none">${s.assign?`<button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="openEmailModal({title:'Subtask: '+${JSON.stringify(s.title)},assign:${JSON.stringify(s.assign)},email:${JSON.stringify(s.email||'')},cat:${JSON.stringify(t.cat)},pri:${JSON.stringify(t.pri)},due:${JSON.stringify(t.due)},notes:'Part of: '+${JSON.stringify(t.title)},subtasks:[]})">✉</button>`:''}
         </div>`).join('')+'</div>':`<div style="font-size:12px;color:var(--t3);text-align:center;padding:8px">No subtasks — <button class="btn btn-sm" onclick="openTaskModal(${t.id})" style="font-size:11px">Add some</button></div>`}
         <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
           <button class="btn btn-sm" onclick="openEmailModal(S.tasks.find(x=>x.id===${t.id}))">✉ Remind ${t.assign.split(',')[0]}</button>
