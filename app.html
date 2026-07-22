@@ -4583,15 +4583,35 @@ function printGroupLedger(groupId){
       doc.text(b.val,x+4,60);
     });
 
-    // Transactions table
+    // Transactions table - respect current filter mode
     const trans=g.transactions||[];
-    // Filter to current fiscal year
     const fyStart=today.getMonth()>=6?today.getFullYear()+'-07-01':(today.getFullYear()-1)+'-07-01';
-    const fyTrans=trans.filter(t=>t.date>=fyStart);
+    const fyEnd=today.getMonth()>=6?(today.getFullYear()+1)+'-06-30':today.getFullYear()+'-06-30';
+    const lastFYStart=today.getMonth()>=6?(today.getFullYear()-1)+'-07-01':(today.getFullYear()-2)+'-07-01';
+    const lastFYEnd=today.getMonth()>=6?today.getFullYear()+'-06-30':(today.getFullYear()-1)+'-06-30';
+    // Use the currently selected filter in the app
+    const mode=window.detailMode||'both';
+    const fromDate=window.detailFromDate||'';
+    const toDate=window.detailToDate||'';
+    let fyTrans, filterLabel;
+    if(mode==='fy'){
+      fyTrans=trans.filter(t=>t.date>=fyStart&&t.date<=fyEnd);
+      filterLabel='Fiscal Year '+fiscalYear;
+    } else if(mode==='lastfy'){
+      fyTrans=trans.filter(t=>t.date>=lastFYStart&&t.date<=lastFYEnd);
+      const lastFY=(today.getFullYear()-1)+'-'+today.getFullYear();
+      filterLabel='Fiscal Year '+lastFY;
+    } else if(mode==='custom'&&fromDate&&toDate){
+      fyTrans=trans.filter(t=>t.date>=fromDate&&t.date<=toDate);
+      filterLabel='Custom Range '+fromDate+' to '+toDate;
+    } else {
+      fyTrans=trans.slice().sort((a,b)=>a.date.localeCompare(b.date));
+      filterLabel='All Time';
+    }
 
     doc.setFontSize(9);doc.setFont('helvetica','bold');
     doc.setTextColor(30,30,30);
-    doc.text('Transactions — Fiscal Year '+fiscalYear+' ('+fyTrans.length+' entries)',10,72);
+    doc.text('Transactions — '+filterLabel+' ('+fyTrans.length+' entries)',10,72);
 
     if(fyTrans.length){
       doc.autoTable({
