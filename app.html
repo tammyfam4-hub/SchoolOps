@@ -896,7 +896,7 @@ const TEACHERS=[
   {name:'Moreno',startTime:'7:30 AM',phone:'830-703-6292',type:'teacher'},
   {name:'Renckly',startTime:'7:30 AM',phone:'602-790-5330',type:'teacher'},
   {name:'Taghikhani',startTime:'7:30 AM',phone:'480-586-1550',type:'teacher'},
-  {name:'Vanden Brande',startTime:'7:30 AM',phone:'602-620-0603',type:'teacher'},
+  {name:'VandenBrande, Daniel',startTime:'7:30 AM',phone:'602-620-0603',type:'teacher'},
 ];
 const STAFF=[
   {name:'Brazinsky, Shantelle',startTime:'7:30 AM',phone:'—',type:'staff'},
@@ -3233,11 +3233,21 @@ function findPTO(personName){
 function renderPTOTab(){
   const el=document.getElementById('att-pto-content');
   if(!el)return;
-  const people=(S.roster||[]).filter(function(m){return !m.inactive;}).sort(function(a,b){return a.name.localeCompare(b.name);});
+  // Use ptoData keys as source of truth for who to show
+  const rosterActive=(S.roster||[]).filter(function(m){return !m.inactive;});
+  const ptoKeys=Object.keys(S.ptoData||{}).sort();
+  const people=ptoKeys.map(function(k){
+    const r=rosterActive.find(function(m){
+      const ml=m.name.toLowerCase().replace(/[,\s]+/g,'');
+      const kl=k.toLowerCase().replace(/[,\s]+/g,'');
+      return m.name===k||ml===kl||ml.startsWith(kl.split(',')[0])||kl.startsWith(ml.split(',')[0]||ml);
+    });
+    return Object.assign({},r||{},{name:k,title:(r&&r.title)||'',type:(r&&r.type)||'staff'});
+  });
   const WARNING_THRESHOLD=0.75;
   const overLimit=[],nearLimit=[],ok=[];
   people.forEach(function(p){
-    const _ptoKey=S.ptoData&&Object.keys(S.ptoData).find(function(k){return k===p.name||k.toLowerCase().startsWith(p.name.toLowerCase().split(',')[0].toLowerCase());});const pto=_ptoKey?S.ptoData[_ptoKey]:null;
+    const _pname=p.name.toLowerCase().replace(/\s+/g,'');const _ptoKey=S.ptoData&&(S.ptoData[p.name]?p.name:Object.keys(S.ptoData).find(function(k){if(k===p.name)return true;const kl=k.toLowerCase().replace(/\s+/g,'');return kl===_pname||kl.startsWith(_pname.split(',')[0])&&(_pname.split(',').length<2||kl.includes(_pname.split(',')[1])||kl.startsWith(_pname.split(',')[0])&&k.split(',').length>=1&&p.name.split(',').length>=1&&k.split(',')[0].trim()===p.name.split(',')[0].trim());}));const pto=_ptoKey?S.ptoData[_ptoKey]:null;
     if(!pto){
       ok.push(Object.assign({},p,{available:6,used:0,remaining:6,absences:[],pct:0}));
       return;
