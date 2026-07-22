@@ -3233,51 +3233,38 @@ function findPTO(personName){
 function renderPTOTab(){
   const el=document.getElementById('att-pto-content');
   if(!el)return;
-  // Always overwrite ptoData from DEFAULT — spreadsheet is always source of truth
-  S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
-
-  const WARNING_THRESHOLD=0.75; // warn at 75% used
+  const people=(S.roster||[]).filter(function(m){return !m.inactive;}).sort(function(a,b){return a.name.localeCompare(b.name);});
+  const WARNING_THRESHOLD=0.75;
   const overLimit=[],nearLimit=[],ok=[];
-
-  [...TEACHERS,...STAFF].forEach(p=>{
-    const pto=findPTO(p.name);
+  people.forEach(function(p){
+    const pto=S.ptoData&&S.ptoData[p.name];
     if(!pto){
-      // No PTO data yet — add with defaults, manual allowance can be set
-      ok.push({...p,available:8,used:0,remaining:8,absences:[],pct:0});
+      ok.push(Object.assign({},p,{available:6,used:0,remaining:6,absences:[],pct:0}));
       return;
     }
     const pct=pto.available>0?pto.used/pto.available:0;
-    const entry={...p,...pto,pct};
+    const entry=Object.assign({},p,pto,{pct:pct});
     if(pto.remaining<0)overLimit.push(entry);
     else if(pct>=WARNING_THRESHOLD)nearLimit.push(entry);
     else ok.push(entry);
   });
-
-  el.innerHTML=`
-    <!-- Summary metrics -->
-    <div class="g4" style="margin-bottom:16px">
-      <div class="metric"><div class="metric-lbl">Over Limit</div><div class="metric-val" style="color:var(--red)">${overLimit.length}</div></div>
-      <div class="metric"><div class="metric-lbl">Near Limit (≥75%)</div><div class="metric-val" style="color:var(--amber)">${nearLimit.length}</div></div>
-      <div class="metric"><div class="metric-lbl">Within Limit</div><div class="metric-val" style="color:var(--green)">${ok.length}</div></div>
-      <div class="metric"><div class="metric-lbl">Total Staff</div><div class="metric-val">${overLimit.length+nearLimit.length+ok.length}</div></div>
-    </div>
-
-    ${overLimit.length?`<div class="card" style="border-color:var(--red-t);margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--red-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">⚠ Over PTO Limit</div>
-      ${renderPTORows(overLimit,'red')}
-    </div>`:''}
-
-    ${nearLimit.length?`<div class="card" style="border-color:var(--amber-t);margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--amber-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">⚡ Near Limit</div>
-      ${renderPTORows(nearLimit,'amber')}
-    </div>`:''}
-
-    <div class="card">
-      <div style="font-size:11px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">✓ Within Limit</div>
-      ${renderPTORows(ok,'green')}
-    </div>`;
+  function ptoRow(e){
+    const bar=e.available>0?Math.min(100,Math.round(e.pct*100)):0;
+    const barColor=e.remaining<0?'var(--red)':e.pct>=WARNING_THRESHOLD?'#f59e0b':'var(--green)';
+    return '<tr><td style="padding:8px 12px;font-weight:600">'+e.name+'<div style="font-size:11px;color:var(--t3)">'+(e.title||e.type||'')+'</div></td>'
+      +'<td style="padding:8px 12px;text-align:center">'+e.available+'</td>'
+      +'<td style="padding:8px 12px;text-align:center">'+e.used+'</td>'
+      +'<td style="padding:8px 12px;text-align:center;font-weight:600;color:'+(e.remaining<0?'var(--red)':'inherit')+'">'+e.remaining+'</td>'
+      +'<td style="padding:8px 12px"><div style="background:var(--bg2);border-radius:4px;height:6px;overflow:hidden"><div style="width:'+bar+'%;height:100%;background:'+barColor+';border-radius:4px"></div></div></td>'
+      +'<td style="padding:8px 12px"><button class="btn btn-sm" style="font-size:11px" onclick="openPTOModal(\''+e.name+'\')">Details</button></td></tr>';
+  }
+  const thead='<thead><tr><th style="padding:8px 12px;text-align:left">Employee</th><th style="padding:8px 12px;text-align:center">Available</th><th style="padding:8px 12px;text-align:center">Used</th><th style="padding:8px 12px;text-align:center">Remaining</th><th style="padding:8px 12px">Usage</th><th></th></tr></thead>';
+  let html2='';
+  if(overLimit.length){html2+='<div class="card" style="margin-bottom:12px;border:1px solid var(--red)"><div class="shdr"><div class="stitle" style="color:var(--red)">Over Limit ('+overLimit.length+')</div></div><table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+overLimit.map(ptoRow).join('')+'</tbody></table></div>';}
+  if(nearLimit.length){html2+='<div class="card" style="margin-bottom:12px;border:1px solid #f59e0b"><div class="shdr"><div class="stitle" style="color:#f59e0b">Near Limit ('+nearLimit.length+')</div></div><table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+nearLimit.map(ptoRow).join('')+'</tbody></table></div>';}
+  if(ok.length){html2+='<div class="card"><div class="shdr"><div class="stitle">All Employees ('+ok.length+')</div></div><table style="width:100%;border-collapse:collapse;font-size:13px">'+thead+'<tbody>'+ok.map(ptoRow).join('')+'</tbody></table></div>';}
+  el.innerHTML=html2||'<div class="card"><p style="padding:16px;color:var(--t3)">No employees found.</p></div>';
 }
-
 function renderPTORows(list,color){
   return list.map(p=>{
     const pct=Math.min(100,Math.round(p.pct*100));
