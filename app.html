@@ -3237,7 +3237,7 @@ function renderPTOTab(){
   const WARNING_THRESHOLD=0.75;
   const overLimit=[],nearLimit=[],ok=[];
   people.forEach(function(p){
-    const pto=S.ptoData&&S.ptoData[p.name];
+    const _ptoKey=S.ptoData&&Object.keys(S.ptoData).find(function(k){return k===p.name||k.toLowerCase().startsWith(p.name.toLowerCase().split(',')[0].toLowerCase());});const pto=_ptoKey?S.ptoData[_ptoKey]:null;
     if(!pto){
       ok.push(Object.assign({},p,{available:6,used:0,remaining:6,absences:[],pct:0}));
       return;
