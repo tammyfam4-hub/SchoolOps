@@ -2224,7 +2224,7 @@ function populateAttModal(){
 function render(){
   initAtt();
   // stats - use S.roster instead of hardcoded arrays
-  const _rAll=(S.roster&&S.roster.length>0)?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF]);
+  const _rAll=(S.roster&&S.roster.length>0)?S.roster.filter(function(m){return !m.inactive;}).sort(function(a,b){return a.name.localeCompare(b.name);}):([...TEACHERS,...STAFF]);
   const teacherAtt=_rAll.map(t=>S.attendance[t.name]||{status:'P'});
   const all=_rAll;
   const presentT=teacherAtt.filter(a=>a.status==='P').length;
@@ -2425,7 +2425,7 @@ function render(){
   try{
   const al=document.getElementById('att-list');
   if(al){
-    const _rFull=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF]));const roster=S.attTab==='staff'?_rFull.filter(function(m){return m.type!=='teacher';}):_rFull.filter(function(m){return m.type==='teacher';});
+    const _rFull=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF]));const roster=(S.attTab==='staff'?_rFull.filter(function(m){return m.type!=='teacher';}):_rFull.filter(function(m){return m.type==='teacher';})).sort(function(a,b){return a.name.localeCompare(b.name);});
     al.innerHTML=roster.map((p,i)=>{
       const att=S.attendance[p.name]||{status:'P',sub:null,reason:''};
       const isAbsent=att.status!=='P';
