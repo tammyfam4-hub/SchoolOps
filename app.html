@@ -363,9 +363,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:6px"><div style="font-size:10px;color:var(--t3);padding:4px 0">Su</div><div style="font-size:10px;color:var(--t3);padding:4px 0">Mo</div><div style="font-size:10px;color:var(--t3);padding:4px 0">Tu</div><div style="font-size:10px;color:var(--t3);padding:4px 0">We</div><div style="font-size:10px;color:var(--t3);padding:4px 0">Th</div><div style="font-size:10px;color:var(--t3);padding:4px 0">Fr</div><div style="font-size:10px;color:var(--t3);padding:4px 0">Sa</div></div>
           <div id="fac-calendar" class="cal-grid"></div>
         </div>
-        <div class="card"><div class="stitle" style="margin-bottom:12px">Room Directory</div><div id="room-list"></div></div>
-      </div>
-      <div class="card">
+        <div class="card">
         <div class="shdr">
           <div class="stitle">Active Bookings</div>
           <div style="display:flex;gap:8px">
@@ -377,6 +375,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <div style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">&#10003; Completed Bookings</div>
           <table><thead><tr><th>Room</th><th>Date</th><th>Time</th><th>Booked By</th><th>Purpose</th><th></th></tr></thead><tbody id="fac-completed-table"></tbody></table>
         </div>
+      </div>
+      </div>
+      <div class="card"><div class="stitle" style="margin-bottom:12px">Room Directory</div><div id="room-list"></div></div>
       </div>
     </div>
 
@@ -1748,6 +1749,14 @@ function sendEmail(){
 }
 function addBooking(){const date=document.getElementById('f-date').value;if(!date)return;S.bookings.unshift({id:S.nextId++,room:document.getElementById('f-room').value,date,time:document.getElementById('f-time').value,by:document.getElementById('f-by').value||'Unknown',purpose:document.getElementById('f-purpose').value||'—',status:'Pending'});closeModal('fac-modal');toast('Booked ✓');scheduleSave();render();}
 function deleteBooking(id){if(!confirm('Remove this booking?'))return;S.bookings=S.bookings.filter(x=>x.id!==id);toast('Removed');scheduleSave();render();}
+function undoBooking(id){
+  const b=(S.bookings||[]).find(x=>x.id===id);
+  if(!b)return;
+  b.status='Confirmed';
+  toast(b.purpose+' moved back to active');
+  scheduleSave();
+  renderFacilities();
+}
 function markBookingComplete(id){const b=S.bookings.find(x=>x.id===id);if(b){b.status='Completed';toast(b.room+' marked complete ✓');scheduleSave();render();}}
 function showVanDetail(vanNum){
   const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
@@ -2007,6 +2016,28 @@ function logAttendance(){
   } else {
     toast(name+': logged ✓');
   }
+  // PTO deduction logic
+  const _isEA=rawStatus==='EA'||rawStatus==='EA-partial'||rawStatus==='UA';
+  const _isSE=rawStatus==='SE'||rawStatus==='SE-partial';
+  const _isT=rawStatus==='T'||rawStatus==='early-departure';
+  if(_isEA&&!isPastDate){
+    // Deduct PTO for EA/UA — SE, T, ED have no deduction
+    const _ptoKL=Object.keys(S.ptoData||{}).find(function(k){return k===name||k.toLowerCase().startsWith(name.toLowerCase().split(',')[0]);});
+    if(_ptoKL){
+      // Calculate days: partial EA = count of missed periods / 4
+      const _missedCount=(rawStatus==='EA-partial')?(missedPeriods||[]).length:1;
+      const _daysToDeduct=rawStatus==='EA-partial'?Math.round((_missedCount/4)*10)/10:1;
+      S.ptoData[_ptoKL].used=Math.round((S.ptoData[_ptoKL].used+_daysToDeduct)*10)/10;
+      S.ptoData[_ptoKL].remaining=Math.round((S.ptoData[_ptoKL].available-S.ptoData[_ptoKL].used)*10)/10;
+      if(!S.ptoData[_ptoKL].absences)S.ptoData[_ptoKL].absences=[];
+      const _existingAbs=S.ptoData[_ptoKL].absences.find(function(a){return a.date===selectedDate;});
+      if(!_existingAbs){
+        S.ptoData[_ptoKL].absences.push({date:selectedDate,days:_daysToDeduct});
+      } else {
+        _existingAbs.days=_daysToDeduct;
+      }
+    }
+  }
   closeModal('att-modal');
   // Reset period sub fields for next open
   const pf=document.getElementById('period-sub-fields');
@@ -2036,10 +2067,25 @@ function quickStatus(name,status){
     const _statT=document.getElementById('a-status');if(_statT)_statT.value='T';
     toggleAttFields();openModal('att-modal');return;
   } else if(status==='EA'){
+    const _prevStatus=S.attendance[name].status;
     S.attendance[name].status='EA';
     if(!S.attendance[name].periods)S.attendance[name].periods=[];
     if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
     S.attendance[name].departTime='';
+    // Deduct 1 PTO day if switching to EA from non-EA
+    if(_prevStatus==='P'||_prevStatus===undefined){
+      const _ptoK=Object.keys(S.ptoData||{}).find(function(k){return k===name||k.toLowerCase().startsWith(name.toLowerCase().split(',')[0]);});
+      if(_ptoK){
+        S.ptoData[_ptoK].used=Math.round((S.ptoData[_ptoK].used+1)*10)/10;
+        S.ptoData[_ptoK].remaining=Math.round((S.ptoData[_ptoK].available-S.ptoData[_ptoK].used)*10)/10;
+        // Add absence record
+        const _today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+        if(!S.ptoData[_ptoK].absences)S.ptoData[_ptoK].absences=[];
+        if(!S.ptoData[_ptoK].absences.find(function(a){return a.date===_today;})){
+          S.ptoData[_ptoK].absences.push({date:_today,days:1});
+        }
+      }
+    }
   } else if(status==='SE'){
     populateAttModal();
     const sel=document.getElementById('a-person');if(sel)sel.value=name;
@@ -2051,9 +2097,23 @@ function quickStatus(name,status){
     const statusSel=document.getElementById('a-status');if(statusSel)statusSel.value='early-departure';
     toggleAttFields();openModal('att-modal');return;
   } else {
+    const _prevStatusP=S.attendance[name].status;
     S.attendance[name].status=status;
     if(!S.attendance[name].periods)S.attendance[name].periods=[];
     if(!S.attendance[name].periodSubs)S.attendance[name].periodSubs={};
+    // If restoring to Present from EA, refund 1 PTO day
+    if(status==='P'&&(_prevStatusP==='EA'||_prevStatusP==='EA-partial'||_prevStatusP==='UA')){
+      const _ptoK2=Object.keys(S.ptoData||{}).find(function(k){return k===name||k.toLowerCase().startsWith(name.toLowerCase().split(',')[0]);});
+      if(_ptoK2&&S.ptoData[_ptoK2].used>0){
+        S.ptoData[_ptoK2].used=Math.round((S.ptoData[_ptoK2].used-1)*10)/10;
+        S.ptoData[_ptoK2].remaining=Math.round((S.ptoData[_ptoK2].available-S.ptoData[_ptoK2].used)*10)/10;
+        // Remove today's absence record
+        const _today2=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+        if(S.ptoData[_ptoK2].absences){
+          S.ptoData[_ptoK2].absences=S.ptoData[_ptoK2].absences.filter(function(a){return a.date!==_today2;});
+        }
+      }
+    }
   }
   scheduleSave();render();
 }
@@ -2531,7 +2591,7 @@ function render(){
           <div class="att-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
             ${p.name}${p.isAdmin?' ⭐':''}${statusBadge}${subBadge}
           </div>
-          <div class="att-meta">${p.startTime}${att.reason?' · <em>'+att.reason+'</em>':''}</div>
+          <div class="att-meta">${p.title?'<span style="color:var(--t3);font-size:10px">'+p.title+'</span> · ':''}${p.startTime}${att.reason?' · <em>'+att.reason+'</em>':''}</div>
         </div>
         <button class="btn btn-sm" style="font-size:10px;padding:2px 8px;flex-shrink:0" onclick="openAttDetailModal('${p.name}')" title="Edit this entry">✏</button>
         <!-- Status buttons: P  EA  T  ED -->
@@ -4485,7 +4545,7 @@ function renderFacCompleted(){
   const done=S.bookings.filter(b=>b.status==='Completed'||b.status==='Done');
   tbody.innerHTML=done.length
     ?done.map(b=>`<tr><td>${b.room}</td><td>${fmt(b.date)}</td><td>${b.time}</td><td>${b.by}</td><td>${b.purpose}</td>
-        <td><button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteBooking(${b.id})">Remove</button></td></tr>`).join('')
+        <td><button class="btn btn-sm" style="font-size:11px;background:#f59e0b;color:#fff;border:none;margin-right:4px" onclick="undoBooking(${b.id})" title="Move back to active">↩ Undo</button><button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteBooking(${b.id})">Remove</button></td></tr>`).join('')
     :'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--t3)">No completed bookings yet</td></tr>';
 }
 
