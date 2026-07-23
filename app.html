@@ -1021,12 +1021,16 @@ let S=JSON.parse(JSON.stringify(DEFAULT));
 function initAtt(){
   // Use Arizona time (MST = UTC-7, no DST) for midnight reset
   checkMidnightReset();
-  // Initialize anyone missing
-  [...TEACHERS,...STAFF].forEach(p=>{
+  // Initialize anyone missing - use S.roster instead of hardcoded arrays
+  const _activeRoster=(S.roster&&S.roster.length>0)?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF]);
+  _activeRoster.forEach(p=>{
     if(!S.attendance[p.name])S.attendance[p.name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
     if(!S.attendance[p.name].periods)S.attendance[p.name].periods=[];
     if(!S.attendance[p.name].periodSubs)S.attendance[p.name].periodSubs={};
   });
+  // Remove anyone not in active roster
+  const _activeNames=new Set(_activeRoster.map(function(p){return p.name;}));
+  Object.keys(S.attendance).forEach(function(k){if(!_activeNames.has(k))delete S.attendance[k];});
   if(!S.attendanceHistory)S.attendanceHistory={};
   // Always overwrite ptoData from DEFAULT — spreadsheet is always source of truth
   S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
