@@ -1097,7 +1097,7 @@ let planCalMonth=new Date().getMonth();
 let editingPlanId=null;
 
 function populatePlanPersonSelect(){
-  const all=[...TEACHERS,...STAFF];
+  const all=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF]));
   const sel=document.getElementById('p-person');
   if(!sel)return;
   const cur=sel.value;
@@ -1414,7 +1414,7 @@ async function initData(){
   if(!S.trips||!Array.isArray(S.trips))S.trips=[];
   if(!S.hr||!Array.isArray(S.hr))S.hr=JSON.parse(JSON.stringify(DEFAULT.hr));
   if(!S.transactions||!Array.isArray(S.transactions))S.transactions=[];
-  if(!S.roster||!Array.isArray(S.roster)||S.roster.length===0){S.roster=[...TEACHERS,...STAFF].map(function(m,i){return {id:1000+i,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',subject:m.subject||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''};});scheduleSave();}
+  if(!S.roster||!Array.isArray(S.roster)||S.roster.length===0){S.roster=(S.roster&&S.roster.length>0&&S.roster.filter(function(m){return !m.inactive;}).length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).map(function(m,i){return {id:1000+i,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',subject:m.subject||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''};});scheduleSave();}
   if(!S.miscBudgets||!Array.isArray(S.miscBudgets))S.miscBudgets=[];
   (S.tasks||[]).forEach((t,i)=>{if(t.order==null)t.order=i;});
   if(S.taskCompletedOpen==null)S.taskCompletedOpen=false;
@@ -1935,7 +1935,7 @@ function logAttendance(){
   if(!S.attendance[name])S.attendance[name]={status:'P',sub:null,reason:'',periods:[],departTime:'',contractEnd:'15:30'};
   const oldSub=S.attendance[name].sub;
   if(oldSub){const os=S.subs.find(s=>s.name===oldSub);if(os){os.placed=null;os.avail=true;}}
-  const isTeacher=TEACHERS.find(t=>t.name===name);
+  const isTeacher=(S.roster&&S.roster.length>0?S.roster:TEACHERS).find(t=>t.name===name&&t.type==='teacher');
 
   if(rawStatus==='EA-partial'||rawStatus==='SE-partial'){
     // Partial day — collect which periods are missing
@@ -2098,7 +2098,7 @@ function renderSubCoverageOnly(){
   const scl=document.getElementById('sub-coverage-list');
   if(!scl)return;
   // Trigger a sub-coverage-only render
-  const absent=TEACHERS.filter(t=>{
+  const absent=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).filter(t=>{
     const st=(S.attendance[t.name]||{}).status;
     return st&&st!=='P';
   });
@@ -2210,7 +2210,7 @@ function openAttDetailModal(name){
 function populateAttModal(){
   const sel=document.getElementById('a-person');
   if(!sel)return;
-  sel.innerHTML=[...TEACHERS,...STAFF].map(p=>`<option value="${p.name}">${p.name} (${p.type})</option>`).join('');
+  sel.innerHTML=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).map(p=>`<option value="${p.name}">${p.name} (${p.type})</option>`).join('');
   const aSub=document.getElementById('a-sub');
   if(aSub)aSub.innerHTML='<option value="">-- No sub assigned --</option>'+S.subs.map(s=>`<option value="${s.name}">${s.name}${s.placed?' (covering: '+s.placed+')':''}</option>`).join('');
   // Default date to today (Arizona time)
@@ -2223,9 +2223,10 @@ function populateAttModal(){
 
 function render(){
   initAtt();
-  // stats
-  const teacherAtt=TEACHERS.map(t=>S.attendance[t.name]||{status:'P'});
-  const all=[...TEACHERS,...STAFF];
+  // stats - use S.roster instead of hardcoded arrays
+  const _rAll=(S.roster&&S.roster.length>0)?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF]);
+  const teacherAtt=_rAll.map(t=>S.attendance[t.name]||{status:'P'});
+  const all=_rAll;
   const presentT=teacherAtt.filter(a=>a.status==='P').length;
   const absentT=teacherAtt.filter(a=>a.status!=='P').length;
   const needSub=teacherAtt.filter(a=>a.status!=='P'&&!a.sub).length;
@@ -2246,7 +2247,7 @@ function render(){
   _set('dm-tasks', S.tasks.filter(t=>!t.done).length || '');
   _set('dm-fac', S.bookings.length || '');
   _set('dm-trips', S.trips.length || '');
-  const absentCount=TEACHERS.filter(t=>(S.attendance[t.name]||{}).status!=='P').length;
+  const absentCount=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).filter(t=>(S.attendance[t.name]||{}).status!=='P').length;
   _set('dm-att', absentCount===0 ? '✓ All in' : absentCount+' absent');
   const activeGroups=[...(S.sports||[]),...(S.clubs||[])].filter(g=>g.credits>0||g.debits>0).length;
   _set('dm-budget', activeGroups+' active');
@@ -2424,7 +2425,7 @@ function render(){
   try{
   const al=document.getElementById('att-list');
   if(al){
-    const roster=S.attTab==='staff'?STAFF:TEACHERS;
+    const _rFull=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF]));const roster=S.attTab==='staff'?_rFull.filter(function(m){return m.type!=='teacher';}):_rFull.filter(function(m){return m.type==='teacher';});
     al.innerHTML=roster.map((p,i)=>{
       const att=S.attendance[p.name]||{status:'P',sub:null,reason:''};
       const isAbsent=att.status!=='P';
@@ -2554,7 +2555,7 @@ function render(){
   // sub coverage panel
   const scl=document.getElementById('sub-coverage-list');
   if(scl){
-    const absent=TEACHERS.filter(t=>{
+    const absent=(S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).filter(t=>{
       const st=(S.attendance[t.name]||{}).status;
       return st&&st!=='P';
     });
@@ -4235,7 +4236,7 @@ function renderAttHistory(){
   // Populate person filter
   const personSel=document.getElementById('ah-person');
   if(personSel&&personSel.options.length<=1){
-    [...TEACHERS,...STAFF].forEach(p=>{
+    (S.roster&&S.roster.length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).forEach(p=>{
       const opt=document.createElement('option');
       opt.value=p.name;opt.textContent=p.name;
       personSel.appendChild(opt);
