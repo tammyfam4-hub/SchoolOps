@@ -1355,11 +1355,17 @@ async function initData(){
   const _isViewMode = new URLSearchParams(window.location.search).has('view');
   if(_isViewMode){
     document.body.classList.add('view-mode');
-    // Load data directly with anon key (read-only)
-    const _saved = await loadFromSupabase('tammy.fam4@gmail.com');
-    if(_saved){ S=_saved; }
+    // Load data via REST API with anon key (bypasses auth RLS for public read)
+    try{
+      const _SURL='https://idjratpppoubqehqvjpx.supabase.co';
+      const _SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
+      const _r = await fetch(_SURL+'/rest/v1/app_state?user_email=eq.tammy.fam4%40gmail.com&select=state_json',{
+        headers:{'apikey':_SKEY,'Authorization':'Bearer '+_SKEY}
+      });
+      const _d = await _r.json();
+      if(_d&&_d[0]&&_d[0].state_json){ S=JSON.parse(_d[0].state_json); }
+    }catch(e){ console.warn('View mode load error:',e); }
     initAtt(); render(); renderPTOTab();
-    // Disable all save operations
     window.scheduleSave = function(){};
     return;
   }
