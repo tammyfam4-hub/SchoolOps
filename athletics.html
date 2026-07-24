@@ -853,7 +853,13 @@ function renderSportInfoBar(){
   const bar = document.getElementById('sport-info-bar');
   if (!bar) return;
   // Tennis Boy's and Girl's share 1 van - combine them in the card
-  const sportOrder = ['Baseball','Softball','Tennis','Track & Field',"Volleyball - Boy's"];
+  // Use current season's sports dynamically
+  const _seasonSports = SEASON_SPORTS[currentSeason] || ['Baseball','Softball','Tennis','Track & Field',"Volleyball - Boy's"];
+  // For fall2026, map sport names to display names
+  const sportOrder = currentSeason === 'fall2026' ? 
+    ['Football',"Volleyball - Girl's",'Football - Flag'] :
+    currentSeason === 'winter2026' ? ['Boys Basketball','Girls Basketball','Cheer'] :
+    _seasonSports.filter(s=>!s.includes('Tennis')).concat(_seasonSports.some(s=>s.includes('Tennis'))?['Tennis']:[]);
   bar.innerHTML = sportOrder.map(sport => {
     // Handle combined Tennis card
     let info, col, sportEvtsAll;
@@ -862,7 +868,7 @@ function renderSportInfoBar(){
       col = '#534AB7';
       sportEvtsAll = filtered().filter(e=>e.sport==="Tennis - Boy's"||e.sport==="Tennis - Girl's");
     } else {
-      info = SPORT_INFO[sport];
+      info = SPORT_INFO[sport] || {icon:'🏅', vansNeeded:1, headCoach:{name:'TBD',isTeacher:false}, assistCoaches:[]};
       if (!info) return '';
       col = (getSeasonBase(currentSeason).find(e=>e.sport===sport)||{color:'#888'}).color;
       sportEvtsAll = null;
