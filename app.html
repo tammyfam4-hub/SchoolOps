@@ -191,9 +191,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   .nav-item{min-width:40px}
   .g2{grid-template-columns:1fr!important}
 }
+
+/* ── VIEW MODE ─────────────────────────────────────────── */
+body.view-mode .nav-item,body.view-mode .save-ind,body.view-mode button:not(.view-ok),
+body.view-mode input,body.view-mode select,body.view-mode textarea{pointer-events:none!important;}
+body.view-mode .btn:not(.view-ok){opacity:0.4;cursor:not-allowed!important;}
+#view-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#185FA5;color:#fff;
+  text-align:center;padding:10px 16px;font-size:13px;font-weight:600;letter-spacing:.02em;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);}
+body.view-mode #view-banner{display:block;}
+body.view-mode{padding-top:40px;}
+body.view-mode .hdr{top:40px;}
+body.view-mode .nav{top:calc(40px + var(--hdr));}
 </style>
 </head>
 <body>
+<div id="view-banner">👁 View Only — Highland Prep AZ School Dashboard · Read-only access · Live data</div>
+
 <div class="sidebar">
   <div class="logo">
     <div class="logo-mark">S</div>
@@ -1337,6 +1351,18 @@ function renderRoster(){
   if(src&&el&&src!==el)el.innerHTML=src.innerHTML;
 }
 async function initData(){
+  // ── VIEW MODE: bypass auth if ?view=1 in URL ──────────────────
+  const _isViewMode = new URLSearchParams(window.location.search).has('view');
+  if(_isViewMode){
+    document.body.classList.add('view-mode');
+    // Load data directly with anon key (read-only)
+    const _saved = await loadFromSupabase('tammy.fam4@gmail.com');
+    if(_saved){ S=_saved; }
+    initAtt(); render(); renderPTOTab();
+    // Disable all save operations
+    window.scheduleSave = function(){};
+    return;
+  }
   // ── 1. Check auth ──────────────────────────────────────────────
   const{data:{session}}=await sb.auth.getSession();
   if(!session){window.location.href='index.html';return;}
