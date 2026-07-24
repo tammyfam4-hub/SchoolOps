@@ -166,6 +166,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
       <div class="frow" style="margin:0"><label class="flabel">Assign Van</label>
         <select id="m-van" onchange="checkConflict()">
           <option value="">-- No van --</option>
+          <option value="home">🏠 Home Game</option>
           <option value="1">Van 1</option><option value="2">Van 2</option>
           <option value="3">Van 3</option><option value="4">Van 4</option>
           <option value="5">Van 5</option>
@@ -598,7 +599,7 @@ function renderEventRows(events,c){
         <td style="font-size:12px;font-weight:700;color:${hasCoverage?'var(--red-t)':'var(--amber-t)'}">${e.leaveTime||'—'}</td>
         <td style="font-size:11px;color:var(--t3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${coaches}">${coaches||'—'}</td>
         <td onclick="event.stopPropagation()"><select class="van-sel" onchange="qVan(${e.id},this.value)">
-          <option value="">—</option>${[1,2,3,4,5].map(v=>`<option value="${v}"${e.van==v?' selected':''}>Van ${v}</option>`).join('')}<option value="charter"${e.van==='charter'?' selected':''}>🚌 Charter Bus</option>
+          <option value="">—</option><option value="home"${e.van==='home'?' selected':''}>🏠 Home Game</option>${[1,2,3,4,5].map(v=>`<option value="${v}"${e.van==v?' selected':''}>Van ${v}</option>`).join('')}<option value="charter"${e.van==='charter'?' selected':''}>🚌 Charter Bus</option>
         </select></td>
         <td onclick="event.stopPropagation()"><input class="drv-inp" value="${e.driver||''}" placeholder="Driver..." onchange="qDriver(${e.id},this.value)"></td>
         <td style="white-space:nowrap"><span style="font-size:11px;font-weight:700;color:${sc}"><span class="status-dot" style="background:${sc}"></span>${e.status}</span></td>
@@ -844,7 +845,7 @@ function exportCSV(){
     const hcTeacher=info.headCoach&&info.headCoach.isTeacher?'Yes':'No';
     const asst=(info.assistCoaches||[]).map(c=>c.name).join('; ');
     const coverage=needsCoverage(e.sport,e.leaveTime)?'YES - Sub Required':'No';
-    rows.push([e.sport,e.date,e.gameTime,e.homeAway,e.visitor,e.host,e.venue,e.leaveTime,e.returnTime,info.vansNeeded||'',hc,hcTeacher,asst,coverage,e.van?(e.van==='charter'?'🚌 Charter Bus':'Van '+e.van):'',e.driver,e.athletes,e.subCoverage,e.status,e.address,e.notes]);
+    rows.push([e.sport,e.date,e.gameTime,e.homeAway,e.visitor,e.host,e.venue,e.leaveTime,e.returnTime,info.vansNeeded||'',hc,hcTeacher,asst,coverage,e.van?(e.van==='home'?'🏠 Home Game':e.van==='charter'?'🚌 Charter Bus':'Van '+e.van):'',e.driver,e.athletes,e.subCoverage,e.status,e.address,e.notes]);
   });
   const csv=rows.map(r=>r.map(c=>'"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='athletics-transport.csv';a.click();toast('CSV exported ✓');
