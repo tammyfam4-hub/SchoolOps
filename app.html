@@ -29,7 +29,7 @@ nav{flex:1;padding:8px 0;overflow-y:auto;-webkit-app-region:no-drag}
 .topbar-title{font-size:15px;font-weight:700;flex:1;-webkit-app-region:drag}
 .topbar-badge{font-size:11px;background:var(--blue-bg);color:var(--blue-t);padding:3px 10px;border-radius:12px;font-weight:600;-webkit-app-region:no-drag}
 .topbar-actions{display:flex;gap:8px;-webkit-app-region:no-drag}
-.content{flex:1;overflow-y:auto;padding:20px 22px}
+.content{flex:1;overflow-y:auto;padding:20px 22px;height:calc(100vh - var(--hdr) * 2)}
 .panel{display:none}.panel.active{display:block}
 .g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
@@ -430,7 +430,7 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
       </div>
     </div>
 
-    <div class="panel" id="panel-attendance" style="overflow-y:auto;height:calc(100vh - var(--hdr));padding-bottom:40px">
+    <div class="panel" id="panel-attendance" style="padding-bottom:40px">
       <div class="g5" style="margin-bottom:14px">
         <div class="metric"><div class="metric-lbl">Present</div><div class="metric-val" style="color:var(--green)" id="att-P">—</div></div>
         <div class="metric"><div class="metric-lbl">Excused (EA)</div><div class="metric-val" style="color:var(--amber)" id="att-EA">—</div></div>
