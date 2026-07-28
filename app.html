@@ -4687,9 +4687,9 @@ function printGroupLedger(groupId){
     const lastFYStart=today.getMonth()>=6?(today.getFullYear()-1)+'-07-01':(today.getFullYear()-2)+'-07-01';
     const lastFYEnd=today.getMonth()>=6?today.getFullYear()+'-06-30':(today.getFullYear()-1)+'-06-30';
     // Use the currently selected filter in the app
-    const mode=window.detailMode||'both';
-    const fromDate=window.detailFromDate||'';
-    const toDate=window.detailToDate||'';
+    const mode=detailMode||'both';
+    const fromDate=detailFromDate||'';
+    const toDate=detailToDate||'';
     let fyTrans, filterLabel;
     if(mode==='fy'){
       fyTrans=trans.filter(t=>t.date>=fyStart&&t.date<=fyEnd);
