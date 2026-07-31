@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded',()=>{ updateSeasonUI(); });
 function conflicts(){
   const c=new Set();
   const map={};
-  evts.forEach(e=>{if(!e.van)return;const k=e.van+'-'+e.date;if(!map[k])map[k]=[];map[k].push(e.id);});
+  evts.forEach(e=>{if(!e.van||e.van==='home')return;const k=e.van+'-'+e.date;if(!map[k])map[k]=[];map[k].push(e.id);});
   Object.values(map).forEach(ids=>{if(ids.length>1)ids.forEach(id=>c.add(id));});
   return c;
 }
@@ -497,8 +497,8 @@ function setView(v,btn){view=v;document.querySelectorAll('.vt-btn').forEach(b=>b
 function renderStats(){
   const f=filtered(),c=conflicts();
   const away=f.filter(e=>e.homeAway==='Away').length;
-  const assigned=f.filter(e=>e.van).length;
-  const need=f.filter(e=>!e.van).length;// All spring games need van
+  const assigned=f.filter(e=>e.van&&e.van!=='home').length;
+  const need=f.filter(e=>!e.van&&e.homeAway==='Away').length;// Away games need van
   const conf=[...c].filter(id=>f.find(e=>e.id===id)).length;
   const done=f.filter(e=>e.status==='Confirmed'||e.status==='Returned').length;
   const coverageNeeded=f.filter(e=>needsCoverage(e.sport,e.leaveTime)).length;
@@ -763,8 +763,8 @@ function checkConflict(){
   const van=document.getElementById('m-van').value;
   const e=evts.find(x=>x.id===editId);
   const alert=document.getElementById('m-conflict');
-  if(van&&e){
-    const same=evts.filter(x=>x.id!==editId&&x.van==van&&x.date===e.date);
+  if(van&&van!=='home'&&e){
+    const same=evts.filter(x=>x.id!==editId&&x.van==van&&x.van!=='home'&&x.date===e.date);
     if(same.length){alert.textContent='⚠ Van '+van+' is already assigned to: '+same.map(x=>x.sport).join(', ')+' on '+e.date;alert.classList.add('show');}
     else alert.classList.remove('show');
   } else alert.classList.remove('show');
