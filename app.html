@@ -1789,6 +1789,15 @@ function undoBooking(id){
   scheduleSave();
   renderFacilities();
 }
+function toggleArchiveGroup(id, listType){
+  const list = listType==='sport' ? S.sports : S.clubs;
+  const g = list.find(x=>x.id===id);
+  if(!g) return;
+  g.archived = !g.archived;
+  toast(g.name + (g.archived?' archived':' restored'));
+  scheduleSave();
+  renderBudget();
+}
 function markBookingComplete(id){const b=S.bookings.find(x=>x.id===id);if(b){b.status='Completed';toast(b.room+' marked complete ✓');scheduleSave();render();}}
 function showVanDetail(vanNum){
   const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
@@ -4173,14 +4182,20 @@ function renderBudgetOverview(bc){
 }
 
 function renderBudgetList(bc,listType){
-  const list=listType==='sport'?S.sports:S.clubs;
+  const _showArchived = window._budgetShowArchived || false;
+  const _allList = listType==='sport'?S.sports:S.clubs;
+  const list = _showArchived ? _allList : _allList.filter(g=>!g.archived);
+  const _archivedCount = _allList.filter(g=>g.archived).length;
   const label=listType==='sport'?'Sport':'Club';
   const accentColor=listType==='sport'?'#1D9E75':'#BA7517';
   const accentBg=listType==='sport'?'rgba(29,158,117,.08)':'rgba(186,117,23,.08)';
   bc.innerHTML=`<div class="card">
     <div class="shdr">
       <div class="stitle" style="color:${accentColor}">${listType==='sport'?'🏆':'🎭'} ${label} Budgets (${list.length})</div>
-      <button class="btn btn-sm" style="background:${accentColor};color:#fff;border:none" onclick="document.getElementById('g-type').value='${listType}';openModal('group-modal')">+ Add ${label}</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${_archivedCount>0?`<button class="btn btn-sm" style="background:var(--bg3);color:var(--t2);border:none;font-size:11px" onclick="window._budgetShowArchived=!window._budgetShowArchived;renderBudget()">${_showArchived?'Hide Archived':'📦 Show Archived ('+_archivedCount+')'}</button>`:''}
+        <button class="btn btn-sm" style="background:${accentColor};color:#fff;border:none" onclick="document.getElementById('g-type').value='${listType}';openModal('group-modal')">+ Add ${label}</button>
+      </div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr>
@@ -4192,7 +4207,7 @@ function renderBudgetList(bc,listType){
       </tr></thead>
       <tbody>
         ${list.map(g=>{
-          return `<tr style="cursor:pointer" onclick="openGroupDetail(${g.id})">
+          return `<tr style="cursor:pointer;${g.archived?'opacity:0.55;background:var(--bg2)':''}" onclick="openGroupDetail(${g.id})">
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
               <div style="font-weight:700;color:${accentColor}">${g.name}${g.id>=200?'<span class="badge b-green" style="margin-left:6px;font-size:10px">New</span>':''}</div>
               <div style="font-size:11px;color:var(--t3);margin-top:2px">${(g.transactions||[]).length} transaction${(g.transactions||[]).length!==1?'s':''} · Click to open</div>
@@ -4205,6 +4220,7 @@ function renderBudgetList(bc,listType){
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap" onclick="event.stopPropagation()">
               <button class="btn btn-sm btn-primary" style="font-size:11px" onclick="openGroupTransaction(${g.id},'${listType}')">+ Transaction</button>
               <button class="btn btn-sm" style="font-size:11px;margin-left:4px" onclick="printGroupLedger(${g.id})" title="Print PDF ledger">&#128196; PDF</button>
+              <button class="btn btn-sm" style="font-size:11px;margin-left:4px;background:${g.archived?'#1D9E75':'#f59e0b'};color:#fff;border:none" onclick="event.stopPropagation();toggleArchiveGroup(${g.id},'${listType}')" title="${g.archived?'Restore group':'Archive group'}">${g.archived?'↩ Restore':'📦 Archive'}</button>
               ${g.id>=200?`<button class="btn btn-sm btn-danger" style="font-size:11px;margin-left:4px" onclick="deleteGroup(${g.id},'${listType}')">&#10005;</button>`:''}
             </td>
           </tr>`;
