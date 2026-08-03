@@ -6,65 +6,152 @@
 <title>SchoolOps Calendar Feed</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6f7;color:#111;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{background:#fff;border-radius:12px;border:1px solid rgba(0,0,0,0.09);padding:32px;max-width:520px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
-.logo svg{width:32px;height:32px}
-.logo-title{font-size:18px;font-weight:800}
-.logo-sub{font-size:12px;color:#999;margin-top:1px}
-h2{font-size:15px;font-weight:700;margin-bottom:6px}
-p{font-size:13px;color:#555;line-height:1.6;margin-bottom:16px}
-.feed-url{background:#eef0f2;border-radius:8px;padding:12px 14px;font-size:12px;font-family:monospace;word-break:break-all;margin-bottom:16px;border:1px solid rgba(0,0,0,0.09)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;text-decoration:none}
-.btn-primary{background:#185FA5;color:#fff}
-.btn-secondary{background:#eef0f2;color:#111}
-.btn:hover{opacity:.9}
-.btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
-.divider{border:none;border-top:1px solid rgba(0,0,0,0.09);margin:24px 0}
-.steps{counter-reset:step}
-.step{display:flex;gap:12px;margin-bottom:14px;font-size:13px;color:#555}
-.step-num{width:22px;height:22px;border-radius:50%;background:#185FA5;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.status{font-size:12px;color:#999;margin-top:16px;text-align:center}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#E6F1FB;color:#185FA5;margin-left:6px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6f7;color:#111;min-height:100vh}
+.hdr{background:#185FA5;color:#fff;padding:16px 24px;display:flex;align-items:center;gap:12px}
+.hdr-title{font-size:18px;font-weight:800}
+.hdr-sub{font-size:12px;opacity:.75;margin-top:2px}
+.main{max-width:900px;margin:0 auto;padding:24px 16px}
+.card{background:#fff;border-radius:10px;border:1px solid rgba(0,0,0,0.09);padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.feed-box{background:#eef0f2;border-radius:8px;padding:12px 14px;font-size:12px;font-family:monospace;word-break:break-all;margin-bottom:12px;border:1px solid rgba(0,0,0,0.09);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;text-decoration:none;white-space:nowrap}
+.btn-blue{background:#185FA5;color:#fff}
+.btn-gray{background:#eef0f2;color:#111}
+.btn-green{background:#1D9E75;color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn:hover{opacity:.85}
+.steps{margin-top:8px}
+.step{display:flex;gap:10px;margin-bottom:10px;font-size:13px;color:#555;align-items:flex-start}
+.step-n{width:20px;height:20px;border-radius:50%;background:#185FA5;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+/* Events list */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(0,0,0,0.15);background:#fff;color:#555}
+.filter-btn.active{background:#185FA5;color:#fff;border-color:#185FA5}
+.event-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid rgba(0,0,0,0.09);border-radius:8px;margin-bottom:8px;background:#fff}
+.event-icon{font-size:20px;flex-shrink:0}
+.event-info{flex:1;min-width:0}
+.event-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.event-meta{font-size:11px;color:#999;margin-top:2px}
+.event-actions{display:flex;gap:6px;flex-shrink:0}
+/* Share modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:24px;width:480px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:#999;margin-bottom:16px}
+.frow{margin-bottom:12px}
+.flabel{font-size:12px;font-weight:600;color:#555;margin-bottom:4px;display:block}
+input,textarea,select{width:100%;padding:9px 12px;border:1px solid rgba(0,0,0,0.2);border-radius:8px;font-size:13px;font-family:inherit;outline:none}
+input:focus,textarea:focus{border-color:#185FA5}
+.email-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.email-tag{background:#E6F1FB;color:#185FA5;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.email-tag button{background:none;border:none;cursor:pointer;color:#185FA5;font-size:14px;padding:0;line-height:1}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.share-options{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.share-opt{flex:1;min-width:120px;padding:10px;border:2px solid rgba(0,0,0,0.1);border-radius:8px;cursor:pointer;text-align:center;font-size:12px;font-weight:600;color:#555}
+.share-opt.selected{border-color:#185FA5;color:#185FA5;background:#E6F1FB}
+.share-opt .opt-icon{font-size:20px;display:block;margin-bottom:4px}
+.status-msg{font-size:12px;color:#1D9E75;margin-top:8px;display:none}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">
-    <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#185FA5"/><text x="5" y="22" font-size="17" font-weight="800" fill="white" font-family="sans-serif">HP</text></svg>
-    <div>
-      <div class="logo-title">SchoolOps</div>
-      <div class="logo-sub">Calendar Feed</div>
+
+<div class="hdr">
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="white" fill-opacity=".2"/><text x="5" y="22" font-size="17" font-weight="800" fill="white" font-family="sans-serif">HP</text></svg>
+  <div><div class="hdr-title">SchoolOps Calendar</div><div class="hdr-sub">Highland Prep AZ — Athletics, Transport, Facilities & Staff</div></div>
+</div>
+
+<div class="main">
+
+  <!-- Subscribe card -->
+  <div class="card">
+    <div class="card-title">📅 Subscribe to Full Calendar</div>
+    <div class="feed-box">
+      <span id="feed-url">https://schoolops-calendar.tammy-fam4.workers.dev</span>
+      <button class="btn btn-gray btn-sm" onclick="copyFeed()">📋 Copy</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <button class="btn btn-blue" onclick="downloadAll()">⬇ Download .ics</button>
+      <button class="btn btn-gray" onclick="copyFeed()">📋 Copy Feed URL</button>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-n">1</div><div>Open <strong>Outlook</strong> → Calendar view</div></div>
+      <div class="step"><div class="step-n">2</div><div>Click <strong>Add Calendar</strong> → <strong>From Internet</strong></div></div>
+      <div class="step"><div class="step-n">3</div><div>Paste the URL above → click <strong>OK</strong></div></div>
+      <div class="step"><div class="step-n">4</div><div>Auto-syncs whenever Outlook refreshes</div></div>
     </div>
   </div>
 
-  <h2>📅 Subscribe to Your School Calendar</h2>
-  <p>This feed includes athletics games, transportation trips, facility bookings, and planned staff absences. It updates automatically when you add or change events in SchoolOps.</p>
+  <!-- Events list -->
+  <div class="card">
+    <div class="card-title">📆 Share Individual Events</div>
 
-  <div class="feed-url" id="feed-url">Generating feed URL...</div>
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('athletics',this)">🏅 Athletics</button>
+      <button class="filter-btn" onclick="setFilter('transport',this)">🚐 Transport</button>
+      <button class="filter-btn" onclick="setFilter('facility',this)">🏫 Facilities</button>
+      <button class="filter-btn" onclick="setFilter('absence',this)">👤 Absences</button>
+    </div>
 
-  <div class="btns">
-    <button class="btn btn-primary" onclick="downloadICS()">⬇ Download .ics File</button>
-    <button class="btn btn-secondary" onclick="copyURL()">📋 Copy Feed URL</button>
+    <div id="events-list"><div style="color:#999;padding:20px;text-align:center">Loading events...</div></div>
   </div>
 
-  <hr class="divider">
+</div>
 
-  <h2 style="margin-bottom:12px">How to Subscribe in Outlook</h2>
-  <div class="step"><div class="step-num">1</div><div>Open <strong>Outlook</strong> → Calendar view</div></div>
-  <div class="step"><div class="step-num">2</div><div>Click <strong>Add Calendar</strong> → <strong>From Internet</strong></div></div>
-  <div class="step"><div class="step-num">3</div><div>Paste the feed URL above → click <strong>Import</strong></div></div>
-  <div class="step"><div class="step-num">4</div><div>Outlook will sync automatically. To refresh manually: right-click the calendar → <strong>Refresh</strong></div></div>
+<!-- Share Modal -->
+<div class="overlay" id="share-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Share Event</div>
+    <div class="modal-sub" id="modal-sub"></div>
 
-  <div class="status" id="status">Loading events...</div>
+    <div class="share-options">
+      <div class="share-opt selected" id="opt-email" onclick="selectOpt('email')">
+        <span class="opt-icon">📧</span>Email Invite
+      </div>
+      <div class="share-opt" id="opt-ics" onclick="selectOpt('ics')">
+        <span class="opt-icon">📅</span>Download .ics
+      </div>
+      <div class="share-opt" id="opt-outlook" onclick="selectOpt('outlook')">
+        <span class="opt-icon">🪟</span>Open in Outlook
+      </div>
+    </div>
+
+    <div id="email-section">
+      <div class="frow">
+        <label class="flabel">Send to (press Enter after each email)</label>
+        <div class="email-tags" id="email-tags"></div>
+        <input type="email" id="email-input" placeholder="Enter email address..." onkeydown="handleEmailKey(event)">
+      </div>
+      <div class="frow">
+        <label class="flabel">Message (optional)</label>
+        <textarea id="email-msg" rows="2" placeholder="Adding you to this event..."></textarea>
+      </div>
+    </div>
+
+    <div id="ics-section" style="display:none">
+      <p style="font-size:13px;color:#555">Download this event as a .ics file. The recipient can open it to add it to any calendar app (Outlook, Google, Apple).</p>
+    </div>
+
+    <div id="outlook-section" style="display:none">
+      <p style="font-size:13px;color:#555">Opens a pre-filled Outlook email with the event attached. You can edit recipients before sending.</p>
+    </div>
+
+    <div class="status-msg" id="status-msg">✅ Done!</div>
+
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-blue" id="share-btn" onclick="doShare()">📤 Share Event</button>
+    </div>
+  </div>
 </div>
 
 <script>
+const FEED_URL = 'https://schoolops-calendar.tammy-fam4.workers.dev';
 const SUPABASE_URL = 'https://idjratpppoubqehqvjpx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
 const USER_EMAIL = 'tammy.fam4@gmail.com';
 
-// Fall 2026 athletics base schedule (hardcoded since it's in athletics.html)
 const FALL_GAMES = [
   {id:'f1',sport:'Football',date:'2026-08-21',gameTime:'7:00 PM',visitor:'Madison Highland',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
   {id:'f2',sport:"Volleyball - Girl's",date:'2026-08-28',gameTime:'4:00 PM',visitor:'BASIS Flagstaff',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
@@ -127,198 +214,286 @@ const FALL_GAMES = [
 ];
 
 let S = {};
-let icsContent = '';
+let allEvents = [];
+let currentFilter = 'all';
+let shareEvent = null;
+let shareOption = 'email';
+let emailList = [];
 
-async function loadAndGenerate(){
+async function load(){
   try{
     const r = await fetch(SUPABASE_URL+'/rest/v1/app_state?user_email=eq.'+encodeURIComponent(USER_EMAIL)+'&select=state_json',{
       headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
     });
     const d = await r.json();
     if(d&&d[0]) S = JSON.parse(d[0].state_json);
-  }catch(e){ console.warn('Load error',e); }
-  generateICS();
+  }catch(e){}
+  buildEvents();
+  renderEvents();
+}
+
+function fmtDate(dateStr, timeStr){
+  const d = new Date(dateStr+'T12:00:00');
+  const day = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  return timeStr ? day+' · '+timeStr : day;
+}
+
+function buildEvents(){
+  allEvents = [];
+
+  // Athletics
+  FALL_GAMES.forEach(g=>{
+    const opp = g.homeAway==='Away' ? g.host : g.visitor;
+    const icon = g.sport==='Football'?'🏈':g.sport==="Volleyball - Girl's"?'🏐':'🚩';
+    allEvents.push({
+      type:'athletics', icon,
+      title: `${g.sport}${g.level?' ('+g.level+')':''} — ${g.homeAway==='Away'?'@ '+opp:opp+' vs HP'}`,
+      meta: fmtDate(g.date, g.gameTime) + (g.leaveTime?' · Leave '+g.leaveTime:'') + ' · '+g.venue,
+      date: g.date, time: g.gameTime,
+      location: g.address||(g.homeAway==='Home'?'15600 W Hearn Rd, Surprise AZ':g.venue),
+      desc: (g.homeAway==='Away'?'AWAY GAME':'HOME GAME')+'\nVenue: '+g.venue+(g.leaveTime?'\nLeave: '+g.leaveTime:''),
+      raw: g
+    });
+  });
+
+  // Transportation
+  (S.trips||[]).sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>{
+    allEvents.push({
+      type:'transport', icon:'🚐',
+      title: `${t.sport} Transport — ${t.away?'@ '+t.host:t.visitor+' vs HP'}`,
+      meta: fmtDate(t.date, t.leaveTime||t.time) + ' · Coach: '+(t.coach||'TBD'),
+      date: t.date, time: t.leaveTime||t.time,
+      location: t.address||t.venue||'',
+      desc: 'Coach: '+(t.coach||'TBD')+'\nVehicle: '+(t.vehicle||'TBD')+(t.leaveTime?'\nLeave: '+t.leaveTime:''),
+      raw: t
+    });
+  });
+
+  // Facilities
+  (S.bookings||[]).forEach(b=>{
+    allEvents.push({
+      type:'facility', icon:'🏫',
+      title: `${b.purpose} — ${b.room}`,
+      meta: fmtDate(b.date, b.time) + ' · '+b.status,
+      date: b.date, time: b.time,
+      location: '15600 W Hearn Rd, Surprise AZ 85379',
+      desc: 'Room: '+b.room+'\nBooked by: '+(b.by||'')+'\nStatus: '+(b.status||''),
+      raw: b
+    });
+  });
+
+  // Planned absences
+  (S.plannedDays||[]).forEach(p=>{
+    allEvents.push({
+      type:'absence', icon:'👤',
+      title: `${p.person} — ${p.type==='EA'?'Planned Absence':p.type||'Day Off'}`,
+      meta: fmtDate(p.start) + (p.end&&p.end!==p.start?' → '+fmtDate(p.end):'') + (p.subAssign?' · Sub: '+p.subAssign:''),
+      date: p.start, time:'',
+      location:'',
+      desc: 'Employee: '+p.person+'\nType: '+(p.type||'')+(p.notes?'\nNotes: '+p.notes:'')+(p.subAssign?'\nSub: '+p.subAssign:''),
+      raw: p
+    });
+  });
+
+  // Sort by date
+  allEvents.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function setFilter(f, el){
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderEvents();
+}
+
+function renderEvents(){
+  const list = document.getElementById('events-list');
+  const filtered = currentFilter==='all' ? allEvents : allEvents.filter(e=>e.type===currentFilter);
+  if(!filtered.length){ list.innerHTML='<div style="color:#999;padding:20px;text-align:center">No events found</div>'; return; }
+  list.innerHTML = filtered.map((e,i)=>`
+    <div class="event-row">
+      <div class="event-icon">${e.icon}</div>
+      <div class="event-info">
+        <div class="event-title">${e.title}</div>
+        <div class="event-meta">${e.meta}</div>
+      </div>
+      <div class="event-actions">
+        <button class="btn btn-blue btn-sm" onclick="openShare(${allEvents.indexOf(e)})">📤 Share</button>
+        <button class="btn btn-gray btn-sm" onclick="downloadSingle(${allEvents.indexOf(e)})">⬇</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openShare(idx){
+  shareEvent = allEvents[idx];
+  emailList = [];
+  document.getElementById('modal-title').textContent = '📤 Share: '+shareEvent.title;
+  document.getElementById('modal-sub').textContent = shareEvent.meta;
+  document.getElementById('email-tags').innerHTML = '';
+  document.getElementById('email-input').value = '';
+  document.getElementById('email-msg').value = '';
+  document.getElementById('status-msg').style.display='none';
+  selectOpt('email');
+  document.getElementById('share-modal').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('share-modal').classList.remove('open');
+}
+
+function selectOpt(opt){
+  shareOption = opt;
+  ['email','ics','outlook'].forEach(o=>{
+    document.getElementById('opt-'+o).classList.toggle('selected', o===opt);
+    document.getElementById(o+'-section').style.display = o===opt?'block':'none';
+  });
+}
+
+function handleEmailKey(e){
+  if(e.key==='Enter'||e.key===','||e.key===' '){
+    e.preventDefault();
+    const val = document.getElementById('email-input').value.trim().replace(/,$/,'');
+    if(val && val.includes('@')){
+      emailList.push(val);
+      const tag = document.createElement('div');
+      tag.className = 'email-tag';
+      tag.innerHTML = val+' <button onclick="removeEmail(\''+val+'\')">×</button>';
+      document.getElementById('email-tags').appendChild(tag);
+      document.getElementById('email-input').value = '';
+    }
+  }
+}
+
+function removeEmail(email){
+  emailList = emailList.filter(e=>e!==email);
+  renderTags();
+}
+
+function renderTags(){
+  document.getElementById('email-tags').innerHTML = emailList.map(e=>
+    `<div class="email-tag">${e} <button onclick="removeEmail('${e}')">×</button></div>`
+  ).join('');
 }
 
 function parseDateTime(dateStr, timeStr){
   if(!timeStr) return null;
-  const [time, period] = timeStr.split(' ');
-  let [h, m] = time.split(':').map(Number);
+  const parts = timeStr.trim().split(' ');
+  const period = parts[1];
+  const [hStr,mStr] = parts[0].split(':');
+  let h=parseInt(hStr), m=parseInt(mStr);
   if(period==='PM'&&h!==12) h+=12;
   if(period==='AM'&&h===12) h=0;
   const [y,mo,d] = dateStr.split('-').map(Number);
-  // Arizona = UTC-7 (no DST)
-  const utcH = h + 7;
+  const utcH = h+7;
   return `${y}${String(mo).padStart(2,'0')}${String(d).padStart(2,'0')}T${String(utcH%24).padStart(2,'0')}${String(m).padStart(2,'0')}00Z`;
 }
 
-function formatDate(dateStr){
-  const [y,m,d] = dateStr.split('-');
-  return `${y}${m}${d}`;
-}
-
-function uid(prefix, id){
-  return `${prefix}-${id}@schoolops-highlandprep`;
-}
-
-function escape(str){
-  return (str||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
-}
-
-function generateICS(){
+function buildSingleICS(ev){
+  const dtStart = parseDateTime(ev.date, ev.time) || ev.date.replace(/-/g,'');
+  const isAllDay = !ev.time;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//SchoolOps//Highland Prep AZ//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'X-WR-CALNAME:Highland Prep School Calendar',
-    'X-WR-TIMEZONE:America/Phoenix',
-    'X-WR-CALDESC:Athletics, Transportation, Facilities & Staff Absences',
+    'BEGIN:VEVENT',
+    'UID:single-'+ev.date+'-'+Math.random().toString(36).slice(2)+'@schoolops',
+    isAllDay ? 'DTSTART;VALUE=DATE:'+dtStart : 'DTSTART:'+dtStart,
+    isAllDay ? 'DTEND;VALUE=DATE:'+dtStart : 'DTEND:'+parseDateTime(ev.date, ev.time).replace(/T(\d{2})/, (m,h)=>'T'+String((parseInt(h)+3)%24).padStart(2,'0')),
+    'SUMMARY:'+ev.title.replace(/,/g,'\\,'),
+    'LOCATION:'+(ev.location||'').replace(/,/g,'\\,'),
+    'DESCRIPTION:'+ev.desc.replace(/\n/g,'\\n').replace(/,/g,'\\,'),
+    'ORGANIZER;CN=Highland Prep:mailto:'+USER_EMAIL,
+    'END:VEVENT',
+    'END:VCALENDAR'
   ];
-
-  let eventCount = 0;
-
-  // 1. ATHLETICS GAMES
-  FALL_GAMES.forEach(g=>{
-    const dtStart = parseDateTime(g.date, g.gameTime);
-    if(!dtStart) return;
-    // End = start + 2.5 hours
-    const startH = parseInt(dtStart.substring(9,11));
-    const endH = (startH + 2) % 24;
-    const dtEnd = dtStart.substring(0,9) + String(endH).padStart(2,'0') + dtStart.substring(11);
-    const opponent = g.homeAway==='Away' ? g.host : g.visitor;
-    const icon = g.sport==='Football'?'🏈':g.sport==="Volleyball - Girl's"?'🏐':'🚩';
-    const summary = `${icon} ${g.sport}${g.level?' ('+g.level+')':''} - ${g.homeAway==='Away'?'@ '+opponent:opponent+' vs Highland Prep'}`;
-    const location = g.address || (g.homeAway==='Home'?'15600 W Hearn Rd, Surprise, AZ 85379':g.venue);
-    const desc = [
-      g.homeAway==='Away'?'AWAY GAME':'HOME GAME',
-      'Venue: '+g.venue,
-      g.leaveTime?'Leave Time: '+g.leaveTime:'',
-    ].filter(Boolean).join('\\n');
-
-    lines.push('BEGIN:VEVENT');
-    lines.push('UID:'+uid('ath',g.id));
-    lines.push('DTSTART:'+dtStart);
-    lines.push('DTEND:'+dtEnd);
-    lines.push('SUMMARY:'+escape(summary));
-    lines.push('LOCATION:'+escape(location));
-    lines.push('DESCRIPTION:'+escape(desc));
-    lines.push('CATEGORIES:Athletics');
-    if(g.leaveTime){
-      // Also add a leave time alarm
-      const leaveStart = parseDateTime(g.date, g.leaveTime);
-      if(leaveStart){
-        lines.push('BEGIN:VALARM');
-        lines.push('ACTION:DISPLAY');
-        lines.push('DESCRIPTION:Leave now for '+g.venue);
-        lines.push('TRIGGER;VALUE=DATE-TIME:'+leaveStart);
-        lines.push('END:VALARM');
-      }
-    }
-    lines.push('END:VEVENT');
-    eventCount++;
-  });
-
-  // 2. TRANSPORTATION TRIPS
-  (S.trips||[]).forEach(t=>{
-    if(!t.date) return;
-    const dtStart = parseDateTime(t.date, t.leaveTime||t.time||'7:00 AM');
-    if(!dtStart) return;
-    const dtEnd = dtStart.substring(0,9) + String((parseInt(dtStart.substring(9,11))+2)%24).padStart(2,'0') + dtStart.substring(11);
-    const summary = `🚐 ${t.sport} Transport - ${t.away?'@ '+t.host:t.visitor+' vs HP'}`;
-    const desc = [
-      'Coach: '+(t.coach||'TBD'),
-      'Vehicle: '+(t.vehicle||'TBD'),
-      t.leaveTime?'Leave: '+t.leaveTime:'',
-      t.address?'Venue: '+t.address:'',
-    ].filter(Boolean).join('\\n');
-
-    lines.push('BEGIN:VEVENT');
-    lines.push('UID:'+uid('trip',t.id));
-    lines.push('DTSTART:'+dtStart);
-    lines.push('DTEND:'+dtEnd);
-    lines.push('SUMMARY:'+escape(summary));
-    lines.push('LOCATION:'+escape(t.address||t.venue||''));
-    lines.push('DESCRIPTION:'+escape(desc));
-    lines.push('CATEGORIES:Transportation');
-    lines.push('END:VEVENT');
-    eventCount++;
-  });
-
-  // 3. FACILITY BOOKINGS
-  (S.bookings||[]).forEach(b=>{
-    if(!b.date) return;
-    const dtStart = parseDateTime(b.date, b.time||'8:00 AM');
-    if(!dtStart) return;
-    const dtEnd = dtStart.substring(0,9) + String((parseInt(dtStart.substring(9,11))+2)%24).padStart(2,'0') + dtStart.substring(11);
-    const summary = `🏫 ${b.purpose} - ${b.room}`;
-    const desc = `Room: ${b.room}\\nBooked by: ${b.by||''}\\nStatus: ${b.status||''}`;
-
-    lines.push('BEGIN:VEVENT');
-    lines.push('UID:'+uid('fac',b.id));
-    lines.push('DTSTART:'+dtStart);
-    lines.push('DTEND:'+dtEnd);
-    lines.push('SUMMARY:'+escape(summary));
-    lines.push('LOCATION:escape(15600 W Hearn Rd, Surprise, AZ 85379)');
-    lines.push('DESCRIPTION:'+escape(desc));
-    lines.push('CATEGORIES:Facilities');
-    lines.push('END:VEVENT');
-    eventCount++;
-  });
-
-  // 4. PLANNED STAFF ABSENCES
-  (S.plannedDays||[]).forEach(p=>{
-    if(!p.start) return;
-    const dtStart = formatDate(p.start);
-    const dtEnd = formatDate(p.end||p.start);
-    const summary = `👤 ${p.person} - ${p.type==='EA'?'Planned Absence':p.type||'Planned Day Off'}`;
-    const desc = [
-      'Employee: '+p.person,
-      'Type: '+(p.type||''),
-      p.notes?'Notes: '+p.notes:'',
-      p.subReq==='yes'?'Sub Required: Yes':'',
-      p.subAssign?'Sub: '+p.subAssign:'',
-    ].filter(Boolean).join('\\n');
-
-    lines.push('BEGIN:VEVENT');
-    lines.push('UID:'+uid('abs',p.id));
-    lines.push('DTSTART;VALUE=DATE:'+dtStart);
-    lines.push('DTEND;VALUE=DATE:'+dtEnd);
-    lines.push('SUMMARY:'+escape(summary));
-    lines.push('DESCRIPTION:'+escape(desc));
-    lines.push('CATEGORIES:Staff Absences');
-    lines.push('END:VEVENT');
-    eventCount++;
-  });
-
-  lines.push('END:VCALENDAR');
-  icsContent = lines.join('\r\n');
-
-  document.getElementById('feed-url').textContent = window.location.href;
-  document.getElementById('status').textContent = `✅ ${eventCount} events ready — ${FALL_GAMES.length} games, ${(S.trips||[]).length} trips, ${(S.bookings||[]).length} facility bookings, ${(S.plannedDays||[]).length} staff absences`;
+  return lines.join('\r\n');
 }
 
-function downloadICS(){
-  if(!icsContent){ alert('Still loading...'); return; }
-  const blob = new Blob([icsContent], {type:'text/calendar;charset=utf-8'});
+function downloadSingle(idx){
+  const ev = allEvents[idx];
+  const ics = buildSingleICS(ev);
+  const blob = new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = ev.title.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.ics';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function doShare(){
+  if(!shareEvent) return;
+  const ics = buildSingleICS(shareEvent);
+
+  if(shareOption==='ics'){
+    const blob = new Blob([ics],{type:'text/calendar;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = shareEvent.title.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.ics';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    showStatus('Downloaded!');
+    return;
+  }
+
+  if(shareOption==='outlook'){
+    // Check if any email typed but not added
+    const inputVal = document.getElementById('email-input').value.trim();
+    if(inputVal && inputVal.includes('@')) emailList.push(inputVal);
+    const msg = document.getElementById('email-msg').value;
+    const body = encodeURIComponent(
+      (msg?msg+'\n\n':'')+'Event: '+shareEvent.title+'\nDate: '+shareEvent.meta+
+      (shareEvent.location?'\nLocation: '+shareEvent.location:'')+
+      '\n\nThis event was shared from SchoolOps — Highland Prep AZ'
+    );
+    const subject = encodeURIComponent('📅 '+shareEvent.title);
+    const to = encodeURIComponent(emailList.join(';'));
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`);
+    showStatus('Opening Outlook...');
+    return;
+  }
+
+  if(shareOption==='email'){
+    // Check if any email typed but not added
+    const inputVal = document.getElementById('email-input').value.trim();
+    if(inputVal && inputVal.includes('@')) emailList.push(inputVal);
+    if(!emailList.length){ alert('Please enter at least one email address'); return; }
+    const msg = document.getElementById('email-msg').value;
+    const body = encodeURIComponent(
+      (msg?msg+'\n\n':'')+'Event: '+shareEvent.title+'\nDate: '+shareEvent.meta+
+      (shareEvent.location?'\nLocation: '+shareEvent.location:'')+
+      '\n\nThis event was shared from SchoolOps — Highland Prep AZ\n\nTo add to your calendar, open the attached .ics file.'
+    );
+    const subject = encodeURIComponent('📅 '+shareEvent.title);
+    const to = encodeURIComponent(emailList.join(';'));
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`);
+    showStatus('Opening email...');
+  }
+}
+
+function showStatus(msg){
+  const el = document.getElementById('status-msg');
+  el.textContent = '✅ '+msg;
+  el.style.display='block';
+  setTimeout(()=>{ el.style.display='none'; closeModal(); },2000);
+}
+
+function copyFeed(){
+  navigator.clipboard.writeText(FEED_URL).then(()=>{
+    const btns = document.querySelectorAll('.btn-gray');
+    btns.forEach(b=>{ if(b.textContent.includes('Copy')){ b.textContent='✅ Copied!'; setTimeout(()=>b.textContent='📋 Copy Feed URL',2000); }});
+  });
+}
+
+async function downloadAll(){
+  const r = await fetch(FEED_URL);
+  const text = await r.text();
+  const blob = new Blob([text],{type:'text/calendar;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'highland-prep-school-calendar.ics';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function copyURL(){
-  navigator.clipboard.writeText(window.location.href).then(()=>{
-    const btn = document.querySelector('.btn-secondary');
-    btn.textContent = '✅ Copied!';
-    setTimeout(()=>{ btn.innerHTML = '📋 Copy Feed URL'; }, 2000);
-  });
-}
-
-loadAndGenerate();
+load();
 </script>
 </body>
 </html>
