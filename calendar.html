@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SchoolOps Calendar Feed</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6f7;color:#111;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;border-radius:12px;border:1px solid rgba(0,0,0,0.09);padding:32px;max-width:520px;width:100%;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.logo svg{width:32px;height:32px}
+.logo-title{font-size:18px;font-weight:800}
+.logo-sub{font-size:12px;color:#999;margin-top:1px}
+h2{font-size:15px;font-weight:700;margin-bottom:6px}
+p{font-size:13px;color:#555;line-height:1.6;margin-bottom:16px}
+.feed-url{background:#eef0f2;border-radius:8px;padding:12px 14px;font-size:12px;font-family:monospace;word-break:break-all;margin-bottom:16px;border:1px solid rgba(0,0,0,0.09)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;text-decoration:none}
+.btn-primary{background:#185FA5;color:#fff}
+.btn-secondary{background:#eef0f2;color:#111}
+.btn:hover{opacity:.9}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.divider{border:none;border-top:1px solid rgba(0,0,0,0.09);margin:24px 0}
+.steps{counter-reset:step}
+.step{display:flex;gap:12px;margin-bottom:14px;font-size:13px;color:#555}
+.step-num{width:22px;height:22px;border-radius:50%;background:#185FA5;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.status{font-size:12px;color:#999;margin-top:16px;text-align:center}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#E6F1FB;color:#185FA5;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#185FA5"/><text x="5" y="22" font-size="17" font-weight="800" fill="white" font-family="sans-serif">HP</text></svg>
+    <div>
+      <div class="logo-title">SchoolOps</div>
+      <div class="logo-sub">Calendar Feed</div>
+    </div>
+  </div>
+
+  <h2>📅 Subscribe to Your School Calendar</h2>
+  <p>This feed includes athletics games, transportation trips, facility bookings, and planned staff absences. It updates automatically when you add or change events in SchoolOps.</p>
+
+  <div class="feed-url" id="feed-url">Generating feed URL...</div>
+
+  <div class="btns">
+    <button class="btn btn-primary" onclick="downloadICS()">⬇ Download .ics File</button>
+    <button class="btn btn-secondary" onclick="copyURL()">📋 Copy Feed URL</button>
+  </div>
+
+  <hr class="divider">
+
+  <h2 style="margin-bottom:12px">How to Subscribe in Outlook</h2>
+  <div class="step"><div class="step-num">1</div><div>Open <strong>Outlook</strong> → Calendar view</div></div>
+  <div class="step"><div class="step-num">2</div><div>Click <strong>Add Calendar</strong> → <strong>From Internet</strong></div></div>
+  <div class="step"><div class="step-num">3</div><div>Paste the feed URL above → click <strong>Import</strong></div></div>
+  <div class="step"><div class="step-num">4</div><div>Outlook will sync automatically. To refresh manually: right-click the calendar → <strong>Refresh</strong></div></div>
+
+  <div class="status" id="status">Loading events...</div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://idjratpppoubqehqvjpx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
+const USER_EMAIL = 'tammy.fam4@gmail.com';
+
+// Fall 2026 athletics base schedule (hardcoded since it's in athletics.html)
+const FALL_GAMES = [
+  {id:'f1',sport:'Football',date:'2026-08-21',gameTime:'7:00 PM',visitor:'Madison Highland',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f2',sport:"Volleyball - Girl's",date:'2026-08-28',gameTime:'4:00 PM',visitor:'BASIS Flagstaff',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f3',sport:"Volleyball - Girl's",date:'2026-08-28',gameTime:'5:30 PM',visitor:'BASIS Flagstaff',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f4',sport:'Football',date:'2026-08-28',gameTime:'7:00 PM',visitor:'Chino Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f5',sport:"Volleyball - Girl's",date:'2026-09-01',gameTime:'5:00 PM',visitor:'Rancho Solano Prep',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f6',sport:"Volleyball - Girl's",date:'2026-09-01',gameTime:'6:00 PM',visitor:'Rancho Solano Prep',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f7',sport:"Volleyball - Girl's",date:'2026-09-03',gameTime:'5:00 PM',visitor:'Andrada Polytechnic',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f8',sport:"Volleyball - Girl's",date:'2026-09-03',gameTime:'6:00 PM',visitor:'Andrada Polytechnic',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f9',sport:'Football',date:'2026-09-04',gameTime:'7:00 PM',visitor:'Highland Prep',host:'Phoenix Christian',venue:'Phoenix Christian Jr./Sr. High School',address:'1751 W Indian School Rd, Phoenix, AZ 85015',homeAway:'Away',leaveTime:'5:25 PM'},
+  {id:'f10',sport:"Volleyball - Girl's",date:'2026-09-08',gameTime:'5:00 PM',visitor:'Highland Prep',host:'Tanque Verde',venue:'Tanque Verde High School',address:'4201 N Melpomene Way, Tucson, AZ 85749',homeAway:'Away',level:'JV',leaveTime:'2:00 PM'},
+  {id:'f11',sport:"Volleyball - Girl's",date:'2026-09-08',gameTime:'6:00 PM',visitor:'Highland Prep',host:'Tanque Verde',venue:'Tanque Verde High School',address:'4201 N Melpomene Way, Tucson, AZ 85749',homeAway:'Away',level:'Varsity',leaveTime:'3:00 PM'},
+  {id:'f12',sport:"Volleyball - Girl's",date:'2026-09-10',gameTime:'4:00 PM',visitor:'Madison Highland',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f13',sport:"Volleyball - Girl's",date:'2026-09-10',gameTime:'5:00 PM',visitor:'Madison Highland',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f14',sport:'Football',date:'2026-09-11',gameTime:'7:00 PM',visitor:'Trivium Prep',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f15',sport:"Volleyball - Girl's",date:'2026-09-14',gameTime:'4:00 PM',visitor:'Highland Prep',host:'Chino Valley',venue:'Chino Valley High School',address:'760 E Center St, Chino Valley, AZ 86323',homeAway:'Away',level:'JV',leaveTime:'1:20 PM'},
+  {id:'f16',sport:"Volleyball - Girl's",date:'2026-09-14',gameTime:'5:00 PM',visitor:'Highland Prep',host:'Chino Valley',venue:'Chino Valley High School',address:'760 E Center St, Chino Valley, AZ 86323',homeAway:'Away',level:'Varsity',leaveTime:'2:20 PM'},
+  {id:'f17',sport:'Football - Flag',date:'2026-09-15',gameTime:'6:00 PM',visitor:'Arizona Lutheran',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f18',sport:"Volleyball - Girl's",date:'2026-09-16',gameTime:'4:00 PM',visitor:'Mohave',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f19',sport:"Volleyball - Girl's",date:'2026-09-16',gameTime:'5:00 PM',visitor:'Mohave',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f20',sport:'Football - Flag',date:'2026-09-17',gameTime:'3:00 PM',visitor:'Highland Prep',host:'Tuba City',venue:'Tuba City High School',address:'Warrior Drive, Tuba City, AZ',homeAway:'Away',leaveTime:'9:30 AM'},
+  {id:'f21',sport:'Football',date:'2026-09-18',gameTime:'7:00 PM',visitor:'Highland Prep',host:'Highland Prep West',venue:'Highland Prep West',address:'12235 W Van Buren, Avondale AZ',homeAway:'Away',leaveTime:'5:35 PM'},
+  {id:'f22',sport:"Volleyball - Girl's",date:'2026-09-21',gameTime:'4:00 PM',visitor:'Kingman',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f23',sport:"Volleyball - Girl's",date:'2026-09-21',gameTime:'5:00 PM',visitor:'Kingman',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f24',sport:"Volleyball - Girl's",date:'2026-09-22',gameTime:'5:00 PM',visitor:'Highland Prep',host:'St. John Paul II',venue:'St. John Paul II Catholic High School',address:'3120 N 137th Ave, Avondale, AZ 85392',homeAway:'Away',level:'JV',leaveTime:'3:30 PM'},
+  {id:'f25',sport:'Football - Flag',date:'2026-09-22',gameTime:'6:00 PM',visitor:'Highland Prep',host:'Heritage Acad Laveen',venue:'Heritage Academy Laveen',address:'4275 W Baseline Rd, Laveen, AZ 85339',homeAway:'Away',leaveTime:'4:25 PM'},
+  {id:'f26',sport:"Volleyball - Girl's",date:'2026-09-22',gameTime:'6:00 PM',visitor:'Highland Prep',host:'St. John Paul II',venue:'St. John Paul II Catholic High School',address:'3120 N 137th Ave, Avondale, AZ 85392',homeAway:'Away',level:'Varsity',leaveTime:'4:30 PM'},
+  {id:'f27',sport:"Volleyball - Girl's",date:'2026-09-24',gameTime:'4:00 PM',visitor:'Odyssey Institute',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f28',sport:"Volleyball - Girl's",date:'2026-09-24',gameTime:'5:00 PM',visitor:'Odyssey Institute',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f29',sport:'Football - Flag',date:'2026-09-24',gameTime:'6:00 PM',visitor:'Highland Prep',host:'Scottsdale Christian',venue:'Scottsdale Christian Academy',address:'14400 N Tatum Blvd, Phoenix, AZ 85032',homeAway:'Away',leaveTime:'4:05 PM'},
+  {id:'f30',sport:'Football',date:'2026-09-25',gameTime:'7:00 PM',visitor:'Highland Prep',host:'Veritas Prep',venue:'Veritas Preparatory Academy',address:'3102 N 56th St, Phoenix, AZ 85018',homeAway:'Away',leaveTime:'5:10 PM'},
+  {id:'f31',sport:"Volleyball - Girl's",date:'2026-09-29',gameTime:'4:00 PM',visitor:'Highland Prep',host:'Yuma',venue:'Yuma High School',address:'400 S 6th Ave, Yuma, AZ',homeAway:'Away',level:'JV',leaveTime:'11:30 AM'},
+  {id:'f32',sport:"Volleyball - Girl's",date:'2026-09-29',gameTime:'5:00 PM',visitor:'Highland Prep',host:'Yuma',venue:'Yuma High School',address:'400 S 6th Ave, Yuma, AZ',homeAway:'Away',level:'Varsity',leaveTime:'12:30 PM'},
+  {id:'f33',sport:'Football - Flag',date:'2026-09-29',gameTime:'6:00 PM',visitor:'Highland Prep',host:'Page',venue:'Page High School',address:'434 S Lake Powell Blvd, Page, AZ 86040',homeAway:'Away',leaveTime:'12:30 PM'},
+  {id:'f34',sport:"Volleyball - Girl's",date:'2026-10-01',gameTime:'4:00 PM',visitor:'Tonopah Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f35',sport:"Volleyball - Girl's",date:'2026-10-01',gameTime:'5:00 PM',visitor:'Tonopah Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f36',sport:'Football - Flag',date:'2026-10-01',gameTime:'6:00 PM',visitor:'Highland Prep West',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f37',sport:'Football',date:'2026-10-02',gameTime:'7:00 PM',visitor:'Highland Prep',host:'Desert Star',venue:'Desert Star Academy',address:'5744 AZ-95, Fort Mohave, AZ 86426',homeAway:'Away',leaveTime:'3:00 PM'},
+  {id:'f38',sport:'Football - Flag',date:'2026-10-06',gameTime:'6:00 PM',visitor:'Madison Highland',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f39',sport:"Volleyball - Girl's",date:'2026-10-07',gameTime:'4:00 PM',visitor:'Chino Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f40',sport:"Volleyball - Girl's",date:'2026-10-07',gameTime:'5:00 PM',visitor:'Chino Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f41',sport:'Football - Flag',date:'2026-10-08',gameTime:'6:00 PM',visitor:'St. John Paul II',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f42',sport:"Volleyball - Girl's",date:'2026-10-09',gameTime:'4:00 PM',visitor:'Highland Prep',host:'Madison Highland',venue:'Madison Highland Prep',address:'1431 E Campbell, Phoenix AZ',homeAway:'Away',level:'JV',leaveTime:'2:20 PM'},
+  {id:'f43',sport:"Volleyball - Girl's",date:'2026-10-09',gameTime:'5:00 PM',visitor:'Highland Prep',host:'Madison Highland',venue:'Madison Highland Prep',address:'1431 E Campbell, Phoenix AZ',homeAway:'Away',level:'Varsity',leaveTime:'3:20 PM'},
+  {id:'f44',sport:'Football',date:'2026-10-09',gameTime:'7:00 PM',visitor:'Tanque Verde',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f45',sport:'Football - Flag',date:'2026-10-15',gameTime:'6:00 PM',visitor:'Palo Verde Magnet',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f46',sport:'Football',date:'2026-10-16',gameTime:'7:00 PM',visitor:'Mountainside',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f47',sport:"Volleyball - Girl's",date:'2026-10-20',gameTime:'4:00 PM',visitor:'Highland Prep',host:'Kingman',venue:'Kingman High School',address:'4182 N Bank St, Kingman, AZ 86409',homeAway:'Away',level:'JV',leaveTime:'12:00 PM'},
+  {id:'f48',sport:"Volleyball - Girl's",date:'2026-10-20',gameTime:'5:00 PM',visitor:'Highland Prep',host:'Kingman',venue:'Kingman High School',address:'4182 N Bank St, Kingman, AZ 86409',homeAway:'Away',level:'Varsity',leaveTime:'1:00 PM'},
+  {id:'f49',sport:'Football - Flag',date:'2026-10-20',gameTime:'6:00 PM',visitor:'Santa Rita',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f50',sport:"Volleyball - Girl's",date:'2026-10-22',gameTime:'4:00 PM',visitor:'River Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'JV',leaveTime:''},
+  {id:'f51',sport:"Volleyball - Girl's",date:'2026-10-22',gameTime:'5:00 PM',visitor:'River Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',level:'Varsity',leaveTime:''},
+  {id:'f52',sport:'Football - Flag',date:'2026-10-22',gameTime:'6:00 PM',visitor:'River Valley',host:'Highland Prep',venue:'Highland Prep',homeAway:'Home',leaveTime:''},
+  {id:'f53',sport:"Volleyball - Girl's",date:'2026-10-26',gameTime:'4:00 PM',visitor:'Highland Prep',host:'Mohave',venue:'Mohave High School',address:'2251 HWY 95, BULLHEAD CITY, AZ 86442',homeAway:'Away',level:'JV',leaveTime:'11:30 AM'},
+  {id:'f54',sport:"Volleyball - Girl's",date:'2026-10-26',gameTime:'5:00 PM',visitor:'Highland Prep',host:'Mohave',venue:'Mohave High School',address:'2251 HWY 95, BULLHEAD CITY, AZ 86442',homeAway:'Away',level:'Varsity',leaveTime:'12:30 PM'},
+  {id:'f55',sport:'Football - Flag',date:'2026-10-27',gameTime:'6:00 PM',visitor:'Highland Prep',host:'Goodyear',venue:'Goodyear High School',address:'17300 W Van Buren Street, Goodyear AZ',homeAway:'Away',leaveTime:'4:25 PM'},
+  {id:'f56',sport:"Volleyball - Girl's",date:'2026-10-28',gameTime:'4:00 PM',visitor:'Highland Prep',host:'Highland Prep West',venue:'Highland Prep West',address:'12236 W Van Buren, Avondale AZ',homeAway:'Away',level:'JV',leaveTime:'2:35 PM'},
+  {id:'f57',sport:"Volleyball - Girl's",date:'2026-10-28',gameTime:'5:00 PM',visitor:'Highland Prep',host:'Highland Prep West',venue:'Highland Prep West',address:'12236 W Van Buren, Avondale AZ',homeAway:'Away',level:'Varsity',leaveTime:'3:35 PM'},
+  {id:'f58',sport:'Football - Flag',date:'2026-11-03',gameTime:'6:00 PM',visitor:'Highland Prep',host:'Kingman',venue:'Kingman High School',address:'4184 N Bank St, Kingman, AZ 86409',homeAway:'Away',leaveTime:'2:00 PM'},
+];
+
+let S = {};
+let icsContent = '';
+
+async function loadAndGenerate(){
+  try{
+    const r = await fetch(SUPABASE_URL+'/rest/v1/app_state?user_email=eq.'+encodeURIComponent(USER_EMAIL)+'&select=state_json',{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    });
+    const d = await r.json();
+    if(d&&d[0]) S = JSON.parse(d[0].state_json);
+  }catch(e){ console.warn('Load error',e); }
+  generateICS();
+}
+
+function parseDateTime(dateStr, timeStr){
+  if(!timeStr) return null;
+  const [time, period] = timeStr.split(' ');
+  let [h, m] = time.split(':').map(Number);
+  if(period==='PM'&&h!==12) h+=12;
+  if(period==='AM'&&h===12) h=0;
+  const [y,mo,d] = dateStr.split('-').map(Number);
+  // Arizona = UTC-7 (no DST)
+  const utcH = h + 7;
+  return `${y}${String(mo).padStart(2,'0')}${String(d).padStart(2,'0')}T${String(utcH%24).padStart(2,'0')}${String(m).padStart(2,'0')}00Z`;
+}
+
+function formatDate(dateStr){
+  const [y,m,d] = dateStr.split('-');
+  return `${y}${m}${d}`;
+}
+
+function uid(prefix, id){
+  return `${prefix}-${id}@schoolops-highlandprep`;
+}
+
+function escape(str){
+  return (str||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+
+function generateICS(){
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SchoolOps//Highland Prep AZ//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:Highland Prep School Calendar',
+    'X-WR-TIMEZONE:America/Phoenix',
+    'X-WR-CALDESC:Athletics, Transportation, Facilities & Staff Absences',
+  ];
+
+  let eventCount = 0;
+
+  // 1. ATHLETICS GAMES
+  FALL_GAMES.forEach(g=>{
+    const dtStart = parseDateTime(g.date, g.gameTime);
+    if(!dtStart) return;
+    // End = start + 2.5 hours
+    const startH = parseInt(dtStart.substring(9,11));
+    const endH = (startH + 2) % 24;
+    const dtEnd = dtStart.substring(0,9) + String(endH).padStart(2,'0') + dtStart.substring(11);
+    const opponent = g.homeAway==='Away' ? g.host : g.visitor;
+    const icon = g.sport==='Football'?'🏈':g.sport==="Volleyball - Girl's"?'🏐':'🚩';
+    const summary = `${icon} ${g.sport}${g.level?' ('+g.level+')':''} - ${g.homeAway==='Away'?'@ '+opponent:opponent+' vs Highland Prep'}`;
+    const location = g.address || (g.homeAway==='Home'?'15600 W Hearn Rd, Surprise, AZ 85379':g.venue);
+    const desc = [
+      g.homeAway==='Away'?'AWAY GAME':'HOME GAME',
+      'Venue: '+g.venue,
+      g.leaveTime?'Leave Time: '+g.leaveTime:'',
+    ].filter(Boolean).join('\\n');
+
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:'+uid('ath',g.id));
+    lines.push('DTSTART:'+dtStart);
+    lines.push('DTEND:'+dtEnd);
+    lines.push('SUMMARY:'+escape(summary));
+    lines.push('LOCATION:'+escape(location));
+    lines.push('DESCRIPTION:'+escape(desc));
+    lines.push('CATEGORIES:Athletics');
+    if(g.leaveTime){
+      // Also add a leave time alarm
+      const leaveStart = parseDateTime(g.date, g.leaveTime);
+      if(leaveStart){
+        lines.push('BEGIN:VALARM');
+        lines.push('ACTION:DISPLAY');
+        lines.push('DESCRIPTION:Leave now for '+g.venue);
+        lines.push('TRIGGER;VALUE=DATE-TIME:'+leaveStart);
+        lines.push('END:VALARM');
+      }
+    }
+    lines.push('END:VEVENT');
+    eventCount++;
+  });
+
+  // 2. TRANSPORTATION TRIPS
+  (S.trips||[]).forEach(t=>{
+    if(!t.date) return;
+    const dtStart = parseDateTime(t.date, t.leaveTime||t.time||'7:00 AM');
+    if(!dtStart) return;
+    const dtEnd = dtStart.substring(0,9) + String((parseInt(dtStart.substring(9,11))+2)%24).padStart(2,'0') + dtStart.substring(11);
+    const summary = `🚐 ${t.sport} Transport - ${t.away?'@ '+t.host:t.visitor+' vs HP'}`;
+    const desc = [
+      'Coach: '+(t.coach||'TBD'),
+      'Vehicle: '+(t.vehicle||'TBD'),
+      t.leaveTime?'Leave: '+t.leaveTime:'',
+      t.address?'Venue: '+t.address:'',
+    ].filter(Boolean).join('\\n');
+
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:'+uid('trip',t.id));
+    lines.push('DTSTART:'+dtStart);
+    lines.push('DTEND:'+dtEnd);
+    lines.push('SUMMARY:'+escape(summary));
+    lines.push('LOCATION:'+escape(t.address||t.venue||''));
+    lines.push('DESCRIPTION:'+escape(desc));
+    lines.push('CATEGORIES:Transportation');
+    lines.push('END:VEVENT');
+    eventCount++;
+  });
+
+  // 3. FACILITY BOOKINGS
+  (S.bookings||[]).forEach(b=>{
+    if(!b.date) return;
+    const dtStart = parseDateTime(b.date, b.time||'8:00 AM');
+    if(!dtStart) return;
+    const dtEnd = dtStart.substring(0,9) + String((parseInt(dtStart.substring(9,11))+2)%24).padStart(2,'0') + dtStart.substring(11);
+    const summary = `🏫 ${b.purpose} - ${b.room}`;
+    const desc = `Room: ${b.room}\\nBooked by: ${b.by||''}\\nStatus: ${b.status||''}`;
+
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:'+uid('fac',b.id));
+    lines.push('DTSTART:'+dtStart);
+    lines.push('DTEND:'+dtEnd);
+    lines.push('SUMMARY:'+escape(summary));
+    lines.push('LOCATION:escape(15600 W Hearn Rd, Surprise, AZ 85379)');
+    lines.push('DESCRIPTION:'+escape(desc));
+    lines.push('CATEGORIES:Facilities');
+    lines.push('END:VEVENT');
+    eventCount++;
+  });
+
+  // 4. PLANNED STAFF ABSENCES
+  (S.plannedDays||[]).forEach(p=>{
+    if(!p.start) return;
+    const dtStart = formatDate(p.start);
+    const dtEnd = formatDate(p.end||p.start);
+    const summary = `👤 ${p.person} - ${p.type==='EA'?'Planned Absence':p.type||'Planned Day Off'}`;
+    const desc = [
+      'Employee: '+p.person,
+      'Type: '+(p.type||''),
+      p.notes?'Notes: '+p.notes:'',
+      p.subReq==='yes'?'Sub Required: Yes':'',
+      p.subAssign?'Sub: '+p.subAssign:'',
+    ].filter(Boolean).join('\\n');
+
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:'+uid('abs',p.id));
+    lines.push('DTSTART;VALUE=DATE:'+dtStart);
+    lines.push('DTEND;VALUE=DATE:'+dtEnd);
+    lines.push('SUMMARY:'+escape(summary));
+    lines.push('DESCRIPTION:'+escape(desc));
+    lines.push('CATEGORIES:Staff Absences');
+    lines.push('END:VEVENT');
+    eventCount++;
+  });
+
+  lines.push('END:VCALENDAR');
+  icsContent = lines.join('\r\n');
+
+  document.getElementById('feed-url').textContent = window.location.href;
+  document.getElementById('status').textContent = `✅ ${eventCount} events ready — ${FALL_GAMES.length} games, ${(S.trips||[]).length} trips, ${(S.bookings||[]).length} facility bookings, ${(S.plannedDays||[]).length} staff absences`;
+}
+
+function downloadICS(){
+  if(!icsContent){ alert('Still loading...'); return; }
+  const blob = new Blob([icsContent], {type:'text/calendar;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'highland-prep-school-calendar.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function copyURL(){
+  navigator.clipboard.writeText(window.location.href).then(()=>{
+    const btn = document.querySelector('.btn-secondary');
+    btn.textContent = '✅ Copied!';
+    setTimeout(()=>{ btn.innerHTML = '📋 Copy Feed URL'; }, 2000);
+  });
+}
+
+loadAndGenerate();
+</script>
+</body>
+</html>
