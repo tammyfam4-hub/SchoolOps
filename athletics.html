@@ -130,9 +130,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   <div class="toolbar">
     <div style="display:flex;gap:4px;flex-wrap:wrap" id="sport-filters"></div>
     <div style="display:flex;gap:4px;margin-left:6px">
-      <div class="filter-pill active" style="color:var(--t1)" data-ha="all" onclick="setHA(this)">All</div>
-      <div class="filter-pill" style="color:var(--green-t)" data-ha="Home" onclick="setHA(this)">Home</div>
-      <div class="filter-pill" style="color:var(--blue-t)" data-ha="Away" onclick="setHA(this)">Away</div>
+      <div class="filter-pill active" style="color:var(--t1)" data-ha="all" onclick="setHA(this)">All Games</div>
+      <div class="filter-pill" style="color:var(--green-t)" data-ha="Home" onclick="setHA(this)">🏠 Home</div>
+      <div class="filter-pill" style="color:var(--blue-t)" data-ha="Away" onclick="setHA(this)">✈️ Away</div>
     </div>
     <input class="search-box" placeholder="Search opponent, venue..." oninput="setSearch(this.value)">
     <div class="sp"></div>
@@ -448,7 +448,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function buildFilters(){
   const c=document.getElementById('sport-filters');
   const all=document.createElement('div');
-  all.className='filter-pill active';all.style.color='var(--t1)';all.textContent='All';all.dataset.sport='all';
+  all.className='filter-pill active';all.style.color='var(--t1)';all.textContent='All Sports';all.dataset.sport='all';
   all.onclick=()=>toggleSport(all);c.appendChild(all);
   SPORTS.forEach(s=>{
     const p=document.createElement('div');
@@ -507,6 +507,11 @@ function filterBySport(sport){
   } else {
     sportF = new Set([sport]);
   }
+  // Reset H/A filter to All when switching sports
+  haF = 'all';
+  document.querySelectorAll('.toolbar .filter-pill[data-ha]').forEach(p=>{
+    p.classList.toggle('active', p.dataset.ha==='all');
+  });
   // Update sport card active states
   document.querySelectorAll('.sport-card').forEach(card=>{
     const onclick = card.getAttribute('onclick')||'';
