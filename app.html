@@ -4677,13 +4677,7 @@ function printGroupLedger(groupId){
     doc.setTextColor(100,100,100);
     doc.text((g.type==='sport'?'Sport':'Club')+' · Fiscal Year '+fiscalYear,10,39);
 
-    // Calculate totals from FILTERED transactions only
-    const filtCredits=fyTrans.filter(t=>(t.amount||0)>0).reduce((s,t)=>s+(t.amount||0),0);
-    const filtDebits=fyTrans.filter(t=>(t.amount||0)<0).reduce((s,t)=>s+Math.abs(t.amount||0),0);
-    const filtBalance=Math.round((filtCredits-filtDebits)*100)/100;
-    const fmtMoney=(v)=>(v<0?'-$':'$')+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-    // Summary boxes
+    // Summary boxes — filtCredits/filtDebits calculated after fyTrans is defined below
     const boxes=[
       {label:'Total Income',val:fmtMoney(filtCredits),col:[29,158,117]},
       {label:'Total Expenses',val:fmtMoney(filtDebits),col:[226,75,74]},
@@ -4727,6 +4721,12 @@ function printGroupLedger(groupId){
       fyTrans=trans.slice().sort((a,b)=>a.date.localeCompare(b.date));
       filterLabel='All Time';
     }
+
+    // Calculate filtered totals now that fyTrans is defined
+    const filtCredits=fyTrans.filter(t=>(t.amount||0)>0).reduce((s,t)=>s+(t.amount||0),0);
+    const filtDebits=fyTrans.filter(t=>(t.amount||0)<0).reduce((s,t)=>s+Math.abs(t.amount||0),0);
+    const filtBalance=Math.round((filtCredits-filtDebits)*100)/100;
+    const fmtMoney=(v)=>(v<0?'-$':'$')+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
     doc.setFontSize(9);doc.setFont('helvetica','bold');
     doc.setTextColor(30,30,30);
