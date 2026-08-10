@@ -1047,8 +1047,7 @@ function initAtt(){
   const _activeNames=new Set(_activeRoster.map(function(p){return p.name;}));
   Object.keys(S.attendance).forEach(function(k){if(!_activeNames.has(k))delete S.attendance[k];});
   if(!S.attendanceHistory)S.attendanceHistory={};
-  // Always overwrite ptoData from DEFAULT — spreadsheet is always source of truth
-  S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
+  // ptoData is managed from Supabase — do NOT override from DEFAULT
 }
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -1384,8 +1383,7 @@ async function initData(){
   } else {
     console.log('No saved state — starting fresh with defaults');
   }
-  // Always overwrite ptoData from spreadsheet — must happen right after load
-  S.ptoData=JSON.parse(JSON.stringify(DEFAULT.ptoData));
+  // ptoData loaded from Supabase — do NOT override from DEFAULT
 
   // ── 3. Safety guards — ensure all keys exist ───────────────────
   if(!S.attendanceHistory)S.attendanceHistory={};
