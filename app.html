@@ -1532,6 +1532,22 @@ async function initData(){
           const sub=S.subs.find(s=>s.name===p.subAssign);
           if(sub){sub.placed=name;}
         }
+        // Auto-deduct PTO if EA type (not SE)
+        if(p.type==='EA'||p.type==='UA'||!p.type){
+          const _ptoKey=Object.keys(S.ptoData||{}).find(function(k){return k===name||k.toLowerCase().startsWith(name.toLowerCase().split(',')[0]);});
+          if(_ptoKey){
+            const _todayStr=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+            // Only deduct if not already deducted for today
+            const _alreadyDeducted=(S.ptoData[_ptoKey].absences||[]).find(function(a){return a.date===_todayStr;});
+            if(!_alreadyDeducted){
+              const _days=1; // Full day planned absence
+              S.ptoData[_ptoKey].used=Math.round((S.ptoData[_ptoKey].used+_days)*10)/10;
+              S.ptoData[_ptoKey].remaining=Math.round((S.ptoData[_ptoKey].available-S.ptoData[_ptoKey].used)*10)/10;
+              if(!S.ptoData[_ptoKey].absences)S.ptoData[_ptoKey].absences=[];
+              S.ptoData[_ptoKey].absences.push({date:_todayStr,days:_days,planned:true});
+            }
+          }
+        }
         console.log('Auto-applied planned day for '+name);
       }
     });
