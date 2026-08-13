@@ -766,7 +766,7 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
 
 <!-- PLANNED DAY OFF MODAL -->
 <div id="plan-modal" class="overlay" onclick="if(event.target===this)closeModal('plan-modal')">
-<div class="modal" style="width:480px">
+<div class="modal" style="width:480px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column">
   <div class="modal-title" id="plan-modal-title">&#128197; Add Planned Day Off</div>
   <div class="frow"><label class="flabel">Person *</label><select id="p-person"></select></div>
   <div class="frow"><label class="flabel">Type of Absence</label>
@@ -813,7 +813,7 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
   <!-- Sub assignm</div></div>
   <div class="frow" id="p-periods-row" style="display:none"><label class="flabel">Periods Missing</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p1" style="width:auto;margin:0"> Period 1</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p2" style="width:auto;margin:0"> Period 2</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p3" style="width:auto;margin:0"> Period 3</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p4" style="width:auto;margin:0"> Period 4</label></div></div>
   <div class="frow"><label class="flabel">Assign Substitute (optional)</label><select id="p-sub-assign"><option value="">-- None assigned yet --</option></select></div>
-  <div class="modal-actions">
+  <div class="modal-actions" style="position:sticky;bottom:0;background:#fff;padding-top:12px;margin-top:8px;border-top:1px solid var(--border)">
     <button class="btn btn-sm" onclick="closeModal('plan-modal')">Cancel</button>
     <button class="btn btn-primary btn-sm" onclick="savePlannedDay()">Save planned day</button>
   </div>
