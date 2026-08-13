@@ -810,8 +810,7 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p4" style="width:auto;margin:0"> Period 4</label>
     </div>
   </div>
-  <!-- Sub assignm</div></div>
-  <div class="frow" id="p-periods-row" style="display:none"><label class="flabel">Periods Missing</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p1" style="width:auto;margin:0"> Period 1</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p2" style="width:auto;margin:0"> Period 2</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p3" style="width:auto;margin:0"> Period 3</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--r);background:var(--bg2)"><input type="checkbox" id="p-p4" style="width:auto;margin:0"> Period 4</label></div></div>
+  <!-- Sub assignment -->
   <div class="frow"><label class="flabel">Assign Substitute (optional)</label><select id="p-sub-assign"><option value="">-- None assigned yet --</option></select></div>
   <div class="modal-actions" style="position:sticky;bottom:0;background:#fff;padding-top:12px;margin-top:8px;border-top:1px solid var(--border)">
     <button class="btn btn-sm" onclick="closeModal('plan-modal')">Cancel</button>
@@ -1243,8 +1242,9 @@ function renderPlannedCalendar(){
     const iso=planCalYear+'-'+String(planCalMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const dayOff=S.plannedDays.filter(p=>dateInRange(iso,p.start,p.end||p.start));
     const isToday=iso===today;
-    const dots=dayOff.slice(0,3).map(p=>`<div class="plan-dot" style="background:${typeColors[p.type]||'#888'};left:${3+dayOff.indexOf(p)*6}px"></div>`).join('');
-    cells+=`<div class="plan-cell ${dayOff.length?'has-off':''} ${isToday?'today-cell':''}" onclick="openPlanModal(null,'${iso}')" title="${dayOff.map(p=>p.person+' ('+p.type+')').join(', ')||'Click to add'}">
+    const dots=dayOff.slice(0,3).map(p=>`<div class="plan-dot" style="background:${typeColors[p.type]||'#888'};left:${3+dayOff.indexOf(p)*6}px;cursor:pointer" onclick="event.stopPropagation();openPlanModal(${p.id})" title="${p.person} (${p.type}) — click to edit"></div>`).join('');
+    const _clickId=dayOff.length===1?dayOff[0].id:null;
+    cells+=`<div class="plan-cell ${dayOff.length?'has-off':''} ${isToday?'today-cell':''}" onclick="${_clickId!=null?`openPlanModal(${_clickId})`:`openPlanModal(null,'${iso}')`}" title="${dayOff.map(p=>p.person+' ('+p.type+')').join(', ')||'Click to add'}${dayOff.length>1?' — click a name below to edit':''}">
       <span>${d}</span>
       ${dots}
       ${dayOff.length>1?`<div style="position:absolute;top:2px;right:2px;font-size:8px;font-weight:700;color:var(--amber-t)">${dayOff.length}</div>`:''}
