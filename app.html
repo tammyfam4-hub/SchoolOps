@@ -1164,6 +1164,7 @@ function openPlanModal(planId,prefillDate){
   ['p-p1','p-p2','p-p3','p-p4'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   const pr=document.getElementById('p-periods-row');if(pr)pr.style.display='none';
   document.getElementById('plan-modal').classList.add('open');
+  openModal('plan-modal');
 }
 
 function savePlannedDay(){
