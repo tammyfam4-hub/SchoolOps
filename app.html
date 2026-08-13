@@ -1132,8 +1132,8 @@ function populatePlanPersonSelect(){
 }
 
 function openPlanModal(planId,prefillDate){
-  editingPlanId=planId||null;
-  const p=planId?S.plannedDays.find(x=>x.id===planId):null;
+  editingPlanId=planId?(isNaN(planId)?planId:Number(planId)):null;
+  const p=planId?S.plannedDays.find(x=>x.id==planId||String(x.id)===String(planId)):null;
   document.getElementById('plan-modal-title').textContent=p?'✏️ Edit Planned Day Off':'📅 Add Planned Day Off';
   populatePlanPersonSelect();
   if(p){
@@ -1191,7 +1191,7 @@ function savePlannedDay(){
     createdAt:new Date().toISOString().slice(0,10)
   };
   if(editingPlanId){
-    const idx=S.plannedDays.findIndex(x=>x.id===editingPlanId);
+    const idx=S.plannedDays.findIndex(x=>x.id==editingPlanId||String(x.id)===String(editingPlanId));
     if(idx>=0)S.plannedDays[idx]=entry;
   } else {
     S.plannedDays.push(entry);
