@@ -2112,7 +2112,7 @@ function logAttendance(){
   const _isEA=rawStatus==='EA'||rawStatus==='EA-partial'||rawStatus==='UA';
   const _isSE=rawStatus==='SE'||rawStatus==='SE-partial';
   const _isT=rawStatus==='T'||rawStatus==='early-departure';
-  if(_isEA&&!isPastDate){
+  if(_isEA){
     // Deduct PTO for EA/UA — SE, T, ED have no deduction
     const _ptoKL=Object.keys(S.ptoData||{}).find(function(k){return k===name||k.toLowerCase().startsWith(name.toLowerCase().split(',')[0]);});
     if(_ptoKL){
@@ -3345,7 +3345,7 @@ function openClassroomTransaction(teacherId){
 const PTO_NAME_MAP={
   'Anderson':'Anderson, Derek',
   'Cajthaml':'Cajthaml, Caleb',
-  'Cline, A':'Cline, Tammy',
+  'Cline, A':'Cline, Andrea',
   'Chandler':'Chandler, Karen',
   'Duenas':'Duenas, Silvia',
   'Gulian':'Gulian, Maximillian',
@@ -3390,9 +3390,15 @@ function findPTO(personName){
 function renderPTOTab(){
   const el=document.getElementById('att-pto-content');
   if(!el)return;
-  // Use ptoData keys as source of truth for who to show
+  // Use ptoData keys as source of truth for who to show, but only if still on active roster
   const rosterActive=(S.roster||[]).filter(function(m){return !m.inactive;});
-  const ptoKeys=Object.keys(S.ptoData||{}).sort();
+  const ptoKeys=Object.keys(S.ptoData||{}).sort().filter(function(k){
+    return rosterActive.some(function(m){
+      const ml=m.name.toLowerCase().replace(/[,\s]+/g,'');
+      const kl=k.toLowerCase().replace(/[,\s]+/g,'');
+      return m.name===k||ml===kl||ml.startsWith(kl.split(',')[0])||kl.startsWith(ml.split(',')[0]||ml);
+    });
+  });
   const people=ptoKeys.map(function(k){
     const r=rosterActive.find(function(m){
       const ml=m.name.toLowerCase().replace(/[,\s]+/g,'');
