@@ -2017,6 +2017,28 @@ function logAttendance(){
     // Handle sub placement
     if(subVal){const sub=S.subs.find(s=>s.name===subVal);if(sub)sub.placed=name;}
     S.attendanceHistory[date][name]={...existing,status:rawStatus,reason,arrivalTime,sub:subVal||null};
+    // PTO deduction/refund logic — mirrors logAttendance's live-entry path
+    const _wasEA=existing.status==='EA'||existing.status==='EA-partial'||existing.status==='UA';
+    const _isEANow=rawStatus==='EA'||rawStatus==='EA-partial'||rawStatus==='UA';
+    if(_wasEA!==_isEANow){
+      const _ptoKH=Object.keys(S.ptoData||{}).find(function(k){return k===name||k.toLowerCase().startsWith(name.toLowerCase().split(',')[0]);});
+      if(_ptoKH){
+        if(_isEANow){
+          S.ptoData[_ptoKH].used=Math.round((S.ptoData[_ptoKH].used+1)*10)/10;
+          S.ptoData[_ptoKH].remaining=Math.round((S.ptoData[_ptoKH].available-S.ptoData[_ptoKH].used)*10)/10;
+          if(!S.ptoData[_ptoKH].absences)S.ptoData[_ptoKH].absences=[];
+          if(!S.ptoData[_ptoKH].absences.find(function(a){return a.date===date;})){
+            S.ptoData[_ptoKH].absences.push({date:date,days:1});
+          }
+        } else {
+          S.ptoData[_ptoKH].used=Math.round(Math.max(0,S.ptoData[_ptoKH].used-1)*10)/10;
+          S.ptoData[_ptoKH].remaining=Math.round((S.ptoData[_ptoKH].available-S.ptoData[_ptoKH].used)*10)/10;
+          if(S.ptoData[_ptoKH].absences){
+            S.ptoData[_ptoKH].absences=S.ptoData[_ptoKH].absences.filter(function(a){return a.date!==date;});
+          }
+        }
+      }
+    }
     closeModal('att-modal');
     toast(name+' updated for '+date+' ✓');
     scheduleSave();
