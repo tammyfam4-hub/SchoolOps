@@ -766,7 +766,8 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
 
 <!-- PLANNED DAY OFF MODAL -->
 <div id="plan-modal" class="overlay" onclick="if(event.target===this)closeModal('plan-modal')">
-<div class="modal" style="width:480px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column">
+<div class="modal" style="width:480px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+  <div style="overflow-y:auto;flex:1;padding-bottom:4px">
   <div class="modal-title" id="plan-modal-title">&#128197; Add Planned Day Off</div>
   <div class="frow"><label class="flabel">Person *</label><select id="p-person"></select></div>
   <div class="frow"><label class="flabel">Type of Absence</label>
@@ -812,7 +813,8 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
   </div>
   <!-- Sub assignment -->
   <div class="frow"><label class="flabel">Assign Substitute (optional)</label><select id="p-sub-assign"><option value="">-- None assigned yet --</option></select></div>
-  <div class="modal-actions" style="position:sticky;bottom:0;background:#fff;padding-top:12px;margin-top:8px;border-top:1px solid var(--border)">
+  </div>
+  <div class="modal-actions" style="background:var(--bg1);padding-top:12px;margin-top:8px;border-top:1px solid var(--border);flex-shrink:0">
     <button class="btn btn-sm" onclick="closeModal('plan-modal')">Cancel</button>
     <button class="btn btn-primary btn-sm" onclick="savePlannedDay()">Save planned day</button>
   </div>
@@ -3407,6 +3409,75 @@ function findPTO(personName){
     return kLast===pLast;
   });
   return key?S.ptoData[key]:null;
+}
+
+function openPTOModal(name){
+  const pto = S.ptoData[name];
+  if(!pto){ toast('No PTO data for '+name); return; }
+  const absences = (pto.absences||[]).sort((a,b)=>a.date.localeCompare(b.date));
+  const used = pto.used||0;
+  const available = pto.available||0;
+  const remaining = pto.remaining!==undefined ? pto.remaining : available-used;
+
+  const html = `
+    <div class="modal" style="width:460px;max-height:90vh;display:flex;flex-direction:column">
+      <div class="modal-title">📋 PTO Details — ${name}</div>
+      <div style="overflow-y:auto;flex:1">
+        <div style="display:flex;gap:12px;margin-bottom:16px">
+          <div style="flex:1;text-align:center;padding:12px;background:var(--bg2);border-radius:8px">
+            <div style="font-size:22px;font-weight:800;color:var(--blue)">${available}</div>
+            <div style="font-size:11px;color:var(--t3)">Available</div>
+          </div>
+          <div style="flex:1;text-align:center;padding:12px;background:var(--bg2);border-radius:8px">
+            <div style="font-size:22px;font-weight:800;color:var(--red)">${used}</div>
+            <div style="font-size:11px;color:var(--t3)">Used</div>
+          </div>
+          <div style="flex:1;text-align:center;padding:12px;background:var(--bg2);border-radius:8px">
+            <div style="font-size:22px;font-weight:800;color:var(--green)">${remaining}</div>
+            <div style="font-size:11px;color:var(--t3)">Remaining</div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Absence History</div>
+        ${absences.length ? absences.map(a=>{
+          const d = new Date(a.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+          return '<div style="display:flex;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--bg2);margin-bottom:6px;font-size:13px"><span>'+d+'</span><span style="color:var(--red);font-weight:600">-'+a.days+' day'+(a.days!==1?'s':'')+'</span></div>';
+        }).join('') : '<div style="color:var(--t3);font-size:13px;padding:12px 0">No absences recorded</div>'}
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:8px;text-transform:uppercase">Manual Adjustment</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="font-size:13px;color:var(--t2)">Used days:</label>
+            <input type="number" id="pto-adjust-used" value="${used}" min="0" max="${available}" step="0.25" style="width:80px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+            <button class="btn btn-primary btn-sm" onclick="savePTOAdjust('${name}')">Save</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions" style="border-top:1px solid var(--border);padding-top:12px;flex-shrink:0">
+        <button class="btn btn-sm" onclick="document.getElementById('pto-detail-modal').classList.remove('open')">Close</button>
+      </div>
+    </div>`;
+
+  let modal = document.getElementById('pto-detail-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'pto-detail-modal';
+    modal.className = 'overlay';
+    modal.onclick = function(e){ if(e.target===this) this.classList.remove('open'); };
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = html;
+  modal.classList.add('open');
+}
+
+function savePTOAdjust(name){
+  const newUsed = parseFloat(document.getElementById('pto-adjust-used').value)||0;
+  const pto = S.ptoData[name];
+  if(!pto) return;
+  pto.used = Math.round(newUsed*10)/10;
+  pto.remaining = Math.round((pto.available - pto.used)*10)/10;
+  scheduleSave();
+  document.getElementById('pto-detail-modal').classList.remove('open');
+  toast(name+' PTO updated ✓');
+  renderPTOTab();
 }
 
 function renderPTOTab(){
