@@ -310,7 +310,10 @@ function leaveBeforeTwo30(leaveTime) {
 }
 
 // Returns true if ANY teacher-coach on this sport needs class coverage
-function needsCoverage(sport, leaveTime, date) {
+function needsCoverage(sport, leaveTime, date, gameObj) {
+  // If game has explicit needsSub flag, respect it
+  if (gameObj && gameObj.needsSub === false) return false;
+  if (gameObj && gameObj.needsSub === true) return true;
   const info = SPORT_INFO[sport];
   if (!info || !leaveTime) return false;
   // No sub needed on weekends
@@ -553,7 +556,7 @@ function renderStats(){
   const need=f.filter(e=>!e.van&&e.homeAway==='Away').length;// Away games need van
   const conf=[...c].filter(id=>f.find(e=>e.id===id)).length;
   const done=f.filter(e=>e.status==='Confirmed'||e.status==='Returned').length;
-  const coverageNeeded=f.filter(e=>needsCoverage(e.sport,e.leaveTime,e.date)).length;
+  const coverageNeeded=f.filter(e=>needsCoverage(e.sport,e.leaveTime,e.date,e)).length;
   document.getElementById('stats-row').innerHTML=
     `<div class="stat-card"><div class="stat-val">${f.length}</div><div class="stat-lbl">Total Events</div></div>`+
     `<div class="stat-card"><div class="stat-val" style="color:var(--blue-t)">${away}</div><div class="stat-lbl">Away Games</div></div>`+
@@ -630,7 +633,7 @@ function renderEventRows(events,c){
       const sc=SC[e.status]||'#888';
       const info=SPORT_INFO[e.sport];
       const coaches=info?[info.headCoach,...(info.assistCoaches||[])].filter(c=>c).map(c=>c.name).join(', '):'';
-      const hasCoverage=needsCoverage(e.sport,e.leaveTime,e.date);
+      const hasCoverage=needsCoverage(e.sport,e.leaveTime,e.date,e);
       h+=`<tr class="${isConflict?'conflict-row':''}" onclick="openModal(${e.id})">
         <td>
           <span class="sport-chip" style="background:${e.color}22;color:${e.color}">
@@ -780,7 +783,7 @@ function openModal(id){
 
   // Class coverage alert
   const coverageAlert=document.getElementById('m-coverage');
-  if(needsCoverage(e.sport,e.leaveTime,e.date)){
+  if(needsCoverage(e.sport,e.leaveTime,e.date,e)){
     const teacherCoaches=(info?[info.headCoach,...(info.assistCoaches||[])].filter(c=>c&&c.isTeacher):[]).map(c=>c.name).join(', ');
     coverageAlert.textContent='⚠ CLASS COVERAGE REQUIRED — Leave time ('+e.leaveTime+') is before 2:30 PM. '+teacherCoaches+' will need a substitute for their classes.';
     coverageAlert.classList.add('show');
@@ -896,7 +899,7 @@ function exportCSV(){
     const hc=info.headCoach?info.headCoach.name:'';
     const hcTeacher=info.headCoach&&info.headCoach.isTeacher?'Yes':'No';
     const asst=(info.assistCoaches||[]).map(c=>c.name).join('; ');
-    const coverage=needsCoverage(e.sport,e.leaveTime,e.date)?'YES - Sub Required':'No';
+    const coverage=needsCoverage(e.sport,e.leaveTime,e.date,e)?'YES - Sub Required':'No';
     rows.push([e.sport,e.date,e.gameTime,e.homeAway,e.visitor,e.host,e.venue,e.leaveTime,e.returnTime,info.vansNeeded||'',hc,hcTeacher,asst,coverage,e.van?(e.van==='home'?'🏠 Home Game':e.van==='charter'?'🚌 Charter Bus':'Van '+e.van):'',e.driver,e.athletes,e.subCoverage,e.status,e.address,e.notes]);
   });
   const csv=rows.map(r=>r.map(c=>'"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
@@ -991,3 +994,4 @@ buildFilters();render();
 </script>
 </body>
 </html>
+
