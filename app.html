@@ -356,9 +356,11 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
         <div class="tab" onclick="switchTab(this,'tasks','done')">&#10003; Completed</div>
         <div class="tab" onclick="switchTab(this,'tasks','team')">&#128101; By Teammate</div>
         <div class="tab" onclick="switchTab(this,'tasks','contacts')">&#128222; Contacts</div>
+        <div class="tab" onclick="switchTab(this,'tasks','fcc')">🪪 FCC Tracker</div>
       </div>
       <div id="task-team-view" style="display:none"><div id="team-workload"></div></div>
       <div id="task-contacts-view" style="display:none"><div id="contacts-list"></div></div>
+      <div id="task-fcc-view" style="display:none"><div id="fcc-list"></div></div>
       <div id="task-list-view">
         <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
           <div style="flex:1;min-width:160px"><input id="task-search" style="padding:6px 12px;font-size:13px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);outline:none;width:100%;font-family:inherit" placeholder="Search tasks..." oninput="renderTasks()"></div>
@@ -1648,7 +1650,10 @@ function switchTab(el,mod,tab){
     if(_cv)_cv.style.display='none';
     if(_tv)_tv.style.display='none';
     if(_lv)_lv.style.display='none';
+    const _fv=document.getElementById('task-fcc-view');
+    if(_fv)_fv.style.display='none';
     if(tab==='contacts'){if(_cv)_cv.style.display='';renderContacts();render();return;}
+    else if(tab==='fcc'){if(_fv)_fv.style.display='';renderFCCTracker();return;}
     else if(tab==='team'){if(_tv)_tv.style.display='';renderTeamWorkload();render();return;}
     else{if(_lv)_lv.style.display='';}
   }
@@ -3086,6 +3091,154 @@ function toggleTaskCard(id){
   document.getElementById('tc-'+id).classList.toggle('expanded');
 }
 
+function renderFCCTracker(){
+  const el = document.getElementById('fcc-list');
+  if(!el) return;
+  const today = new Date().toISOString().slice(0,10);
+  const fpc = (S.fccData||S.fpcData||[]).sort((a,b)=>a.expiry.localeCompare(b.expiry));
+
+  function fmtDate(d){
+    const dt = new Date(d+'T12:00:00');
+    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+
+  function statusColor(reminder, expiry){
+    if(today >= expiry) return {bg:'#fde8e8',color:'var(--red)',label:'⚠️ Expired'};
+    if(today >= reminder) return {bg:'#fef3cd',color:'#92400e',label:'🔔 Reminder Due'};
+    const daysToReminder = Math.ceil((new Date(reminder)-new Date(today))/(1000*60*60*24));
+    if(daysToReminder<=90) return {bg:'#fff8e1',color:'#b45309',label:'⏰ '+daysToReminder+'d to reminder'};
+    return {bg:'#e6f4ea',color:'#1a7f37',label:'✅ OK'};
+  }
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="shdr" style="margin-bottom:16px">
+        <div class="stitle">🪪 Fingerprint Clearance Card (FCC) Tracker</div>
+        <div style="font-size:11px;color:var(--t3)">${fpc.length} employees tracked</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border)">
+            <th style="padding:8px 10px;text-align:left;font-weight:700">Employee</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:700">Expiration</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:700">Reminder Date</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:700">Status</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:700">Edit</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${fpc.map((f,i)=>{
+            const st = statusColor(f.reminder, f.expiry);
+            return `<tr style="border-bottom:0.5px solid var(--border);background:${st.bg}20">
+              <td style="padding:9px 10px;font-weight:600">${f.name}</td>
+              <td style="padding:9px 10px;text-align:center">${fmtDate(f.expiry)}</td>
+              <td style="padding:9px 10px;text-align:center">${fmtDate(f.reminder)}</td>
+              <td style="padding:9px 10px;text-align:center">
+                <span style="padding:3px 10px;border-radius:20px;background:${st.bg};color:${st.color};font-size:11px;font-weight:600">${st.label}</span>
+              </td>
+              <td style="padding:9px 10px;text-align:center">
+                <button class="btn btn-sm" style="font-size:11px" onclick="editFCC(${i})">✏️</button>
+                <button class="btn btn-sm btn-primary" style="font-size:11px;margin-left:4px" onclick="previewFCCLetter(${i})">📧 Letter</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function previewFCCLetter(idx){
+  const fcc = S.fccData || S.fpcData || [];
+  const f = fcc[idx];
+  if(!f) return;
+  const firstName = f.name.split(',')[1]?.trim() || f.name.split(' ')[0];
+  const expDate = new Date(f.expiry+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const cardNum = f.cardNumber || '[Card Number]';
+  const subject = `Action Needed — Your Fingerprint Clearance Card Expires ${expDate}`;
+  const expDateShort = new Date(f.expiry+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+  const body = `Hi ${firstName},
+
+This is a friendly reminder that your Level 1 Fingerprint Clearance Card (Card #${cardNum}) is set to expire on ${expDateShort}.
+
+To avoid a lapse in your clearance, please begin the renewal process with the Arizona Department of Public Safety soon. Renewals can take several weeks to process, so starting early is important. Usually at least 4 weeks prior to expiration.
+
+You can start your renewal here: https://psp.azdps.gov/services/fccFormTriage
+
+If you have questions about the renewal process or need help submitting your paperwork, please don't hesitate to reach out.
+
+Thank you,
+Tammy
+Highland Prep AZ`;
+
+  // Show in a modal
+  let modal = document.getElementById('fcc-letter-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'fcc-letter-modal';
+    modal.className = 'overlay';
+    modal.onclick = function(e){ if(e.target===this) this.classList.remove('open'); };
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div class="modal" style="width:560px;max-height:90vh;display:flex;flex-direction:column">
+      <div class="modal-title">📧 FCC Renewal Letter — ${f.name}</div>
+      <div style="overflow-y:auto;flex:1">
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:4px;text-transform:uppercase">Subject</div>
+          <div style="background:var(--bg2);padding:10px 12px;border-radius:6px;font-size:13px">${subject}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:4px;text-transform:uppercase">Body</div>
+          <textarea id="fcc-letter-body" style="width:100%;height:240px;padding:12px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;resize:vertical">${body}</textarea>
+        </div>
+        ${!f.cardNumber?'<div style="margin-top:8px;padding:8px 12px;background:#fff8e1;border-radius:6px;font-size:12px;color:#92400e">⚠️ Card number not on file — <button class="btn btn-sm" style="font-size:11px" onclick="promptCardNum('+idx+')">Add Card #</button></div>':''}
+      </div>
+      <div class="modal-actions" style="border-top:1px solid var(--border);padding-top:12px;flex-shrink:0;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="document.getElementById('fcc-letter-modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-sm" onclick="copyFCCLetter('${subject}')">📋 Copy</button>
+        <button class="btn btn-primary btn-sm" onclick="emailFCCLetter('${f.name}','${subject}')">📧 Open in Outlook</button>
+      </div>
+    </div>`;
+  modal.classList.add('open');
+}
+
+function promptCardNum(idx){
+  const fcc = S.fccData || S.fpcData || [];
+  const f = fcc[idx];
+  if(!f) return;
+  const num = prompt('Enter FCC card number for '+f.name+':');
+  if(num){ f.cardNumber=num; scheduleSave(); toast('Card number saved ✓'); previewFCCLetter(idx); }
+}
+
+function copyFCCLetter(subject){
+  const body = document.getElementById('fcc-letter-body').value;
+  navigator.clipboard.writeText('Subject: '+subject+'\n\n'+body).then(()=>toast('Copied to clipboard ✓'));
+}
+
+function emailFCCLetter(name, subject){
+  const body = document.getElementById('fcc-letter-body').value;
+  // Find email from roster
+  const m = (S.roster||[]).find(r=>r.name===name);
+  const email = m?.email||'';
+  window.open('mailto:'+email+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body));
+}
+
+function editFCC(idx){
+  const fpc = S.fccData||S.fpcData||[];
+  const f = fpc[idx];
+  if(!f) return;
+  const newExpiry = prompt('Expiration date for '+f.name+' (YYYY-MM-DD):', f.expiry);
+  if(!newExpiry) return;
+  f.expiry = newExpiry;
+  // Auto-calculate 6-month reminder
+  const d = new Date(newExpiry+'T12:00:00');
+  d.setMonth(d.getMonth()-6);
+  f.reminder = d.toISOString().slice(0,10);
+  scheduleSave();
+  toast(f.name+' FPC updated ✓');
+  renderFCCTracker();
+}
+
 function renderContacts(){
   const el=document.getElementById('contacts-list');
   if(!el)return;
@@ -3664,6 +3817,31 @@ function closeGroupDetail(){
   renderBudget();
 }
 
+function isLockedTx(grp, t){
+  if(!grp.lockedFY||!grp.lockedFY.length) return false;
+  // Check if transaction date falls in a locked FY
+  return grp.lockedFY.some(fy=>{
+    const start = fy+'-07-01';
+    const end = (parseInt(fy)+1)+'-06-30';
+    return t.date>=start && t.date<=end;
+  });
+}
+
+function toggleLockFY(groupId, fy){
+  const grp = [...(S.clubs||[]),...(S.sports||[])].find(g=>g.id==groupId);
+  if(!grp) return;
+  if(!grp.lockedFY) grp.lockedFY=[];
+  if(grp.lockedFY.includes(fy)){
+    grp.lockedFY = grp.lockedFY.filter(f=>f!==fy);
+    toast('FY'+fy+'-'+(parseInt(fy)+1)+' unlocked');
+  } else {
+    grp.lockedFY.push(fy);
+    toast('FY'+fy+'-'+(parseInt(fy)+1)+' locked 🔒');
+  }
+  scheduleSave();
+  renderGroupDetail(groupId);
+}
+
 function renderGroupDetail(groupId){
   // Find by ID first, fall back to index position if IDs are missing
   let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
@@ -3720,6 +3898,7 @@ function renderGroupDetail(groupId){
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn btn-primary btn-sm" onclick="openGroupTransaction(${grp.id},'${listType}')">+ Transaction</button>
         <button class="btn btn-sm" onclick="printGroupLedger(${grp.id})">&#128196; PDF</button>
+        <button class="btn btn-sm" style="background:${(grp.lockedFY||[]).includes('2025')?'#1D9E75':'#eef0f2'};color:${(grp.lockedFY||[]).includes('2025')?'#fff':'#555'}" onclick="toggleLockFY(${grp.id},'2025')" title="Lock/unlock FY2025-26 transactions">${(grp.lockedFY||[]).includes('2025')?'🔒 FY25-26 Locked':'🔓 Lock FY25-26'}</button>
       <button class="btn btn-sm" onclick="exportGroupCSV(${grp.id})">&#128202; CSV</button>
       </div>
     </div>
@@ -3803,7 +3982,7 @@ function renderGroupDetail(groupId){
               ${t.amount<0?'$'+Math.abs(t.amount).toLocaleString('en-US',{minimumFractionDigits:2}):''}
             </td>
             <td style="padding:9px 10px;border-bottom:0.5px solid var(--border)">
-              <button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteTransaction(${grp.id},'${t.id||i}')">✕</button>
+              ${isLockedTx(grp,t)?'<span style="font-size:11px;color:var(--t3)">🔒</span>':'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="deleteTransaction('+grp.id+',\''+( t.id||i)+'\')">✕</button>'}
             </td>
           </tr>`).join('')}
         </tbody>
