@@ -35,7 +35,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-seri
 .van-card{background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--rl);padding:12px;box-shadow:var(--shadow)}
 .van-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .van-name{font-size:13px;font-weight:700}
-.van-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.van-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:10px;min-width:28px;text-align:center;display:inline-block;border:1px solid rgba(0,0,0,0.1)}
 .van-info{font-size:11px;color:var(--t2);line-height:1.5}
 .sched-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--bg1);border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow);border:0.5px solid var(--border)}
 .sched-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);background:var(--bg2);border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
@@ -48,7 +48,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-seri
 .ha-pill{display:inline-flex;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700}
 .ha-home{background:var(--green-bg);color:var(--green-t)}
 .ha-away{background:var(--blue-bg);color:var(--blue-t)}
-.van-sel{padding:3px 6px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;cursor:pointer;max-width:90px}
+.van-sel{padding:4px 8px;font-size:13px;font-weight:600;border:1.5px solid var(--blue);border-radius:6px;background:var(--bg1);color:var(--t1);min-width:110px;cursor:pointer}
 .van-sel:focus{outline:none;border-color:var(--blue)}
 .drv-inp{padding:3px 7px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--r);background:var(--bg2);color:var(--t1);font-family:inherit;width:105px}
 .drv-inp:focus{outline:none;border-color:var(--blue);background:var(--bg1)}
@@ -258,12 +258,21 @@ const SPORT_INFO = {
   'Football': {
     icon: '🏈',
     vansNeeded: 3,
+    rosterSize: 28,
+    managers: 3,
+    drivers: 3,
     headCoach: { name: 'Anderson, Derek', isTeacher: true },
-    assistCoaches: []
+    assistCoaches: [
+      { name: 'Woltz, Zack', isTeacher: false },
+      { name: 'Christian, Elijah', isTeacher: false },
+      { name: 'King, CJ', isTeacher: false }
+    ]
   },
   "Volleyball - Girl's": {
     icon: '🏐',
     vansNeeded: 2,
+    rosterSizeJV: 9,
+    rosterSizeVarsity: 13,
     headCoach: { name: 'Heinle, Avery', isTeacher: false },
     assistCoaches: []
   },
@@ -756,7 +765,7 @@ function openModal(id){
   const opp=e.homeAway==='Away'?e.host:e.visitor;
   const info=SPORT_INFO[e.sport];
   document.getElementById('m-title').textContent=e.sport+' — '+opp;
-  document.getElementById('m-meta').innerHTML=`<span style="color:${col};font-weight:700">${e.homeAway}</span> · ${e.date} at ${e.gameTime}${info?` · <span class="van-needed">🚐 ${info.vansNeeded} van${info.vansNeeded>1?'s':''} needed</span>`:''}`;
+  document.getElementById('m-meta').innerHTML=`<span style="color:${col};font-weight:700">${e.homeAway}</span> · ${e.date} at ${e.gameTime}${info?` · <span class="van-needed">🚐 ${info.vansNeeded} van${info.vansNeeded>1?'s':''} needed${info.drivers?' + '+info.drivers+' drivers':''}</span>`:''}`;
 
   // Info grid
   document.getElementById('m-info').innerHTML=`
