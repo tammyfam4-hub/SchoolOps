@@ -273,6 +273,7 @@ const SPORT_INFO = {
     vansNeeded: 2,
     rosterSizeJV: 9,
     rosterSizeVarsity: 13,
+    travelTogether: true,
     headCoach: { name: 'Heinle, Avery', isTeacher: false },
     assistCoaches: []
   },
@@ -732,7 +733,7 @@ function renderEventRows(events,c){
               const assignedVan = driverVans[vn]||vn;
               return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">'
                 +'<select class="van-sel" style="width:60px;font-size:11px;padding:2px 4px;background:'+vanColor+';color:#fff;border:none;font-weight:700" onchange="qDriverVanAssign('+e.id+','+vn+',parseInt(this.value))" title="Assign to van #">'
-                +Array.from({length:vans},(_,i)=>'<option value="'+(i+1)+'"'+(assignedVan===(i+1)?' selected':'')+'>'+'Van '+(i+1)+'</option>').join('')
+                +Array.from({length:5},(_,i)=>'<option value="'+(i+1)+'"'+(assignedVan===(i+1)?' selected':'')+'>'+'Van '+(i+1)+'</option>').join('')
                 +'</select>'
                 +'<input class="drv-inp" value="'+(drivers[vn]||'')+'" placeholder="Driver name..." onchange="qDriverVan('+e.id+','+vn+',this.value)" style="width:100px">'
                 +'</div>';
