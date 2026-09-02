@@ -669,7 +669,22 @@ function renderEventRows(events,c){
         <td onclick="event.stopPropagation()"><select class="van-sel" onchange="qVan(${e.id},this.value)">
           <option value="">—</option><option value="home"${e.van==='home'?' selected':''}>🏠 Home Game</option>${[1,2,3,4,5].map(v=>`<option value="${v}"${e.van==v?' selected':''}>Van ${v}</option>`).join('')}<option value="charter"${e.van==='charter'?' selected':''}>🚌 Charter Bus</option>
         </select></td>
-        <td onclick="event.stopPropagation()"><input class="drv-inp" value="${e.driver||''}" placeholder="Driver..." onchange="qDriver(${e.id},this.value)"></td>
+        <td onclick="event.stopPropagation()" style="min-width:120px">
+          ${(()=>{
+            const info = SPORT_INFO[e.sport];
+            const vans = info ? info.vansNeeded : 1;
+            if(e.homeAway==='Home'||!vans) return '<span style="color:var(--t3);font-size:11px">—</span>';
+            if(vans<=1){
+              return '<input class="drv-inp" value="'+(e.driver||'')+'" placeholder="Driver..." onchange="qDriver('+e.id+',this.value)" style="width:100px">';
+            }
+            // Multiple vans — show one driver input per van
+            const drivers = e.drivers || {};
+            return Array.from({length:vans},(_,i)=>{
+              const vn = i+1;
+              return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:var(--t3)">V'+vn+'</span><input class="drv-inp" value="'+(drivers[vn]||'')+'" placeholder="Driver '+vn+'..." onchange="qDriverVan('+e.id+','+vn+',this.value)" style="width:90px"></div>';
+            }).join('');
+          })()}
+        </td>
         <td style="white-space:nowrap"><span style="font-size:11px;font-weight:700;color:${sc}"><span class="status-dot" style="background:${sc}"></span>${e.status}</span></td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm" onclick="event.stopPropagation();openModal(${e.id})">Edit</button>
@@ -904,6 +919,17 @@ function saveModal(){
 
 function qVan(id,val){const e=evts.find(x=>x.id===id);if(e){e.van=val||null;save();renderStats();renderVans();}}
 function qDriver(id,val){const e=evts.find(x=>x.id===id);if(e){e.driver=val;save();}}
+
+function qDriverVan(id,vanNum,val){
+  const e=evts.find(x=>x.id===id);
+  if(e){
+    if(!e.drivers) e.drivers={};
+    e.drivers[vanNum]=val;
+    // Also set e.driver to first van driver for backwards compat
+    e.driver=e.drivers[1]||val;
+    save();
+  }
+}
 
 function exportCSV(){
   const rows=[['Sport','Date','Game Time','Home/Away','Visitor','Host','Venue','Leave Time','Return Time','Vans Needed','Head Coach','Coach Is Teacher','Asst Coach(s)','Class Coverage Needed','Van Assigned','Driver','Athletes','Sub Coverage','Status','Address','Notes']];
