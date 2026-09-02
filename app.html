@@ -524,6 +524,7 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
               <div style="display:flex;gap:6px">
                 <button class="btn btn-sm" onclick="exportPlannedPDF()" title="Export to PDF">&#128196; PDF</button>
                 <button class="btn btn-primary btn-sm" onclick="openPlanModal(null)">+ Add planned day</button>
+                <button class="btn btn-sm" style="background:#2D6A8F;color:#fff" onclick="syncAthleticsToPlannedDays()" title="Import athletics away games needing sub coverage as SE events">🏅 Sync Athletics</button>
               </div>
             </div>
             <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
@@ -1334,6 +1335,71 @@ function renderHolidayList(){
     const dateStr = g.date===g.end ? fmt(g.date) : fmt(g.date)+' – '+fmt(g.end);
     return `<div style="padding:4px 10px;border-radius:20px;background:${col};color:${tcol};font-size:11px;font-weight:600">${g.label}<span style="font-weight:400;opacity:.8;margin-left:4px">${dateStr}</span></div>`;
   }).join('');
+}
+
+function syncAthleticsToPlannedDays(){
+  // Pull athletics data from localStorage and sync sub-needed games to plannedDays as SE
+  const today = new Date().toISOString().slice(0,10);
+
+  // Get all fall 2026 games from localStorage overrides merged with base
+  // We need to check games that need coverage
+  // Sports and coaches that are teachers needing sub:
+  const teacherCoaches = {
+    'Football': 'Anderson, Derek',
+    'Football - Flag': ['Cajthaml, Caleb', 'Laguit, Joshua'],
+    'Cross Country': 'Cline, Andrea',
+    'Cheer': 'Russell, Kayla',
+    "Volleyball - Girl's": null // Heinle is not a teacher
+  };
+
+  // Try to get athletics base data
+  let games = [];
+  try {
+    const stored = JSON.parse(localStorage.getItem('hp-athletics-fall2026')||'{}');
+    // We can't directly access FALL_2026_BASE from app.html
+    // So we'll store synced events separately
+  } catch(e){}
+
+  // Check S.athleticsSubSync — games that have been marked as needing sub
+  const subGames = S.athleticsSubSync || [];
+
+  if(!subGames.length){
+    toast('No athletics sub events to sync. Open Athletics page first to load games.');
+    return;
+  }
+
+  let added = 0;
+  subGames.forEach(g=>{
+    // Check if already in plannedDays
+    const exists = (S.plannedDays||[]).find(p=>
+      p.athleticsId === g.id &&
+      p.start === g.date
+    );
+    if(!exists){
+      const newId = Math.max(0,...(S.plannedDays||[]).map(p=>p.id||0)) + 1;
+      S.plannedDays.push({
+        id: newId,
+        person: g.coach,
+        type: 'SE',
+        start: g.date,
+        end: g.date,
+        notes: g.sport + ' Away Game — Sub Required (' + g.opponent + ')',
+        subReq: 'yes',
+        dayType: 'full',
+        athleticsId: g.id,
+        createdAt: today
+      });
+      added++;
+    }
+  });
+
+  if(added > 0){
+    scheduleSave();
+    toast(added + ' athletics events added to Planned Days ✓');
+    renderPlannedTable();
+  } else {
+    toast('All athletics sub events already in Planned Days ✓');
+  }
 }
 
 function renderPlannedTable(){
