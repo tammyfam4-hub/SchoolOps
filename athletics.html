@@ -562,6 +562,51 @@ function filterBySport(sport){
   if(listEl) listEl.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+function syncSubCoverageToApp(){
+  // Build list of games needing sub coverage and save to Supabase
+  // So app.html can create SE planned days from them
+  const SUPABASE_URL = 'https://idjratpppoubqehqvjpx.supabase.co';
+  const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
+  const USER_EMAIL = 'tammy.fam4@gmail.com';
+
+  const subGames = evts.filter(e=>{
+    if(e.homeAway!=='Away') return false;
+    return needsCoverage(e.sport, e.leaveTime, e.date, e);
+  }).map(e=>{
+    const info = SPORT_INFO[e.sport]||{};
+    const coaches = [info.headCoach,...(info.assistCoaches||[])].filter(c=>c&&c.isTeacher);
+    return coaches.map(c=>({
+      id: e.id+'_'+c.name.replace(/\s/g,''),
+      gameId: e.id,
+      date: e.date,
+      sport: e.sport,
+      coach: c.name,
+      opponent: e.host,
+      venue: e.venue,
+      leaveTime: e.leaveTime,
+      gameTime: e.gameTime
+    }));
+  }).flat();
+
+  if(!subGames.length) return;
+
+  // Store in Supabase alongside app state
+  fetch(SUPABASE_URL+'/rest/v1/app_state?user_email=eq.'+encodeURIComponent(USER_EMAIL),{
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'}
+  }).then(r=>r.json()).then(data=>{
+    if(!data||!data[0]) return;
+    const S2 = JSON.parse(data[0].state_json);
+    S2.athleticsSubSync = subGames;
+    return fetch(SUPABASE_URL+'/rest/v1/app_state?user_email=eq.'+encodeURIComponent(USER_EMAIL),{
+      method:'PATCH',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({state_json:JSON.stringify(S2)})
+    });
+  }).then(r=>{
+    if(r&&r.status===204) console.log('Sub coverage synced to app: '+subGames.length+' games');
+  }).catch(e=>console.warn('Sync error:',e));
+}
+
 function renderStats(){
   const f=filtered(),c=conflicts();
   const away=f.filter(e=>e.homeAway==='Away').length;
