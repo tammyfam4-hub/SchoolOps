@@ -726,7 +726,16 @@ function renderEventRows(events,c){
             const drivers = e.drivers || {};
             return Array.from({length:vans},(_,i)=>{
               const vn = i+1;
-              return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:var(--t3)">V'+vn+'</span><input class="drv-inp" value="'+(drivers[vn]||'')+'" placeholder="Driver '+vn+'..." onchange="qDriverVan('+e.id+','+vn+',this.value)" style="width:90px"></div>';
+              const vanColors=['','#185FA5','#1D9E75','#D85A30','#534AB7','#BA7517'];
+              const vanColor = vanColors[vn]||'#888';
+              const driverVans = e.driverVans||{};
+              const assignedVan = driverVans[vn]||vn;
+              return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">'
+                +'<select class="van-sel" style="width:60px;font-size:11px;padding:2px 4px;background:'+vanColor+';color:#fff;border:none;font-weight:700" onchange="qDriverVanAssign('+e.id+','+vn+',parseInt(this.value))" title="Assign to van #">'
+                +Array.from({length:vans},(_,i)=>'<option value="'+(i+1)+'"'+(assignedVan===(i+1)?' selected':'')+'>'+'Van '+(i+1)+'</option>').join('')
+                +'</select>'
+                +'<input class="drv-inp" value="'+(drivers[vn]||'')+'" placeholder="Driver name..." onchange="qDriverVan('+e.id+','+vn+',this.value)" style="width:100px">'
+                +'</div>';
             }).join('');
           })()}
         </td>
@@ -970,8 +979,16 @@ function qDriverVan(id,vanNum,val){
   if(e){
     if(!e.drivers) e.drivers={};
     e.drivers[vanNum]=val;
-    // Also set e.driver to first van driver for backwards compat
     e.driver=e.drivers[1]||val;
+    save();
+  }
+}
+
+function qDriverVanAssign(id,slotNum,vanNum){
+  const e=evts.find(x=>x.id===id);
+  if(e){
+    if(!e.driverVans) e.driverVans={};
+    e.driverVans[slotNum]=vanNum;
     save();
   }
 }
