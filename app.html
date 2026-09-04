@@ -3305,6 +3305,15 @@ function editFCC(idx){
   renderFCCTracker();
 }
 
+function toggleApprovedDriver(id){
+  const m = (S.roster||[]).find(r=>r.id===id||r.id==id);
+  if(!m) return;
+  m.approvedDriver = !m.approvedDriver;
+  scheduleSave();
+  toast(m.name+' '+(m.approvedDriver?'marked as approved driver 🚐':'driver approval removed'));
+  renderContacts();
+}
+
 function renderContacts(){
   const el=document.getElementById('contacts-list');
   if(!el)return;
@@ -3317,13 +3326,14 @@ function renderContacts(){
   const em='\u2014';
   function row(m,isInactive){
     var mid=m.id;
-    return '<tr style="'+(isInactive?'opacity:0.55;':'')+'"><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;width:22%">'+m.name+(isInactive?'<span class="badge b-gray" style="font-size:10px;margin-left:6px">Inactive</span>':'')+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+(m.isCoach&&m.coachSport?' \u2022 \uD83C\uDFC6 '+m.coachSport:'')+'</div></td>'
+    return '<tr style="'+(isInactive?'opacity:0.55;':'')+'"><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;width:22%">'+m.name+(isInactive?'<span class="badge b-gray" style="font-size:10px;margin-left:6px">Inactive</span>':'')+(m.approvedDriver?'<span class="badge" style="font-size:10px;margin-left:6px;background:#185FA5;color:#fff">🚐 Driver</span>':'')+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+(m.isCoach&&m.coachSport?' \u2022 \uD83C\uDFC6 '+m.coachSport:'')+'</div></td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:15%">'+(m.phone||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:12%">'+(m.birthday||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:35%">'+(m.email||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);width:16%;white-space:nowrap">'
       +'<button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+mid+')">Edit</button> '
-      +'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+mid+')">Remove</button>'
+      +'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+mid+')">Remove</button> '
+      +'<button class="btn btn-sm" style="font-size:11px;background:'+(m.approvedDriver?'#185FA5':'#eef0f2')+';color:'+(m.approvedDriver?'#fff':'#555')+'" onclick="toggleApprovedDriver('+mid+')" title="Toggle approved van driver">🚐</button>'
       +'</td></tr>';
   }
   const thead='<thead><tr>'
