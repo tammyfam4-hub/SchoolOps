@@ -3820,16 +3820,19 @@ function checkMidnightReset(){
   const azDate=azNow.toISOString().slice(0,10);
 
   if(S.lastDate && S.lastDate!==azDate){
-    // Save yesterday to history
+    // Save yesterday to history (skip if yesterday was a holiday)
+    const _holidays=((S.academicCalendar||DEFAULT.academicCalendar||{}).holidays||[]).map(h=>h.date);
     if(!S.attendanceHistory)S.attendanceHistory={};
     const hasAbsences=Object.values(S.attendance).some(a=>a.status&&a.status!=='P');
-    if(hasAbsences){
+    if(hasAbsences && !_holidays.includes(S.lastDate)){
       S.attendanceHistory[S.lastDate]=JSON.parse(JSON.stringify(S.attendance));
     }
-    // Reset to present
-    Object.keys(S.attendance).forEach(name=>{
-      S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
-    });
+    // Reset to present (skip reset if today is a holiday)
+    if(!_holidays.includes(azDate)){
+      Object.keys(S.attendance).forEach(name=>{
+        S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
+      });
+    }
     S.subs.forEach(s=>{s.placed=null;});
     toast('New day — attendance reset for '+azDate+' ✓');
     scheduleSave();
