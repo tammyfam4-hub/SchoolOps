@@ -765,7 +765,8 @@ function renderEventRows(events,c){
             const vans = info ? info.vansNeeded : 1;
             if(e.homeAway==='Home'||!vans) return '<span style="color:var(--t3);font-size:11px">—</span>';
             if(vans<=1){
-              return '<input class="drv-inp" value="'+(e.driver||'')+'" placeholder="Driver..." onchange="qDriver('+e.id+',this.value)" style="width:100px">';
+              const approvedDrivers = getApprovedDrivers();
+              return buildDriverSelect(e.id, 0, e.driver||'', approvedDrivers, 'qDriver('+e.id+',this.value)', '110px');
             }
             // Multiple vans — show one driver input per van
             const drivers = e.drivers || {};
@@ -1027,14 +1028,18 @@ function getApprovedDrivers(){
 }
 
 function buildDriverSelect(gameId, vanNum, currentVal, approvedList, onchangeStr, width){
+  // If no approved drivers set up yet, just show a text input
+  if(!approvedList || approvedList.length === 0){
+    return '<input class="drv-inp" value="'+(currentVal||'')+'" placeholder="Driver name..." onchange="'+onchangeStr+'" style="width:'+width+'">';
+  }
   const isOther = currentVal && !approvedList.includes(currentVal);
   let opts = '<option value="">— Select Driver —</option>';
   approvedList.forEach(name=>{
     opts += '<option value="'+name+'"'+(currentVal===name?' selected':'')+'>🚐 '+name+'</option>';
   });
   opts += '<option value="__other__"'+(isOther?' selected':'')+'>✏️ Other...</option>';
-  const sel = '<select class="van-sel" style="width:'+width+';font-size:12px" onchange="handleDriverSelect('+gameId+','+vanNum+',this,'+(JSON.stringify(onchangeStr))+')">'+opts+'</select>';
-  const inp = isOther ? '<input class="drv-inp" style="width:'+width+';margin-top:3px" value="'+currentVal+'" placeholder="Enter name..." onchange="'+onchangeStr.replace('this.value','this.value')+'">' : '';
+  const sel = '<select class="van-sel" style="width:'+width+';font-size:12px" onchange="handleDriverSelect('+gameId+','+vanNum+',this,'+JSON.stringify(onchangeStr)+')">'+opts+'</select>';
+  const inp = isOther ? '<input class="drv-inp" style="width:'+width+';margin-top:3px" value="'+(currentVal||'')+'" placeholder="Enter name..." onchange="'+onchangeStr+'">' : '';
   return sel+inp;
 }
 
