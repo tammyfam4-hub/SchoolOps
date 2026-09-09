@@ -1498,7 +1498,7 @@ async function initData(){
   // Force today's date to April 17, 2026 Arizona time for initial reset
   if(!S.lastDate||S.lastDate<'2026-04-17')S.lastDate='2026-04-16'; // will trigger reset to 04-17
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));
-  if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
+  if(!S.clubs||!Array.isArray(S.clubs)||S.clubs.length===0)S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
   // Ensure all sports and clubs have IDs (fix for Supabase-loaded state without IDs)
   S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
   S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
@@ -1541,11 +1541,8 @@ async function initData(){
   // Sync credits/debits from transactions if missing
   [...S.sports,...S.clubs].forEach(g=>{
     if(!g.transactions)g.transactions=[];
-    // Restore from DEFAULT if this group has no transactions but DEFAULT does
-    const def=[...DEFAULT.sports,...DEFAULT.clubs].find(d=>d.name===g.name);
-    if(def&&def.transactions&&def.transactions.length&&g.transactions.length===0){
-      g.transactions=def.transactions;
-    }
+    // Never restore from DEFAULT — transactions come from Supabase only
+    // (removed DEFAULT restore to prevent overwriting saved transaction data)
   });
   if(!S.plannedDays||!Array.isArray(S.plannedDays))S.plannedDays=[];
   if(typeof S.nextGroupId!=='number')S.nextGroupId=200;
