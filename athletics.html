@@ -808,6 +808,7 @@ function renderEventRows(events,c){
                 +'<span style="font-size:10px;font-weight:800;color:#fff;background:'+vanColor+';padding:2px 6px;border-radius:6px;flex-shrink:0">V'+vn+'</span>'
                 +buildDriverSelect(e.id, vn, drivers[vn]||'', getApprovedDrivers(), 'qDriverVan('+e.id+','+vn+',this.value)', '110px')
                 +'</div>';
+            }).join('')
           })()}
         </td>
         <td style="white-space:nowrap"><span style="font-size:11px;font-weight:700;color:${sc}"><span class="status-dot" style="background:${sc}"></span>${e.status}</span></td>
