@@ -796,14 +796,11 @@ function renderEventRows(events,c){
             const vans = (info && info.vansNeeded > 1) ? info.vansNeeded : 1;
             const drivers = e.drivers||{};
             const approved = getApprovedDrivers();
-            const vanColors = ['','#185FA5','#1D9E75','#D85A30','#534AB7','#BA7517'];
             return Array.from({length:vans},(_,i)=>{
               const vn = i+1;
-              const col = vanColors[vn]||'#888';
-              const lbl = vans>1 ? '<span style="font-size:10px;font-weight:800;color:#fff;background:'+col+';padding:1px 5px;border-radius:5px;margin-right:3px">V'+vn+'</span>' : '';
               const val = vans>1 ? (drivers[vn]||'') : (e.driver||'');
               const fn  = vans>1 ? 'qDriverVan('+e.id+','+vn+',this.value)' : 'qDriver('+e.id+',this.value)';
-              return '<div style="display:flex;align-items:center;gap:2px;margin-bottom:'+(vans>1?'3':'0')+'px">'+lbl+buildDriverSelect(e.id,vn,val,approved,fn,'115px')+'</div>';
+              return '<div style="margin-bottom:'+(vans>1?'3':'0')+'px">'+buildDriverSelect(e.id,vn,val,approved,fn,'130px')+'</div>';
             }).join('');
           })()}
         </td>
