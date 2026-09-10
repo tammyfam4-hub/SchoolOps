@@ -804,15 +804,10 @@ function renderEventRows(events,c){
               const vn = i+1;
               const vanColors=['','#185FA5','#1D9E75','#D85A30','#534AB7','#BA7517'];
               const vanColor = vanColors[vn]||'#888';
-              const driverVans = e.driverVans||{};
-              const assignedVan = driverVans[vn]||vn;
               return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">'
-                +'<select class="van-sel" style="width:60px;font-size:11px;padding:2px 4px;background:'+vanColor+';color:#fff;border:none;font-weight:700" onchange="qDriverVanAssign('+e.id+','+vn+',parseInt(this.value))" title="Assign to van #">'
-                +Array.from({length:5},(_,i)=>'<option value="'+(i+1)+'"'+(assignedVan===(i+1)?' selected':'')+'>'+'Van '+(i+1)+'</option>').join('')
-                +'</select>'
-                +buildDriverSelect(e.id, vn, drivers[vn]||'', getApprovedDrivers(), 'qDriverVan('+e.id+','+vn+',this.value)', '100px')
+                +'<span style="font-size:10px;font-weight:800;color:#fff;background:'+vanColor+';padding:2px 6px;border-radius:6px;flex-shrink:0">V'+vn+'</span>'
+                +buildDriverSelect(e.id, vn, drivers[vn]||'', getApprovedDrivers(), 'qDriverVan('+e.id+','+vn+',this.value)', '110px')
                 +'</div>';
-            }).join('');
           })()}
         </td>
         <td style="white-space:nowrap"><span style="font-size:11px;font-weight:700;color:${sc}"><span class="status-dot" style="background:${sc}"></span>${e.status}</span></td>
