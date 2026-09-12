@@ -4511,28 +4511,7 @@ function renderBudget(){
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
-  // Always inject historical transactions for all groups
-  try{
-    // Build a fuzzy lookup for HISTORICAL_TX
-    const _htxKeys=Object.keys(HISTORICAL_TX);
-    function _findHist(name){
-      if(HISTORICAL_TX[name])return HISTORICAL_TX[name];
-      // Try case-insensitive match
-      const nl=name.toLowerCase();
-      const k=_htxKeys.find(k=>k.toLowerCase()===nl||nl.includes(k.toLowerCase())||k.toLowerCase().includes(nl.split(' ')[0].toLowerCase()));
-      return k?HISTORICAL_TX[k]:null;
-    }
-    [...S.sports,...S.clubs].forEach(g=>{
-      const hist=_findHist(g.name);
-      if(hist&&hist.length){
-        const userTx=(g.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
-        g.transactions=[...hist,...userTx];
-        g.credits=Math.round(hist.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
-        g.debits=Math.round(hist.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
-        g.balance=Math.round((g.credits-g.debits)*100)/100;
-      }
-    });
-  }catch(e){console.error('TX inject error:',e);}
+  // Transactions come from Supabase only — no DEFAULT override
   if(S.budgetTab==='overview') renderBudgetOverview(bc);
   else if(S.budgetTab==='sports') renderBudgetList(bc,'sport');
   else if(S.budgetTab==='clubs') renderBudgetList(bc,'club');
