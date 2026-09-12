@@ -3981,12 +3981,7 @@ function renderGroupDetail(groupId){
     </div>
 
     <!-- Summary cards -->
-    <div class="g4" style="margin-bottom:10px">
-      <div class="metric"><div class="metric-lbl">All-Time Income</div><div class="metric-val" style="color:var(--green);font-size:18px">$${(grp.credits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
-      <div class="metric"><div class="metric-lbl">All-Time Expenses</div><div class="metric-val" style="color:var(--red);font-size:18px">$${(grp.debits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
-      <div class="metric"><div class="metric-lbl">Account Balance</div><div class="metric-val" style="font-size:18px;color:${(grp.balance||0)>=0?'var(--blue)':'var(--red)'}">${(grp.balance||0)<0?'−':''}$${Math.abs(grp.balance||0).toLocaleString('en-US',{minimumFractionDigits:2})}</div></div>
-      <div class="metric"><div class="metric-lbl">Total Transactions</div><div class="metric-val" style="font-size:18px">${allTrans.length}</div></div>
-    </div>
+    
     <div class="g3" style="margin-bottom:14px">
       <div class="metric" style="background:var(--green-bg);border:1px solid rgba(29,158,117,.2);border-radius:8px;padding:10px 16px">
         <div style="font-size:11px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Income (${fyLabel})</div>
@@ -4032,7 +4027,7 @@ function renderGroupDetail(groupId){
     </div>
 
     <!-- Filtered summary -->
-    <div class="g2" style="margin-bottom:14px">
+    <div class="g3" style="margin-bottom:14px">
       <div class="card" style="background:var(--green-bg);border-color:rgba(29,158,117,.2)">
         <div style="font-size:11px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Income (${fyLabel})</div>
         <div style="font-size:22px;font-weight:800;color:var(--green-t)">$${filtCredits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
@@ -4040,6 +4035,10 @@ function renderGroupDetail(groupId){
       <div class="card" style="background:var(--red-bg);border-color:rgba(226,75,74,.2)">
         <div style="font-size:11px;font-weight:700;color:var(--red-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Expenses (${fyLabel})</div>
         <div style="font-size:22px;font-weight:800;color:var(--red-t)">$${filtDebits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
+      </div>
+      <div class="card" style="background:#e8f0fe;border-color:rgba(24,95,165,.2)">
+        <div style="font-size:11px;font-weight:700;color:#185FA5;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Account Balance</div>
+        <div style="font-size:22px;font-weight:800;color:${(grp.balance||0)>=0?'#185FA5':'var(--red)'}">$${Math.abs(grp.balance||0).toLocaleString('en-US',{minimumFractionDigits:2})}</div>
       </div>
     </div>
 
