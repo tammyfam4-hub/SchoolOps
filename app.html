@@ -5134,13 +5134,13 @@ function printGroupLedger(groupId){
     boxes.forEach((b,i)=>{
       const x=10+i*66;
       doc.setFillColor(b.col[0]+(255-b.col[0])*0.85,b.col[1]+(255-b.col[1])*0.85,b.col[2]+(255-b.col[2])*0.85);
-      doc.rect(x,44,62,18,'F');
-      doc.setFontSize(8);doc.setFont('helvetica','normal');
+      doc.rect(x,44,62,14,'F');
+      doc.setFontSize(7);doc.setFont('helvetica','normal');
       doc.setTextColor(100,100,100);
-      doc.text(b.label,x+4,51);
-      doc.setFontSize(12);doc.setFont('helvetica','bold');
+      doc.text(b.label,x+3,49);
+      doc.setFontSize(10);doc.setFont('helvetica','bold');
       doc.setTextColor(b.col[0]*0.6,b.col[1]*0.6,b.col[2]*0.6);
-      doc.text(b.val,x+4,60);
+      doc.text(b.val,x+3,56);
     });
 
     doc.setFontSize(9);doc.setFont('helvetica','bold');
@@ -5161,18 +5161,20 @@ function printGroupLedger(groupId){
         ];
       });
       doc.autoTable({
-        startY:75,
-        head:[['Date','Description','Amount','Type','Running Balance']],
+        startY:66,
+        head:[['Date','Description','Amount','Type','Running Bal.']],
         body:tableRows,
-        theme:'grid',
-        headStyles:{fillColor:[92,99,112],textColor:255,fontStyle:'bold',fontSize:9},
-        bodyStyles:{fontSize:8.5,textColor:[30,30,30]},
-        alternateRowStyles:{fillColor:[245,247,250]},
+        theme:'striped',
+        headStyles:{fillColor:[92,99,112],textColor:255,fontStyle:'bold',fontSize:8,cellPadding:2},
+        bodyStyles:{fontSize:7.5,textColor:[30,30,30],cellPadding:{top:1.5,bottom:1.5,left:2,right:2}},
+        alternateRowStyles:{fillColor:[248,249,252]},
+        margin:{left:10,right:10},
         columnStyles:{
-          0:{cellWidth:28},
-          1:{cellWidth:100},
-          2:{cellWidth:32,halign:'right'},
-          3:{cellWidth:28,halign:'center'}
+          0:{cellWidth:24},
+          1:{cellWidth:105},
+          2:{cellWidth:28,halign:'right'},
+          3:{cellWidth:22,halign:'center'},
+          4:{cellWidth:28,halign:'right'}
         },
         didParseCell:function(data){
           if(data.column.index===3&&data.section==='body'){
