@@ -3871,11 +3871,11 @@ function get14MonthsAgo(){
 let detailGroupId=null;
 let detailFromDate='';
 let detailToDate='';
-let detailMode='both'; // 'both', 'fy', 'lastfy', or 'custom'
+let detailMode='fy'; // 'both', 'fy', 'lastfy', or 'custom'
 
 function openGroupDetail(groupId){
   detailGroupId=groupId;
-  detailMode='both';
+  detailMode='fy';
   detailFromDate='2020-01-01';
   detailToDate=new Date().toISOString().slice(0,10);
   // Hide tab bar and list, show detail
