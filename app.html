@@ -3981,9 +3981,27 @@ function renderGroupDetail(groupId){
 
     <!-- Summary cards -->
     <div class="g4" style="margin-bottom:16px">
-      <div class="metric"><div class="metric-lbl">All-Time Income</div><div class="metric-val" style="color:var(--green);font-size:20px">$${(grp.credits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
-      <div class="metric"><div class="metric-lbl">All-Time Expenses</div><div class="metric-val" style="color:var(--red);font-size:20px">$${(grp.debits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
-      <div class="metric"><div class="metric-lbl">All-Time Balance</div><div class="metric-val" style="color:${(grp.balance||0)<0?'var(--red)':'var(--blue)'};font-size:20px">${(grp.balance||0)<0?'−':''}$${Math.abs(grp.balance||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
+      ${(()=>{
+        const fyStart = S.currentFY ? S.currentFY+'-07-01' : '2026-07-01';
+        const fyEnd   = S.currentFY ? (parseInt(S.currentFY)+1)+'-06-30' : '2027-06-30';
+        const fyTx = (grp.transactions||[]).filter(t=>t.date>=fyStart&&t.date<=fyEnd);
+        const fyInc = fyTx.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+        const fyExp = fyTx.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+        const fmt = n=>'$'+Math.round(n).toLocaleString('en-US',{minimumFractionDigits:0});
+        return '<div class="metric"><div class="metric-lbl">FY Income</div><div class="metric-val" style="color:var(--green);font-size:20px">'+fmt(fyInc)+'</div></div>'
+             + '<div class="metric"><div class="metric-lbl">FY Expenses</div><div class="metric-val" style="color:var(--red);font-size:20px">'+fmt(fyExp)+'</div></div>';
+      })()}
+      ${(()=>{
+        const fyStart2 = S.currentFY ? S.currentFY+'-07-01' : '2026-07-01';
+        const fyEnd2   = S.currentFY ? (parseInt(S.currentFY)+1)+'-06-30' : '2027-06-30';
+        const fyTx2 = (grp.transactions||[]).filter(t=>t.date>=fyStart2&&t.date<=fyEnd2);
+        const fyInc2 = fyTx2.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+        const fyExp2 = fyTx2.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+        const fyBal2 = Math.round((fyInc2-fyExp2)*100)/100;
+        const col = fyBal2>=0?'var(--blue)':'var(--red)';
+        const sign = fyBal2<0?'−':'';
+        return '<div class="metric"><div class="metric-lbl">FY Balance</div><div class="metric-val" style="color:'+col+';font-size:20px">'+sign+'$'+Math.abs(Math.round(fyBal2)).toLocaleString('en-US',{minimumFractionDigits:0})+'</div></div>';
+      })()}
       <div class="metric"><div class="metric-lbl">Total Transactions</div><div class="metric-val" style="font-size:20px">${allTrans.length}</div></div>
     </div>
 
