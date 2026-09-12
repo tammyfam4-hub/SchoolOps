@@ -5063,118 +5063,108 @@ function exportGroupCSV(groupId){
 function printGroupLedger(groupId){
   const g=[...S.sports,...S.clubs].find(x=>x.id===groupId);
   if(!g){toast('Group not found');return;}
-  // Load jsPDF if needed
   function doGenerate(){
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const today=new Date();
-    const fiscalYear=today.getMonth()>=6
-      ?today.getFullYear()+'-'+(today.getFullYear()+1)
-      :(today.getFullYear()-1)+'-'+today.getFullYear();
-    const todayStr=today.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    const fiscalYear=today.getMonth()>=6?today.getFullYear()+'-'+(today.getFullYear()+1):(today.getFullYear()-1)+'-'+today.getFullYear();
+    const todayStr=today.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
 
-    // Header
-    doc.setFillColor(92,99,112);
-    doc.rect(0,0,210,20,'F');
+    // Thin header bar
+    doc.setFillColor(60,70,85);
+    doc.rect(0,0,210,14,'F');
     doc.setTextColor(255,255,255);
-    doc.setFontSize(14);doc.setFont('helvetica','bold');
-    doc.text('Highland Prep — Budget Ledger',10,12);
-    doc.setFontSize(9);doc.setFont('helvetica','normal');
-    doc.text('Generated: '+todayStr,145,12);
+    doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.text('Highland Prep — Budget Ledger',8,9);
+    doc.setFontSize(7);doc.setFont('helvetica','normal');
+    doc.text(todayStr,165,9);
 
-    // Group info
+    // Group name + type
     doc.setTextColor(30,30,30);
-    doc.setFontSize(16);doc.setFont('helvetica','bold');
-    doc.text(g.name,10,32);
-    doc.setFontSize(10);doc.setFont('helvetica','normal');
+    doc.setFontSize(13);doc.setFont('helvetica','bold');
+    doc.text(g.name,8,22);
+    doc.setFontSize(8);doc.setFont('helvetica','normal');
     doc.setTextColor(100,100,100);
-    doc.text((g.type==='sport'?'Sport':'Club')+' · Fiscal Year '+fiscalYear,10,39);
+    doc.text((g.type==='sport'?'Sport':'Club')+' · Fiscal Year '+fiscalYear,8,27);
 
-    // Summary boxes drawn AFTER filtCredits/filtDebits are calculated below
-    // (boxes rendered at end of function after fyTrans is defined)
-
-    // Transactions table - respect current filter mode
+    // Calculate filtered totals
     const trans=g.transactions||[];
     const fyStart=today.getMonth()>=6?today.getFullYear()+'-07-01':(today.getFullYear()-1)+'-07-01';
     const fyEnd=today.getMonth()>=6?(today.getFullYear()+1)+'-06-30':today.getFullYear()+'-06-30';
     const lastFYStart=today.getMonth()>=6?(today.getFullYear()-1)+'-07-01':(today.getFullYear()-2)+'-07-01';
     const lastFYEnd=today.getMonth()>=6?today.getFullYear()+'-06-30':(today.getFullYear()-1)+'-06-30';
-    // Use the currently selected filter in the app
-    const mode=detailMode||'both';
-    const fromDate=detailFromDate||'';
-    const toDate=detailToDate||'';
-    let fyTrans, filterLabel;
-    if(mode==='fy'){
-      fyTrans=trans.filter(t=>t.date>=fyStart&&t.date<=fyEnd);
-      filterLabel='Fiscal Year '+fiscalYear;
-    } else if(mode==='lastfy'){
+    const mode=detailMode||'fy';
+    let fyTrans,filterLabel;
+    if(mode==='lastfy'){
       fyTrans=trans.filter(t=>t.date>=lastFYStart&&t.date<=lastFYEnd);
-      const lastFY=(today.getFullYear()-1)+'-'+today.getFullYear();
-      filterLabel='Fiscal Year '+lastFY;
-    } else if(mode==='custom'&&fromDate&&toDate){
-      fyTrans=trans.filter(t=>t.date>=fromDate&&t.date<=toDate);
-      filterLabel='Custom Range '+fromDate+' to '+toDate;
-    } else {
+      filterLabel='Last FY';
+    } else if(mode==='both'){
       fyTrans=trans.slice().sort((a,b)=>a.date.localeCompare(b.date));
       filterLabel='All Time';
+    } else if(mode==='custom'&&detailFromDate&&detailToDate){
+      fyTrans=trans.filter(t=>t.date>=detailFromDate&&t.date<=detailToDate);
+      filterLabel=detailFromDate+' to '+detailToDate;
+    } else {
+      fyTrans=trans.filter(t=>t.date>=fyStart&&t.date<=fyEnd);
+      filterLabel='FY '+fiscalYear;
     }
+    fyTrans.sort((a,b)=>a.date.localeCompare(b.date));
 
-    // Calculate filtered totals now that fyTrans is defined
-    const filtCredits=fyTrans.filter(t=>(t.amount||0)>0).reduce((s,t)=>s+(t.amount||0),0);
-    const filtDebits=fyTrans.filter(t=>(t.amount||0)<0).reduce((s,t)=>s+Math.abs(t.amount||0),0);
+    const filtCredits=Math.round(fyTrans.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
+    const filtDebits=Math.round(fyTrans.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
     const filtBalance=Math.round((filtCredits-filtDebits)*100)/100;
-    const fmtMoney=(v)=>(v<0?'-$':'$')+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fm=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2});
 
-    // Summary boxes — now safe to draw since filtCredits/filtDebits are defined
-    const boxes=[
-      {label:'Total Income',val:fmtMoney(filtCredits),col:[29,158,117]},
-      {label:'Total Expenses',val:fmtMoney(filtDebits),col:[226,75,74]},
-      {label:'Current Balance',val:(filtBalance<0?'-$':'$')+Math.abs(filtBalance).toLocaleString('en-US',{minimumFractionDigits:2}),col:g.balance<0?[226,75,74]:[24,95,165]}
+    // Compact 3-box summary row
+    const bxData=[
+      {lbl:'Income ('+filterLabel+')',val:fm(filtCredits),r:29,g:158,b:117},
+      {lbl:'Expenses ('+filterLabel+')',val:fm(filtDebits),r:226,g:75,b:74},
+      {lbl:'Account Balance',val:(g.balance<0?'-':'')+fm(g.balance),r:24,g:95,b:165}
     ];
-    boxes.forEach((b,i)=>{
-      const x=10+i*66;
-      doc.setFillColor(b.col[0]+(255-b.col[0])*0.85,b.col[1]+(255-b.col[1])*0.85,b.col[2]+(255-b.col[2])*0.85);
-      doc.rect(x,44,62,14,'F');
-      doc.setFontSize(7);doc.setFont('helvetica','normal');
+    bxData.forEach((bx,i)=>{
+      const x=8+i*65;
+      doc.setFillColor(bx.r+(255-bx.r)*0.88,bx.g+(255-bx.g)*0.88,bx.b+(255-bx.b)*0.88);
+      doc.rect(x,30,62,12,'F');
+      doc.setFontSize(6.5);doc.setFont('helvetica','normal');
       doc.setTextColor(100,100,100);
-      doc.text(b.label,x+3,49);
-      doc.setFontSize(10);doc.setFont('helvetica','bold');
-      doc.setTextColor(b.col[0]*0.6,b.col[1]*0.6,b.col[2]*0.6);
-      doc.text(b.val,x+3,56);
+      doc.text(bx.lbl,x+2,35);
+      doc.setFontSize(9);doc.setFont('helvetica','bold');
+      doc.setTextColor(Math.round(bx.r*0.55),Math.round(bx.g*0.55),Math.round(bx.b*0.55));
+      doc.text(bx.val,x+2,41);
     });
 
-    doc.setFontSize(9);doc.setFont('helvetica','bold');
+    // Transactions label
+    doc.setFontSize(7.5);doc.setFont('helvetica','bold');
     doc.setTextColor(30,30,30);
-    doc.text('Transactions — '+filterLabel+' ('+fyTrans.length+' entries)',10,72);
+    doc.text('Transactions — '+filterLabel+' ('+fyTrans.length+')',8,46);
 
     if(fyTrans.length){
-      // Calculate running balance for each row
       let runBal=0;
       const tableRows=fyTrans.map(t=>{
         runBal=Math.round((runBal+(t.amount||0))*100)/100;
-        return [
+        return[
           t.date||'',
-          t.desc||'',
-          (t.amount>=0?'+$':'-$')+Math.abs(t.amount).toFixed(2),
+          (t.desc||'').substring(0,45),
+          t.amount>=0?'+$'+t.amount.toFixed(2):'-$'+Math.abs(t.amount).toFixed(2),
           t.amount>=0?'Income':'Expense',
           (runBal>=0?'$':'-$')+Math.abs(runBal).toFixed(2)
         ];
       });
       doc.autoTable({
-        startY:66,
+        startY:48,
         head:[['Date','Description','Amount','Type','Running Bal.']],
         body:tableRows,
         theme:'striped',
-        headStyles:{fillColor:[92,99,112],textColor:255,fontStyle:'bold',fontSize:8,cellPadding:2},
-        bodyStyles:{fontSize:7.5,textColor:[30,30,30],cellPadding:{top:1.5,bottom:1.5,left:2,right:2}},
-        alternateRowStyles:{fillColor:[248,249,252]},
-        margin:{left:10,right:10},
+        headStyles:{fillColor:[60,70,85],textColor:255,fontStyle:'bold',fontSize:7,cellPadding:1.5},
+        bodyStyles:{fontSize:7,textColor:[30,30,30],cellPadding:{top:1,bottom:1,left:2,right:2}},
+        alternateRowStyles:{fillColor:[248,250,253]},
+        margin:{left:8,right:8},
         columnStyles:{
-          0:{cellWidth:24},
-          1:{cellWidth:105},
-          2:{cellWidth:28,halign:'right'},
-          3:{cellWidth:22,halign:'center'},
-          4:{cellWidth:28,halign:'right'}
+          0:{cellWidth:22},
+          1:{cellWidth:90},
+          2:{cellWidth:25,halign:'right'},
+          3:{cellWidth:20,halign:'center'},
+          4:{cellWidth:27,halign:'right'}
         },
         didParseCell:function(data){
           if(data.column.index===3&&data.section==='body'){
@@ -5186,20 +5176,16 @@ function printGroupLedger(groupId){
             data.cell.styles.fontStyle='bold';
           }
         },
-        foot:[['','Running Balance:',
-          (g.balance<0?'-$':'$')+Math.abs(g.balance).toLocaleString('en-US',{minimumFractionDigits:2}),
-          '']],
-        footStyles:{fillColor:[235,235,237],textColor:[60,60,60],fontStyle:'bold',fontSize:9}
+        foot:[['','Totals:',fm(filtCredits)+' / '+fm(filtDebits),'','Bal: '+(filtBalance<0?'-':'')+fm(filtBalance)]],
+        footStyles:{fillColor:[235,238,245],textColor:[40,40,40],fontStyle:'bold',fontSize:7,cellPadding:1.5}
       });
     } else {
-      doc.setFontSize(10);doc.setTextColor(150,150,150);
-      doc.text('No transactions recorded for this fiscal year.',10,85);
+      doc.setFontSize(8);doc.setTextColor(150,150,150);
+      doc.text('No transactions in this period.',8,55);
     }
 
-    // Footer
-    doc.setFontSize(8);doc.setTextColor(150,150,150);
-    doc.text('Highland Prep — Confidential — '+g.name+' Ledger',105,290,{align:'center'});
-
+    doc.setFontSize(7);doc.setTextColor(160,160,160);
+    doc.text('Highland Prep — Confidential — '+g.name+' Ledger',105,292,{align:'center'});
     doc.save(g.name.replace(/[^a-z0-9]/gi,'_')+'_Ledger_'+fiscalYear+'.pdf');
     toast('PDF exported: '+g.name+' ✓');
   }
@@ -5217,9 +5203,6 @@ function printGroupLedger(groupId){
   } else { doGenerate(); }
 }
 
-initData();
-
-// ── PDF EXPORT ────────────────────────────────────────────────────
 function exportPlannedPDF(){
   // Check if jsPDF is loaded, if not load it first
   if(typeof window.jspdf === 'undefined'){
