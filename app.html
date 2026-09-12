@@ -5090,24 +5090,8 @@ function printGroupLedger(groupId){
     doc.setTextColor(100,100,100);
     doc.text((g.type==='sport'?'Sport':'Club')+' · Fiscal Year '+fiscalYear,10,39);
 
-    // Summary boxes — filtCredits/filtDebits calculated after fyTrans is defined below
-    const boxes=[
-      {label:'Total Income',val:fmtMoney(filtCredits),col:[29,158,117]},
-      {label:'Total Expenses',val:fmtMoney(filtDebits),col:[226,75,74]},
-      {label:'Current Balance',val:(filtBalance<0?'-$':'$')+Math.abs(filtBalance).toLocaleString('en-US',{minimumFractionDigits:2}),col:g.balance<0?[226,75,74]:[24,95,165]}
-    ];
-    boxes.forEach((b,i)=>{
-      const x=10+i*66;
-      doc.setFillColor(b.col[0],b.col[1],b.col[2],0.1);
-      doc.setFillColor(b.col[0]+(255-b.col[0])*0.85,b.col[1]+(255-b.col[1])*0.85,b.col[2]+(255-b.col[2])*0.85);
-      doc.rect(x,44,62,18,'F');
-      doc.setFontSize(8);doc.setFont('helvetica','normal');
-      doc.setTextColor(100,100,100);
-      doc.text(b.label,x+4,51);
-      doc.setFontSize(12);doc.setFont('helvetica','bold');
-      doc.setTextColor(b.col[0]*0.6,b.col[1]*0.6,b.col[2]*0.6);
-      doc.text(b.val,x+4,60);
-    });
+    // Summary boxes drawn AFTER filtCredits/filtDebits are calculated below
+    // (boxes rendered at end of function after fyTrans is defined)
 
     // Transactions table - respect current filter mode
     const trans=g.transactions||[];
@@ -5140,6 +5124,24 @@ function printGroupLedger(groupId){
     const filtDebits=fyTrans.filter(t=>(t.amount||0)<0).reduce((s,t)=>s+Math.abs(t.amount||0),0);
     const filtBalance=Math.round((filtCredits-filtDebits)*100)/100;
     const fmtMoney=(v)=>(v<0?'-$':'$')+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // Summary boxes — now safe to draw since filtCredits/filtDebits are defined
+    const boxes=[
+      {label:'Total Income',val:fmtMoney(filtCredits),col:[29,158,117]},
+      {label:'Total Expenses',val:fmtMoney(filtDebits),col:[226,75,74]},
+      {label:'Current Balance',val:(filtBalance<0?'-$':'$')+Math.abs(filtBalance).toLocaleString('en-US',{minimumFractionDigits:2}),col:g.balance<0?[226,75,74]:[24,95,165]}
+    ];
+    boxes.forEach((b,i)=>{
+      const x=10+i*66;
+      doc.setFillColor(b.col[0]+(255-b.col[0])*0.85,b.col[1]+(255-b.col[1])*0.85,b.col[2]+(255-b.col[2])*0.85);
+      doc.rect(x,44,62,18,'F');
+      doc.setFontSize(8);doc.setFont('helvetica','normal');
+      doc.setTextColor(100,100,100);
+      doc.text(b.label,x+4,51);
+      doc.setFontSize(12);doc.setFont('helvetica','bold');
+      doc.setTextColor(b.col[0]*0.6,b.col[1]*0.6,b.col[2]*0.6);
+      doc.text(b.val,x+4,60);
+    });
 
     doc.setFontSize(9);doc.setFont('helvetica','bold');
     doc.setTextColor(30,30,30);
