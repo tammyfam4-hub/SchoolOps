@@ -3788,10 +3788,9 @@ let detailMode='fy'; // 'both', 'fy', 'lastfy', or 'custom'
 
 function openGroupDetail(groupId){
   detailGroupId=groupId;
-  detailMode='fy';
-  // Default to current FY: Jul 2026 – Jun 2027
-  detailFromDate='2026-07-01';
-  detailToDate='2027-06-30';
+  detailMode='both';
+  detailFromDate='2020-01-01';
+  detailToDate=new Date().toISOString().slice(0,10);
   // Hide tab bar and list, show detail
   document.getElementById('budget-tab-bar').style.display='none';
   document.getElementById('budget-content').style.display='none';
