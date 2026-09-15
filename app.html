@@ -1484,6 +1484,9 @@ async function initData(){
   if(saved){
     S=saved;
     console.log('✓ Loaded from Supabase');
+    // Protect: if clubs have very few transactions, they may have been corrupted
+    // Mark them so we don't accidentally overwrite with DEFAULT
+    (S.clubs||[]).forEach(g=>{ g._supabaseLoaded=true; });
   } else {
     console.log('No saved state — starting fresh with defaults');
   }
@@ -1537,7 +1540,7 @@ async function initData(){
   if(!S.trips||!Array.isArray(S.trips))S.trips=[];
   if(!S.hr||!Array.isArray(S.hr))S.hr=JSON.parse(JSON.stringify(DEFAULT.hr));
   if(!S.transactions||!Array.isArray(S.transactions))S.transactions=[];
-  if(!S.roster||!Array.isArray(S.roster)||S.roster.length===0){S.roster=(S.roster&&S.roster.length>0&&S.roster.filter(function(m){return !m.inactive;}).length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).map(function(m,i){return {id:1000+i,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',subject:m.subject||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''};});scheduleSave();}
+  if(!S.roster||!Array.isArray(S.roster)||S.roster.length===0){S.roster=(S.roster&&S.roster.length>0&&S.roster.filter(function(m){return !m.inactive;}).length>0?S.roster.filter(function(m){return !m.inactive;}):([...TEACHERS,...STAFF])).map(function(m,i){return {id:1000+i,name:m.name,phone:m.phone||'',email:m.email||'',startTime:m.startTime||'7:30 AM',type:m.type||'teacher',title:m.title||'',subject:m.subject||'',isAdmin:m.isAdmin||false,birthday:m.birthday||''};});// scheduleSave removed from startup}
   if(!S.miscBudgets||!Array.isArray(S.miscBudgets))S.miscBudgets=[];
   (S.tasks||[]).forEach((t,i)=>{if(t.order==null)t.order=i;});
   if(S.taskCompletedOpen==null)S.taskCompletedOpen=false;
