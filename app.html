@@ -524,7 +524,6 @@ body.view-mode .nav{top:calc(40px + var(--hdr));}
               <div style="display:flex;gap:6px">
                 <button class="btn btn-sm" onclick="exportPlannedPDF()" title="Export to PDF">&#128196; PDF</button>
                 <button class="btn btn-primary btn-sm" onclick="openPlanModal(null)">+ Add planned day</button>
-                <button class="btn btn-sm" style="background:#2D6A8F;color:#fff" onclick="syncAthleticsToPlannedDays()" title="Import athletics away games needing sub coverage as SE events">🏅 Sync Athletics</button>
               </div>
             </div>
             <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
@@ -1337,71 +1336,6 @@ function renderHolidayList(){
   }).join('');
 }
 
-function syncAthleticsToPlannedDays(){
-  // Pull athletics data from localStorage and sync sub-needed games to plannedDays as SE
-  const today = new Date().toISOString().slice(0,10);
-
-  // Get all fall 2026 games from localStorage overrides merged with base
-  // We need to check games that need coverage
-  // Sports and coaches that are teachers needing sub:
-  const teacherCoaches = {
-    'Football': 'Anderson, Derek',
-    'Football - Flag': ['Cajthaml, Caleb', 'Laguit, Joshua'],
-    'Cross Country': 'Cline, Andrea',
-    'Cheer': 'Russell, Kayla',
-    "Volleyball - Girl's": null // Heinle is not a teacher
-  };
-
-  // Try to get athletics base data
-  let games = [];
-  try {
-    const stored = JSON.parse(localStorage.getItem('hp-athletics-fall2026')||'{}');
-    // We can't directly access FALL_2026_BASE from app.html
-    // So we'll store synced events separately
-  } catch(e){}
-
-  // Check S.athleticsSubSync — games that have been marked as needing sub
-  const subGames = S.athleticsSubSync || [];
-
-  if(!subGames.length){
-    toast('No athletics sub events to sync. Open Athletics page first to load games.');
-    return;
-  }
-
-  let added = 0;
-  subGames.forEach(g=>{
-    // Check if already in plannedDays
-    const exists = (S.plannedDays||[]).find(p=>
-      p.athleticsId === g.id &&
-      p.start === g.date
-    );
-    if(!exists){
-      const newId = Math.max(0,...(S.plannedDays||[]).map(p=>p.id||0)) + 1;
-      S.plannedDays.push({
-        id: newId,
-        person: g.coach,
-        type: 'SE',
-        start: g.date,
-        end: g.date,
-        notes: g.sport + ' Away Game — Sub Required (' + g.opponent + ')',
-        subReq: 'yes',
-        dayType: 'full',
-        athleticsId: g.id,
-        createdAt: today
-      });
-      added++;
-    }
-  });
-
-  if(added > 0){
-    scheduleSave();
-    toast(added + ' athletics events added to Planned Days ✓');
-    renderPlannedTable();
-  } else {
-    toast('All athletics sub events already in Planned Days ✓');
-  }
-}
-
 function renderPlannedTable(){
   const tbody=document.getElementById('planned-table');
   if(!tbody)return;
@@ -1498,11 +1432,23 @@ async function initData(){
   // Force today's date to April 17, 2026 Arizona time for initial reset
   if(!S.lastDate||S.lastDate<'2026-04-17')S.lastDate='2026-04-16'; // will trigger reset to 04-17
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));
-  if(!S.clubs||!Array.isArray(S.clubs)||S.clubs.length===0)S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
+  if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
   // Ensure all sports and clubs have IDs (fix for Supabase-loaded state without IDs)
   S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
   S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
-  // Group names from Supabase — no HISTORICAL_TX override needed
+  // Sync group names to HISTORICAL_TX keys for exact matching
+  const _htxAllKeys=Object.keys(HISTORICAL_TX);
+  [...S.sports,...S.clubs].forEach(g=>{
+    if((g.transactions||[]).length>0)return;
+    if(!HISTORICAL_TX[g.name]){
+      const match=_htxAllKeys.find(k=>
+        k.toLowerCase()===g.name.toLowerCase()||
+        g.name.toLowerCase().includes(k.toLowerCase().split(' ')[0])||
+        k.toLowerCase().includes(g.name.toLowerCase().split(' ')[0])
+      );
+      if(match)g.name=match;
+    }
+  });
   // Merge Boys/Girls Tennis into one "Tennis" group
   const boysTennis=S.sports.find(g=>g.name==="Tennis - Boy's"||g.name==='Tennis - Boys');
   const girlsTennis=S.sports.find(g=>g.name==="Tennis - Girl's"||g.name==='Tennis - Girls');
@@ -1529,8 +1475,11 @@ async function initData(){
   // Sync credits/debits from transactions if missing
   [...S.sports,...S.clubs].forEach(g=>{
     if(!g.transactions)g.transactions=[];
-    // Never restore from DEFAULT — transactions come from Supabase only
-    // (removed DEFAULT restore to prevent overwriting saved transaction data)
+    // Restore from DEFAULT if this group has no transactions but DEFAULT does
+    const def=[...DEFAULT.sports,...DEFAULT.clubs].find(d=>d.name===g.name);
+    if(def&&def.transactions&&def.transactions.length&&g.transactions.length===0){
+      g.transactions=def.transactions;
+    }
   });
   if(!S.plannedDays||!Array.isArray(S.plannedDays))S.plannedDays=[];
   if(typeof S.nextGroupId!=='number')S.nextGroupId=200;
@@ -1563,7 +1512,82 @@ async function initData(){
   }
 
 
-  // Transactions loaded from Supabase only
+  // ── Load historical transactions from spreadsheet ──────────────────
+  window.HISTORICAL_TX = {};
+  // Merge into sports and clubs — only add if group has no transactions yet
+  // Always restore historical transactions from spreadsheet
+  // Keep any user-added transactions (those with id starting 'tx-' from user entry)
+  ;[...(S.sports||[]),...(S.clubs||[])].forEach(g=>{
+    const hist=HISTORICAL_TX[g.name];
+    if(hist&&hist.length){
+      // Get user-added transactions (not from historical spreadsheet)
+      const userTx=(g.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
+      // Always use historical as base + add user transactions on top
+      g.transactions=[...hist,...userTx];
+      // Recalculate credits/debits from transactions
+      g.credits=Math.round(hist.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
+      g.debits=Math.round(hist.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
+      g.balance=Math.round((g.credits-g.debits)*100)/100;
+    }
+  });
+  initAtt();
+  // Show no-school banner if today is a holiday/break
+  (function checkNoSchool(){
+    const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+    const todayCal=(HP_CALENDAR||[]).find(h=>h.date===today&&(h.type==='holiday'||h.type==='break'));
+    const banner=document.getElementById('no-school-banner');
+    if(banner)banner.remove();
+    if(todayCal){
+      const attPanel=document.getElementById('panel-attendance');
+      if(attPanel){
+        const b=document.createElement('div');
+        b.id='no-school-banner';
+        b.style.cssText='background:var(--red-bg);border:1px solid var(--red-t);border-radius:var(--rl);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:12px;font-weight:700;color:var(--red-t);font-size:14px';
+        b.innerHTML='🏖 '+todayCal.label+' — Attendance tracking paused';
+        attPanel.querySelector('.g5')?.insertAdjacentElement('beforebegin',b);
+      }
+    }
+  })();
+  // Auto-populate attendance from planned days for today
+  (function applyPlannedDays(){
+    const today=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+    (S.plannedDays||[]).forEach(p=>{
+      const s=p.start,e=p.end||p.start;
+      if(today<s||today>e)return; // not today
+      const name=p.person;
+      if(!S.attendance[name])S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
+      const att=S.attendance[name];
+      // Only auto-apply if still showing Present (don't override manual entry)
+      if(att.status==='P'){
+        att.status='EA';
+        att.reason=p.type+(p.notes?' — '+p.notes:'');
+        // Auto-assign sub if one was planned
+        if(p.subAssign){
+          att.sub=p.subAssign;
+          const sub=S.subs.find(s=>s.name===p.subAssign);
+          if(sub){sub.placed=name;}
+        }
+        // Auto-deduct PTO if EA type (not SE)
+        if(p.type==='EA'||p.type==='UA'||!p.type){
+          const _ptoKey=Object.keys(S.ptoData||{}).find(function(k){return k===name||k.toLowerCase().startsWith(name.toLowerCase().split(',')[0]);});
+          if(_ptoKey){
+            const _todayStr=new Date(Date.now()-7*3600000+(new Date().getTimezoneOffset()*60000)).toISOString().slice(0,10);
+            // Only deduct if not already deducted for today
+            const _alreadyDeducted=(S.ptoData[_ptoKey].absences||[]).find(function(a){return a.date===_todayStr;});
+            if(!_alreadyDeducted){
+              const _days=1; // Full day planned absence
+              S.ptoData[_ptoKey].used=Math.round((S.ptoData[_ptoKey].used+_days)*10)/10;
+              S.ptoData[_ptoKey].remaining=Math.round((S.ptoData[_ptoKey].available-S.ptoData[_ptoKey].used)*10)/10;
+              if(!S.ptoData[_ptoKey].absences)S.ptoData[_ptoKey].absences=[];
+              S.ptoData[_ptoKey].absences.push({date:_todayStr,days:_days,planned:true});
+            }
+          }
+        }
+        console.log('Auto-applied planned day for '+name);
+      }
+    });
+  })();
+  document.getElementById('footer-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
   render();
   planCalYear=new Date().getFullYear();planCalMonth=new Date().getMonth();
 }
@@ -3215,15 +3239,6 @@ function editFCC(idx){
   renderFCCTracker();
 }
 
-function toggleApprovedDriver(id){
-  const m = (S.roster||[]).find(r=>r.id===id||r.id==id);
-  if(!m) return;
-  m.approvedDriver = !m.approvedDriver;
-  scheduleSave();
-  toast(m.name+' '+(m.approvedDriver?'marked as approved driver 🚐':'driver approval removed'));
-  renderContacts();
-}
-
 function renderContacts(){
   const el=document.getElementById('contacts-list');
   if(!el)return;
@@ -3236,14 +3251,13 @@ function renderContacts(){
   const em='\u2014';
   function row(m,isInactive){
     var mid=m.id;
-    return '<tr style="'+(isInactive?'opacity:0.55;':'')+'"><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;width:22%">'+m.name+(isInactive?'<span class="badge b-gray" style="font-size:10px;margin-left:6px">Inactive</span>':'')+(m.approvedDriver?'<span class="badge" style="font-size:10px;margin-left:6px;background:#185FA5;color:#fff">🚐 Driver</span>':'')+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+(m.isCoach&&m.coachSport?' \u2022 \uD83C\uDFC6 '+m.coachSport:'')+'</div></td>'
+    return '<tr style="'+(isInactive?'opacity:0.55;':'')+'"><td style="padding:10px 12px;border-bottom:0.5px solid var(--border);font-weight:600;width:22%">'+m.name+(isInactive?'<span class="badge b-gray" style="font-size:10px;margin-left:6px">Inactive</span>':'')+'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+(m.title||(m.type==='teacher'?'Teacher':'Staff'))+(m.isCoach&&m.coachSport?' \u2022 \uD83C\uDFC6 '+m.coachSport:'')+'</div></td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:15%">'+(m.phone||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:12%">'+(m.birthday||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);color:var(--t2);width:35%">'+(m.email||em)+'</td>'
       +'<td style="padding:10px 12px;border-bottom:0.5px solid var(--border);width:16%;white-space:nowrap">'
       +'<button class="btn btn-sm" style="font-size:11px" onclick="openRosterModal('+mid+')">Edit</button> '
-      +'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+mid+')">Remove</button> '
-      +'<button class="btn btn-sm" style="font-size:11px;background:'+(m.approvedDriver?'#185FA5':'#eef0f2')+';color:'+(m.approvedDriver?'#fff':'#555')+'" onclick="toggleApprovedDriver('+mid+')" title="Toggle approved van driver">🚐</button>'
+      +'<button class="btn btn-sm btn-danger" style="font-size:11px" onclick="removeRosterMember('+mid+')">Remove</button>'
       +'</td></tr>';
   }
   const thead='<thead><tr>'
@@ -3740,19 +3754,16 @@ function checkMidnightReset(){
   const azDate=azNow.toISOString().slice(0,10);
 
   if(S.lastDate && S.lastDate!==azDate){
-    // Save yesterday to history (skip if yesterday was a holiday)
-    const _holidays=((S.academicCalendar||DEFAULT.academicCalendar||{}).holidays||[]).map(h=>h.date);
+    // Save yesterday to history
     if(!S.attendanceHistory)S.attendanceHistory={};
     const hasAbsences=Object.values(S.attendance).some(a=>a.status&&a.status!=='P');
-    if(hasAbsences && !_holidays.includes(S.lastDate)){
+    if(hasAbsences){
       S.attendanceHistory[S.lastDate]=JSON.parse(JSON.stringify(S.attendance));
     }
-    // Reset to present (skip reset if today is a holiday)
-    if(!_holidays.includes(azDate)){
-      Object.keys(S.attendance).forEach(name=>{
-        S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
-      });
-    }
+    // Reset to present
+    Object.keys(S.attendance).forEach(name=>{
+      S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
+    });
     S.subs.forEach(s=>{s.placed=null;});
     toast('New day — attendance reset for '+azDate+' ✓');
     scheduleSave();
@@ -3784,7 +3795,7 @@ function get14MonthsAgo(){
 let detailGroupId=null;
 let detailFromDate='';
 let detailToDate='';
-let detailMode='fy'; // 'both', 'fy', 'lastfy', or 'custom'
+let detailMode='both'; // 'both', 'fy', 'lastfy', or 'custom'
 
 function openGroupDetail(groupId){
   detailGroupId=groupId;
@@ -3843,7 +3854,19 @@ function renderGroupDetail(groupId){
   }
   if(!grp){closeGroupDetail();return;}
   
-  // Transactions come from Supabase only — no historical override
+  // Always inject historical transactions before rendering
+  const _htxKeys2=Object.keys(HISTORICAL_TX);
+  const _hist=HISTORICAL_TX[grp.name]||(_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))?HISTORICAL_TX[_htxKeys2.find(k=>k.toLowerCase()===grp.name.toLowerCase()||grp.name.toLowerCase().includes(k.toLowerCase()))]:null);
+  if(_hist&&_hist.length){
+    const userTx=(grp.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
+    grp.transactions=[..._hist,...userTx];
+    // Recalculate totals
+    // Recalculate from ALL transactions (historical + user-added) for accuracy
+    const _allTx=grp.transactions||[];
+    grp.credits=Math.round(_allTx.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
+    grp.debits=Math.round(_allTx.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
+    grp.balance=Math.round((grp.credits-grp.debits)*100)/100;
+  }
 
   const det=document.getElementById('budget-detail');
   if(!det)return;
@@ -3881,8 +3904,12 @@ function renderGroupDetail(groupId){
     </div>
 
     <!-- Summary cards -->
-    
-    
+    <div class="g4" style="margin-bottom:16px">
+      <div class="metric"><div class="metric-lbl">All-Time Income</div><div class="metric-val" style="color:var(--green);font-size:20px">$${(grp.credits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
+      <div class="metric"><div class="metric-lbl">All-Time Expenses</div><div class="metric-val" style="color:var(--red);font-size:20px">$${(grp.debits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
+      <div class="metric"><div class="metric-lbl">All-Time Balance</div><div class="metric-val" style="color:${(grp.balance||0)<0?'var(--red)':'var(--blue)'};font-size:20px">${(grp.balance||0)<0?'−':''}$${Math.abs(grp.balance||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
+      <div class="metric"><div class="metric-lbl">Total Transactions</div><div class="metric-val" style="font-size:20px">${allTrans.length}</div></div>
+    </div>
 
     <!-- Date range controls -->
     <div class="card" style="margin-bottom:14px">
@@ -3913,26 +3940,15 @@ function renderGroupDetail(groupId){
       </div>
     </div>
 
-    <!-- Top all-time summary metrics -->
-    <div class="g4" style="margin-bottom:12px">
-      <div class="metric"><div class="metric-lbl">All-Time Income</div><div class="metric-val" style="color:var(--green);font-size:16px">$${(grp.credits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
-      <div class="metric"><div class="metric-lbl">All-Time Expenses</div><div class="metric-val" style="color:var(--red);font-size:16px">$${(grp.debits||0).toLocaleString('en-US',{minimumFractionDigits:0})}</div></div>
-      <div class="metric"><div class="metric-lbl">Account Balance</div><div class="metric-val" style="font-size:16px;color:${(grp.balance||0)>=0?'var(--blue)':'var(--red)'}">$${Math.abs(grp.balance||0).toLocaleString('en-US',{minimumFractionDigits:2})}</div></div>
-      <div class="metric"><div class="metric-lbl">Total Transactions</div><div class="metric-val" style="font-size:16px">${allTrans.length}</div></div>
-    </div>
     <!-- Filtered summary -->
-    <div style="display:flex;gap:10px;margin-bottom:14px">
-      <div style="flex:1;background:var(--green-bg);border:1px solid rgba(29,158,117,.2);border-radius:8px;padding:8px 12px">
-        <div style="font-size:10px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.06em">Income (${fyLabel})</div>
-        <div style="font-size:16px;font-weight:800;color:var(--green-t);margin-top:2px">$${filtCredits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
+    <div class="g2" style="margin-bottom:14px">
+      <div class="card" style="background:var(--green-bg);border-color:rgba(29,158,117,.2)">
+        <div style="font-size:11px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Income (${fyLabel})</div>
+        <div style="font-size:22px;font-weight:800;color:var(--green-t)">$${filtCredits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
       </div>
-      <div style="flex:1;background:var(--red-bg);border:1px solid rgba(226,75,74,.2);border-radius:8px;padding:8px 12px">
-        <div style="font-size:10px;font-weight:700;color:var(--red-t);text-transform:uppercase;letter-spacing:.06em">Expenses (${fyLabel})</div>
-        <div style="font-size:16px;font-weight:800;color:var(--red-t);margin-top:2px">$${filtDebits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
-      </div>
-      <div style="flex:1;background:#e8f0fe;border:1px solid rgba(24,95,165,.2);border-radius:8px;padding:8px 12px">
-        <div style="font-size:10px;font-weight:700;color:#185FA5;text-transform:uppercase;letter-spacing:.06em">Account Balance</div>
-        <div style="font-size:16px;font-weight:800;color:${(grp.balance||0)>=0?'#185FA5':'var(--red)'};margin-top:2px">$${Math.abs(grp.balance||0).toLocaleString('en-US',{minimumFractionDigits:2})}</div>
+      <div class="card" style="background:var(--red-bg);border-color:rgba(226,75,74,.2)">
+        <div style="font-size:11px;font-weight:700;color:var(--red-t);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Expenses (${fyLabel})</div>
+        <div style="font-size:22px;font-weight:800;color:var(--red-t)">$${filtDebits.toLocaleString('en-US',{minimumFractionDigits:2})}</div>
       </div>
     </div>
 
@@ -4411,7 +4427,28 @@ function renderBudget(){
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
-  // Transactions come from Supabase only — no DEFAULT override
+  // Always inject historical transactions for all groups
+  try{
+    // Build a fuzzy lookup for HISTORICAL_TX
+    const _htxKeys=Object.keys(HISTORICAL_TX);
+    function _findHist(name){
+      if(HISTORICAL_TX[name])return HISTORICAL_TX[name];
+      // Try case-insensitive match
+      const nl=name.toLowerCase();
+      const k=_htxKeys.find(k=>k.toLowerCase()===nl||nl.includes(k.toLowerCase())||k.toLowerCase().includes(nl.split(' ')[0].toLowerCase()));
+      return k?HISTORICAL_TX[k]:null;
+    }
+    [...S.sports,...S.clubs].forEach(g=>{
+      const hist=_findHist(g.name);
+      if(hist&&hist.length){
+        const userTx=(g.transactions||[]).filter(t=>t.id&&t.id.startsWith('tx-user-'));
+        g.transactions=[...hist,...userTx];
+        g.credits=Math.round(hist.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
+        g.debits=Math.round(hist.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
+        g.balance=Math.round((g.credits-g.debits)*100)/100;
+      }
+    });
+  }catch(e){console.error('TX inject error:',e);}
   if(S.budgetTab==='overview') renderBudgetOverview(bc);
   else if(S.budgetTab==='sports') renderBudgetList(bc,'sport');
   else if(S.budgetTab==='clubs') renderBudgetList(bc,'club');
@@ -4942,109 +4979,114 @@ function exportGroupCSV(groupId){
 function printGroupLedger(groupId){
   const g=[...S.sports,...S.clubs].find(x=>x.id===groupId);
   if(!g){toast('Group not found');return;}
+  // Load jsPDF if needed
   function doGenerate(){
     const {jsPDF}=window.jspdf;
     const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const today=new Date();
-    const fiscalYear=today.getMonth()>=6?today.getFullYear()+'-'+(today.getFullYear()+1):(today.getFullYear()-1)+'-'+today.getFullYear();
-    const todayStr=today.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+    const fiscalYear=today.getMonth()>=6
+      ?today.getFullYear()+'-'+(today.getFullYear()+1)
+      :(today.getFullYear()-1)+'-'+today.getFullYear();
+    const todayStr=today.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
-    // Thin header bar
-    doc.setFillColor(60,70,85);
-    doc.rect(0,0,210,14,'F');
+    // Header
+    doc.setFillColor(92,99,112);
+    doc.rect(0,0,210,20,'F');
     doc.setTextColor(255,255,255);
-    doc.setFontSize(10);doc.setFont('helvetica','bold');
-    doc.text('Highland Prep — Budget Ledger',8,9);
-    doc.setFontSize(7);doc.setFont('helvetica','normal');
-    doc.text(todayStr,165,9);
+    doc.setFontSize(14);doc.setFont('helvetica','bold');
+    doc.text('Highland Prep — Budget Ledger',10,12);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.text('Generated: '+todayStr,145,12);
 
-    // Group name + type
+    // Group info
     doc.setTextColor(30,30,30);
-    doc.setFontSize(13);doc.setFont('helvetica','bold');
-    doc.text(g.name,8,22);
-    doc.setFontSize(8);doc.setFont('helvetica','normal');
+    doc.setFontSize(16);doc.setFont('helvetica','bold');
+    doc.text(g.name,10,32);
+    doc.setFontSize(10);doc.setFont('helvetica','normal');
     doc.setTextColor(100,100,100);
-    doc.text((g.type==='sport'?'Sport':'Club')+' · Fiscal Year '+fiscalYear,8,27);
+    doc.text((g.type==='sport'?'Sport':'Club')+' · Fiscal Year '+fiscalYear,10,39);
 
-    // Calculate filtered totals
+    // Summary boxes — filtCredits/filtDebits calculated after fyTrans is defined below
+    const boxes=[
+      {label:'Total Income',val:fmtMoney(filtCredits),col:[29,158,117]},
+      {label:'Total Expenses',val:fmtMoney(filtDebits),col:[226,75,74]},
+      {label:'Current Balance',val:(filtBalance<0?'-$':'$')+Math.abs(filtBalance).toLocaleString('en-US',{minimumFractionDigits:2}),col:g.balance<0?[226,75,74]:[24,95,165]}
+    ];
+    boxes.forEach((b,i)=>{
+      const x=10+i*66;
+      doc.setFillColor(b.col[0],b.col[1],b.col[2],0.1);
+      doc.setFillColor(b.col[0]+(255-b.col[0])*0.85,b.col[1]+(255-b.col[1])*0.85,b.col[2]+(255-b.col[2])*0.85);
+      doc.rect(x,44,62,18,'F');
+      doc.setFontSize(8);doc.setFont('helvetica','normal');
+      doc.setTextColor(100,100,100);
+      doc.text(b.label,x+4,51);
+      doc.setFontSize(12);doc.setFont('helvetica','bold');
+      doc.setTextColor(b.col[0]*0.6,b.col[1]*0.6,b.col[2]*0.6);
+      doc.text(b.val,x+4,60);
+    });
+
+    // Transactions table - respect current filter mode
     const trans=g.transactions||[];
     const fyStart=today.getMonth()>=6?today.getFullYear()+'-07-01':(today.getFullYear()-1)+'-07-01';
     const fyEnd=today.getMonth()>=6?(today.getFullYear()+1)+'-06-30':today.getFullYear()+'-06-30';
     const lastFYStart=today.getMonth()>=6?(today.getFullYear()-1)+'-07-01':(today.getFullYear()-2)+'-07-01';
     const lastFYEnd=today.getMonth()>=6?today.getFullYear()+'-06-30':(today.getFullYear()-1)+'-06-30';
-    const mode=detailMode||'fy';
-    let fyTrans,filterLabel;
-    if(mode==='lastfy'){
+    // Use the currently selected filter in the app
+    const mode=detailMode||'both';
+    const fromDate=detailFromDate||'';
+    const toDate=detailToDate||'';
+    let fyTrans, filterLabel;
+    if(mode==='fy'){
+      fyTrans=trans.filter(t=>t.date>=fyStart&&t.date<=fyEnd);
+      filterLabel='Fiscal Year '+fiscalYear;
+    } else if(mode==='lastfy'){
       fyTrans=trans.filter(t=>t.date>=lastFYStart&&t.date<=lastFYEnd);
-      filterLabel='Last FY';
-    } else if(mode==='both'){
+      const lastFY=(today.getFullYear()-1)+'-'+today.getFullYear();
+      filterLabel='Fiscal Year '+lastFY;
+    } else if(mode==='custom'&&fromDate&&toDate){
+      fyTrans=trans.filter(t=>t.date>=fromDate&&t.date<=toDate);
+      filterLabel='Custom Range '+fromDate+' to '+toDate;
+    } else {
       fyTrans=trans.slice().sort((a,b)=>a.date.localeCompare(b.date));
       filterLabel='All Time';
-    } else if(mode==='custom'&&detailFromDate&&detailToDate){
-      fyTrans=trans.filter(t=>t.date>=detailFromDate&&t.date<=detailToDate);
-      filterLabel=detailFromDate+' to '+detailToDate;
-    } else {
-      fyTrans=trans.filter(t=>t.date>=fyStart&&t.date<=fyEnd);
-      filterLabel='FY '+fiscalYear;
     }
-    fyTrans.sort((a,b)=>a.date.localeCompare(b.date));
 
-    const filtCredits=Math.round(fyTrans.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0)*100)/100;
-    const filtDebits=Math.round(fyTrans.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)*100)/100;
+    // Calculate filtered totals now that fyTrans is defined
+    const filtCredits=fyTrans.filter(t=>(t.amount||0)>0).reduce((s,t)=>s+(t.amount||0),0);
+    const filtDebits=fyTrans.filter(t=>(t.amount||0)<0).reduce((s,t)=>s+Math.abs(t.amount||0),0);
     const filtBalance=Math.round((filtCredits-filtDebits)*100)/100;
-    const fm=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2});
+    const fmtMoney=(v)=>(v<0?'-$':'$')+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-    // Compact 3-box summary row
-    const bxData=[
-      {lbl:'Income ('+filterLabel+')',val:fm(filtCredits),r:29,g:158,b:117},
-      {lbl:'Expenses ('+filterLabel+')',val:fm(filtDebits),r:226,g:75,b:74},
-      {lbl:'Account Balance',val:(g.balance<0?'-':'')+fm(g.balance),r:24,g:95,b:165}
-    ];
-    bxData.forEach((bx,i)=>{
-      const x=8+i*65;
-      doc.setFillColor(bx.r+(255-bx.r)*0.88,bx.g+(255-bx.g)*0.88,bx.b+(255-bx.b)*0.88);
-      doc.rect(x,30,62,12,'F');
-      doc.setFontSize(6.5);doc.setFont('helvetica','normal');
-      doc.setTextColor(100,100,100);
-      doc.text(bx.lbl,x+2,35);
-      doc.setFontSize(9);doc.setFont('helvetica','bold');
-      doc.setTextColor(Math.round(bx.r*0.55),Math.round(bx.g*0.55),Math.round(bx.b*0.55));
-      doc.text(bx.val,x+2,41);
-    });
-
-    // Transactions label
-    doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+    doc.setFontSize(9);doc.setFont('helvetica','bold');
     doc.setTextColor(30,30,30);
-    doc.text('Transactions — '+filterLabel+' ('+fyTrans.length+')',8,46);
+    doc.text('Transactions — '+filterLabel+' ('+fyTrans.length+' entries)',10,72);
 
     if(fyTrans.length){
+      // Calculate running balance for each row
       let runBal=0;
       const tableRows=fyTrans.map(t=>{
         runBal=Math.round((runBal+(t.amount||0))*100)/100;
-        return[
+        return [
           t.date||'',
-          (t.desc||'').substring(0,45),
-          t.amount>=0?'+$'+t.amount.toFixed(2):'-$'+Math.abs(t.amount).toFixed(2),
+          t.desc||'',
+          (t.amount>=0?'+$':'-$')+Math.abs(t.amount).toFixed(2),
           t.amount>=0?'Income':'Expense',
           (runBal>=0?'$':'-$')+Math.abs(runBal).toFixed(2)
         ];
       });
       doc.autoTable({
-        startY:48,
-        head:[['Date','Description','Amount','Type','Running Bal.']],
+        startY:75,
+        head:[['Date','Description','Amount','Type','Running Balance']],
         body:tableRows,
-        theme:'striped',
-        headStyles:{fillColor:[60,70,85],textColor:255,fontStyle:'bold',fontSize:7.5,cellPadding:2},
-        bodyStyles:{fontSize:7,textColor:[30,30,30],cellPadding:{top:1,bottom:1,left:2,right:2}},
-        alternateRowStyles:{fillColor:[248,250,253]},
-        margin:{left:8,right:10},
-        tableWidth:192,
+        theme:'grid',
+        headStyles:{fillColor:[92,99,112],textColor:255,fontStyle:'bold',fontSize:9},
+        bodyStyles:{fontSize:8.5,textColor:[30,30,30]},
+        alternateRowStyles:{fillColor:[245,247,250]},
         columnStyles:{
-          0:{cellWidth:22},
-          1:{cellWidth:98},
-          2:{cellWidth:26,halign:'right'},
-          3:{cellWidth:20,halign:'center'},
-          4:{cellWidth:26,halign:'right'}
+          0:{cellWidth:28},
+          1:{cellWidth:100},
+          2:{cellWidth:32,halign:'right'},
+          3:{cellWidth:28,halign:'center'}
         },
         didParseCell:function(data){
           if(data.column.index===3&&data.section==='body'){
@@ -5056,16 +5098,20 @@ function printGroupLedger(groupId){
             data.cell.styles.fontStyle='bold';
           }
         },
-        foot:[['','Totals:',fm(filtCredits)+' / '+fm(filtDebits),'','Bal: '+(filtBalance<0?'-':'')+fm(filtBalance)]],
-        footStyles:{fillColor:[235,238,245],textColor:[40,40,40],fontStyle:'bold',fontSize:7,cellPadding:1.5}
+        foot:[['','Running Balance:',
+          (g.balance<0?'-$':'$')+Math.abs(g.balance).toLocaleString('en-US',{minimumFractionDigits:2}),
+          '']],
+        footStyles:{fillColor:[235,235,237],textColor:[60,60,60],fontStyle:'bold',fontSize:9}
       });
     } else {
-      doc.setFontSize(8);doc.setTextColor(150,150,150);
-      doc.text('No transactions in this period.',8,55);
+      doc.setFontSize(10);doc.setTextColor(150,150,150);
+      doc.text('No transactions recorded for this fiscal year.',10,85);
     }
 
-    doc.setFontSize(7);doc.setTextColor(160,160,160);
-    doc.text('Highland Prep — Confidential — '+g.name+' Ledger',105,292,{align:'center'});
+    // Footer
+    doc.setFontSize(8);doc.setTextColor(150,150,150);
+    doc.text('Highland Prep — Confidential — '+g.name+' Ledger',105,290,{align:'center'});
+
     doc.save(g.name.replace(/[^a-z0-9]/gi,'_')+'_Ledger_'+fiscalYear+'.pdf');
     toast('PDF exported: '+g.name+' ✓');
   }
@@ -5083,6 +5129,9 @@ function printGroupLedger(groupId){
   } else { doGenerate(); }
 }
 
+initData();
+
+// ── PDF EXPORT ────────────────────────────────────────────────────
 function exportPlannedPDF(){
   // Check if jsPDF is loaded, if not load it first
   if(typeof window.jspdf === 'undefined'){
@@ -5313,6 +5362,3 @@ function generatePDF(){
 </script>
 </body>
 </html>
-
-<!-- SchoolOps v2.0 Build 1789504053 - Fixed version -->
-<!-- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx -->
