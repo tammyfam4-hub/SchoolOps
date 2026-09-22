@@ -1413,11 +1413,22 @@ async function initData(){
   const emailEl=document.getElementById('user-email-display');
   if(emailEl)emailEl.textContent=userEmail;
 
+  // ── Auto-reset daily attendance ─────────────────────────────────
+  const _today=new Date().toISOString().slice(0,10);
+  const _lastReset=localStorage.getItem('attResetDate');
+  if(_lastReset!==_today){ 
+    localStorage.setItem('attResetDate',_today);
+    // Will clear attendance after Supabase load
+  }
+  const _needsReset = _lastReset!==_today;
+
   // ── 2. Load saved state from Supabase ──────────────────────────
   const saved=await loadFromSupabase(userEmail);
   if(saved){
     S=saved;
     console.log('✓ Loaded from Supabase');
+    // Auto-reset attendance if new day
+    if(_needsReset){ S.attendance={}; console.log('✓ Daily attendance reset'); }
   } else {
     console.log('No saved state — starting fresh with defaults');
   }
