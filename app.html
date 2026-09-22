@@ -1427,8 +1427,14 @@ async function initData(){
   if(saved){
     S=saved;
     console.log('✓ Loaded from Supabase');
-    // Auto-reset attendance if new day
-    if(_needsReset){ S.attendance={}; console.log('✓ Daily attendance reset'); }
+    // Fix future lastDate
+    const _azNow=new Date(new Date().getTime()+(-7*60)*60000+(new Date().getTimezoneOffset()*60000));
+    const _azToday=_azNow.toISOString().slice(0,10);
+    if(!S.lastDate||S.lastDate>_azToday){
+      S.lastDate=_azToday;
+      Object.keys(S.attendance||{}).forEach(k=>{S.attendance[k].status='P';S.attendance[k].sub=null;S.attendance[k].reason='';S.attendance[k].periods=[];});
+      console.log('✓ Fixed future lastDate, reset attendance to present');
+    }
   } else {
     console.log('No saved state — starting fresh with defaults');
   }
@@ -3764,7 +3770,7 @@ function checkMidnightReset(){
   const azNow=new Date(now.getTime()+azOffset*60000+(now.getTimezoneOffset()*60000));
   const azDate=azNow.toISOString().slice(0,10);
 
-  if(S.lastDate && S.lastDate!==azDate){
+  if(S.lastDate && (S.lastDate!==azDate || S.lastDate>azDate)){
     // Save yesterday to history
     if(!S.attendanceHistory)S.attendanceHistory={};
     const hasAbsences=Object.values(S.attendance).some(a=>a.status&&a.status!=='P');
