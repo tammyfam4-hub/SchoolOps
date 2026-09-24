@@ -1570,6 +1570,14 @@ async function initData(){
     (S.plannedDays||[]).forEach(p=>{
       const s=p.start,e=p.end||p.start;
       if(today<s||today>e)return; // not today
+      // Only trigger if departure is before 2:30 PM
+      if(p.departTime){
+        const dep=p.departTime.replace(/\s*(AM|PM)/i,'').split(':');
+        const isPM=p.departTime.toUpperCase().includes('PM');
+        let depHour=parseInt(dep[0])+(isPM&&parseInt(dep[0])!==12?12:0);
+        const depMin=parseInt(dep[1]||0);
+        if(depHour>14||(depHour===14&&depMin>=30)) return; // after 2:30, no sub needed
+      }
       const name=p.person;
       if(!S.attendance[name])S.attendance[name]={status:'P',sub:null,reason:'',periods:[],periodSubs:{},departTime:'',contractEnd:'15:30',swingName:''};
       const att=S.attendance[name];
