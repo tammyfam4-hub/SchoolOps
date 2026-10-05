@@ -1205,10 +1205,7 @@ function savePlannedDay(){
   renderPlannedCalendar();
   renderPlannedUpcoming();
   renderPlannedTable();
-  // Send email alert to admin group
-  if(confirm('Send calendar alert email to admin group?')){
-    sendPlannedDayEmail(entry);
-  }
+  // Email admin removed per user request
 }
 
 function deletePlannedDay(id){
