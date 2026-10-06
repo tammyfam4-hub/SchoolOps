@@ -4346,9 +4346,8 @@ function renderBudget(){
       return k?HISTORICAL_TX[k]:null;
     }
     [...S.sports,...S.clubs].forEach(g=>{
-      const hist=_findHist(g.name);
-      if(hist&&hist.length){
-  // Transactions from Supabase only - no historical override
+      // Transactions from Supabase only - no historical override
+    });
   }catch(e){console.error('TX inject error:',e);}
   if(S.budgetTab==='overview') renderBudgetOverview(bc);
   else if(S.budgetTab==='sports') renderBudgetList(bc,'sport');
