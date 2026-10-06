@@ -1423,11 +1423,11 @@ async function initData(){
   const saved=await loadFromSupabase(userEmail);
   if(saved){
     S=saved;
-    // Ensure clubs and classroomSupplies are always from Supabase
-    if(saved.clubs) S.clubs=saved.clubs;
-    if(saved.classroomSupplies) S.classroomSupplies=saved.classroomSupplies;
-    if(saved.sports) S.sports=saved.sports;
-    if(saved.miscBudgets) S.miscBudgets=saved.miscBudgets;
+    // Ensure clubs and classroomSupplies are always from Supabase - force override
+    S.clubs=saved.clubs||S.clubs;
+    S.classroomSupplies=saved.classroomSupplies||S.classroomSupplies;
+    S.sports=saved.sports||S.sports;
+    S.miscBudgets=saved.miscBudgets||S.miscBudgets;
     console.log('✓ Loaded from Supabase clubs:'+S.clubs.length+' cs:'+S.classroomSupplies.length);
     // Fix future lastDate
     const _azToday=new Date().toLocaleDateString('en-CA',{timeZone:'America/Phoenix'});
@@ -1450,7 +1450,7 @@ async function initData(){
   // Force today's date to April 17, 2026 Arizona time for initial reset
   if(!S.lastDate||S.lastDate<'2026-04-17')S.lastDate='2026-04-16'; // will trigger reset to 04-17
   if(!S.sports||!Array.isArray(S.sports))S.sports=JSON.parse(JSON.stringify(DEFAULT.sports));
-  if(!S.clubs||!Array.isArray(S.clubs))S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
+  if(!S.clubs||!Array.isArray(S.clubs)||S.clubs.length===0)S.clubs=JSON.parse(JSON.stringify(DEFAULT.clubs));
   // Ensure all sports and clubs have IDs (fix for Supabase-loaded state without IDs)
   S.sports.forEach((g,i)=>{if(!g.id)g.id=i+1;});
   S.clubs.forEach((g,i)=>{if(!g.id)g.id=100+i;});
@@ -4370,7 +4370,7 @@ function renderBudget(){
   }
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
-  if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
+  if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies)||S.classroomSupplies.length===0)S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
   // Transactions from Supabase onlyconsole.error('TX inject error:',e);}
   if(S.budgetTab==='overview') renderBudgetOverview(bc);
   else if(S.budgetTab==='sports') renderBudgetList(bc,'sport');
