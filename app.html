@@ -1423,7 +1423,12 @@ async function initData(){
   const saved=await loadFromSupabase(userEmail);
   if(saved){
     S=saved;
-    console.log('✓ Loaded from Supabase');
+    // Ensure clubs and classroomSupplies are always from Supabase
+    if(saved.clubs) S.clubs=saved.clubs;
+    if(saved.classroomSupplies) S.classroomSupplies=saved.classroomSupplies;
+    if(saved.sports) S.sports=saved.sports;
+    if(saved.miscBudgets) S.miscBudgets=saved.miscBudgets;
+    console.log('✓ Loaded from Supabase clubs:'+S.clubs.length+' cs:'+S.classroomSupplies.length);
     // Fix future lastDate
     const _azToday=new Date().toLocaleDateString('en-CA',{timeZone:'America/Phoenix'});
     if(!S.lastDate||S.lastDate>_azToday){
