@@ -3801,6 +3801,7 @@ function renderGroupDetail(groupId){
 
   const det=document.getElementById('budget-detail');
   if(!det)return;
+  const listType=S.sports.find(s=>s.id===groupId)?'sport':'club';
   det.innerHTML=`
     <!-- Back button + header -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
