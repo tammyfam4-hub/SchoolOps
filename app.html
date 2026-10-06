@@ -4331,6 +4331,22 @@ function exportCalExcel(){
 
 function renderBudget(){
   const bc=document.getElementById('budget-content');if(!bc)return;
+  // Auto-reload from Supabase if clubs or classroomSupplies look empty/default
+  const _scCheck=(S.clubs||[]).find(g=>g.name&&g.name.toLowerCase().includes('student council'));
+  if(!_scCheck||!_scCheck.transactions||_scCheck.transactions.length<10){
+    if(typeof sb!=='undefined'){
+      const _K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
+      sb.auth.getSession().then(({data:{session}})=>{if(!session)return;
+        fetch('https://idjratpppoubqehqvjpx.supabase.co/rest/v1/app_state?user_email=eq.tammy.fam4%40gmail.com&select=state_json',{headers:{'apikey':_K,'Authorization':'Bearer '+session.access_token}})
+        .then(r=>r.json()).then(d=>{if(!d||!d[0])return;
+          const _s=JSON.parse(d[0].state_json);
+          S.clubs=_s.clubs;S.sports=_s.sports;S.classroomSupplies=_s.classroomSupplies;S.miscBudgets=_s.miscBudgets;
+          renderBudget();
+        }).catch(e=>console.log('Budget reload err:',e));
+      });
+      return; // wait for reload
+    }
+  }
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
