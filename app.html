@@ -3772,22 +3772,6 @@ function toggleLockFY(groupId, fy){
 }
 
 function renderGroupDetail(groupId){
-  // Auto-reload from Supabase if transactions are empty
-  const _grpCheck=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
-  if(_grpCheck&&(!_grpCheck.transactions||_grpCheck.transactions.length===0)){
-    if(typeof sb!=='undefined'){
-      const _K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkanJhdHBwcG91YnFlaHF2anB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyODg1NzUsImV4cCI6MjA5MTg2NDU3NX0.1I1hmLiexoXNmGTrjqsBoGX0lqGmOndenD3G9Xo6iig';
-      sb.auth.getSession().then(({data:{session}})=>{if(!session)return;
-        fetch('https://idjratpppoubqehqvjpx.supabase.co/rest/v1/app_state?user_email=eq.tammy.fam4%40gmail.com&select=state_json',{headers:{'apikey':_K,'Authorization':'Bearer '+session.access_token}})
-        .then(r=>r.json()).then(d=>{if(!d||!d[0])return;
-          const _s=JSON.parse(d[0].state_json);
-          S.clubs=_s.clubs;S.sports=_s.sports;S.classroomSupplies=_s.classroomSupplies;
-          renderGroupDetail(groupId);
-        }).catch(e=>console.log('Detail reload err:',e));
-      });
-      return;
-    }
-  }
   // Find by ID first, fall back to index position if IDs are missing
   let grp=[...S.sports,...S.clubs,...(S.classroomSupplies||[])].find(g=>g.id===groupId);
   if(!grp){
