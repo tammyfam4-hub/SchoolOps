@@ -3799,6 +3799,8 @@ function renderGroupDetail(groupId){
   const fyEndYear=detailToDate.slice(0,4);
   const fyLabel=detailMode==='both'?'All Time':detailMode==='fy'?'FY '+fyStartYear+'–'+fyEndYear:detailMode==='lastfy'?'Last FY '+fyStartYear+'–'+fyEndYear:'Custom Range';
 
+  const det=document.getElementById('budget-detail');
+  if(!det)return;
   det.innerHTML=`
     <!-- Back button + header -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
