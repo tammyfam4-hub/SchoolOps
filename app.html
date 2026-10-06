@@ -4334,21 +4334,7 @@ function renderBudget(){
   if(!S.sports||!Array.isArray(S.sports))S.sports=[];
   if(!S.clubs||!Array.isArray(S.clubs))S.clubs=[];
   if(!S.classroomSupplies||!Array.isArray(S.classroomSupplies))S.classroomSupplies=JSON.parse(JSON.stringify(DEFAULT.classroomSupplies));
-  // Always inject historical transactions for all groups
-  try{
-    // Build a fuzzy lookup for HISTORICAL_TX
-    const _htxKeys=Object.keys(HISTORICAL_TX);
-    function _findHist(name){
-      if(HISTORICAL_TX[name])return HISTORICAL_TX[name];
-      // Try case-insensitive match
-      const nl=name.toLowerCase();
-      const k=_htxKeys.find(k=>k.toLowerCase()===nl||nl.includes(k.toLowerCase())||k.toLowerCase().includes(nl.split(' ')[0].toLowerCase()));
-      return k?HISTORICAL_TX[k]:null;
-    }
-    [...S.sports,...S.clubs].forEach(g=>{
-      // Transactions from Supabase only - no historical override
-    });
-  }catch(e){console.error('TX inject error:',e);}
+  // Transactions from Supabase onlyconsole.error('TX inject error:',e);}
   if(S.budgetTab==='overview') renderBudgetOverview(bc);
   else if(S.budgetTab==='sports') renderBudgetList(bc,'sport');
   else if(S.budgetTab==='clubs') renderBudgetList(bc,'club');
